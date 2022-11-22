@@ -5,7 +5,7 @@
 [![Test](https://github.com/anime-vsub/desktop-web/actions/workflows/test.yml/badge.svg)](https://github.com/anime-vsub/desktop-web/actions/workflows/test.yml)
 [![CodeQL](https://github.com/anime-vsub/desktop-web/actions/workflows/codeql.yml/badge.svg)](https://github.com/anime-vsub/desktop-web/actions/workflows/codeql.yml) [![ESLint](https://github.com/anime-vsub/desktop-web/actions/workflows/eslint.yml/badge.svg)](https://github.com/anime-vsub/desktop-web/actions/workflows/eslint.yml) [![Prettier](https://github.com/anime-vsub/desktop-web/actions/workflows/pretter.yml/badge.svg)](https://github.com/anime-vsub/desktop-web/actions/workflows/pretter.yml)
 [![TypeScript Checker Declaration](https://github.com/anime-vsub/desktop-web/actions/workflows/typing.yml/badge.svg)](https://github.com/anime-vsub/desktop-web/actions/workflows/typing.yml)
-[![Try build](https://github.com/anime-vsub/desktop-web/actions/workflows/try-build.yml/badge.svg)](https://github.com/anime-vsub/desktop-web/actions/workflows/try-build.yml)
+[![Try build](https://github.com/anime-vsub/desktop-web/actions/workflows/try-build.yml/badge.svg)](https://github.com/anime-vsub/desktop-web/actions/workflows/try-build.yml) [![Join the chat at https://gitter.im/anime-vsub/desktop-web](https://badges.gitter.im/anime-vsub/desktop-web.svg)](https://gitter.im/anime-vsub/desktop-web?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 <img alt="GitHub Package.json Version" src="https://img.shields.io/github/package-json/v/anime-vsub/desktop-web/main?label=development" /> <img src="https://img.shields.io/github/package-json/v/anime-vsub/desktop-web/release?label=release&color=b" />
 
