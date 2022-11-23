@@ -1098,26 +1098,26 @@ async function sendRate() {
 
   try {
     if (myRate.value < 5)
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         $q.dialog({
           title: `Bạn chắc muốn đánh giá ${myRate.value} sao cho season này chứ?`,
-          message: `Bạn chỉ có thể đánh giá một lần cho mỗi season Anime và không thể sửa lại sau khi đánh giá. Hãy chắc chắn rằng bạn cảm thấy <span class="text-weight-medium">${ratesText.value[
-            myRate.value - 1
-          ]}</span>`,
+          message: `Bạn chỉ có thể đánh giá một lần cho mỗi season Anime và không thể sửa lại sau khi đánh giá. Hãy chắc chắn rằng bạn cảm thấy <span class="text-weight-medium">${
+            ratesText.value[myRate.value - 1]
+          }</span>`,
           html: true,
           focus: "cancel",
-          ok: {rounded: true, flat: true },
-          cancel: { rounded: true, flat: true }
+          ok: { rounded: true, flat: true },
+          cancel: { rounded: true, flat: true },
         })
-        .onOk(() => {
-          resolve()
-        })
-        .onCancel(() => {
-          reject()
-        })
-        .onDismiss(() => {
-          reject()
-        })
+          .onOk(() => {
+            resolve()
+          })
+          .onCancel(() => {
+            reject()
+          })
+          .onDismiss(() => {
+            reject()
+          })
       })
 
     rated.value = true
