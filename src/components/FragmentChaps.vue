@@ -47,6 +47,7 @@
       animated
       keep-alive
       class="flex-1 w-full bg-transparent panels-seasons"
+      v-show="!gridModeTabsSeasons"
     >
       <q-tab-panel
         v-for="({ value }, index) in seasons"
