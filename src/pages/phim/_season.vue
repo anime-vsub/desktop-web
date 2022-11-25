@@ -29,8 +29,9 @@
         :seasons="seasons"
         :_cache-data-seasons="_cacheDataSeasons"
         :fetch-season="fetchSeason"
+        :progressWatchStore="progressWatchStore"
         @cur-update="
-          currentDataCache?.progressChaps?.set($event.id, {
+          currentProgresWatch?.set($event.id, {
             cur: $event.cur,
             dur: $event.dur,
           })
@@ -61,6 +62,7 @@
           :_cache-data-seasons="_cacheDataSeasons"
           :current-season="currentSeason"
           :current-chap="currentChap"
+          :progressWatchStore="progressWatchStore"
         />
       </div>
     </div>
@@ -338,6 +340,7 @@
             :_cache-data-seasons="_cacheDataSeasons"
             :current-season="currentSeason"
             :current-chap="currentChap"
+            :progressWatchStore="progressWatchStore"
           />
         </div>
       </q-responsive>
@@ -480,12 +483,23 @@ const _cacheDataSeasons = reactive<
     | ResponseDataSeasonError
   >
 >(new Map())
+const progressWatchStore = reactive(new Map<string, {
+  status: "pending"
+} | {
+  status: "success",
+  response: any
+} | {
+  status: "error",
+  error: Error
+} | {}>())
+
 watch(
   data,
   () => {
     if (!data.value) {
       seasons.value = undefined
   _cacheDataSeasons.clear()
+  progressWatchStore.clear()
 
       return
     }
@@ -525,18 +539,29 @@ watch(
 )
 
 // eslint-disable-next-line camelcase
-watch([_cacheDataSeasons, () => authStore.user_data], ([cache, user_data]) => {
+watch([progressWatchStore, () => authStore.user_data], ([progressWatchStore, user_data]) => {
   // eslint-disable-next-line camelcase
   if (!user_data) return
 
   // help me
-  cache.forEach(async (item, season) => {
-    if (item.status === "error") return
+  progressWatchStore.forEach(async (item, season) => {
+    if (item.status && item.status !== "error") return; // "pending" or "success"
 
-    if (item.progressChaps || item.progressChaps === null) return
-
-    item.progressChaps = null // set is fetching
-    item.progressChaps = await getProgressChaps(season)
+    Object.assign(item, {
+      status: "pending"
+    })
+    try {
+      console.log("%c fetch progress view", "color: blue")
+      Object.assign(item, {
+        status: "success",
+        response: await getProgressChaps(season)
+      })
+    } catch (err) {
+      Object.assign(item, {
+        status: "error",
+        error: err as Error
+      })
+    }
   })
 })
 
@@ -545,6 +570,12 @@ async function fetchSeason(season: string) {
     console.warn("seasons not ready")
     return
   }
+
+  if (!progressWatchStore.has(season))
+    progressWatchStore.set(season, {})
+  else
+    console.log(">> progress %s exists", season)
+
   if (_cacheDataSeasons.get(season)?.status === "success") {
     console.info("use data from cache not fetch")
     return
@@ -654,6 +685,13 @@ const currentDataCache = computed(() => {
   return undefined
 })
 const currentDataSeason = computed(() => currentDataCache.value?.response)
+const currentProgresWatch = computed(() => {
+  const inCache = progressWatchStore.get(currentSeason.value)
+
+  if (inCache?.status === "success") return inCache.response
+
+  return undefined
+})
 const currentChap = computed(() => {
   if (route.params.chap) return route.params.chap as string
 

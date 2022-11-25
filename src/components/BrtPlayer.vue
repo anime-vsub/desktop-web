@@ -447,7 +447,7 @@
                                     value === currentSeason &&
                                     item.id === currentChap
                                 "
-                                :progress-chaps="_tmp.progressChaps"
+                                :progress-chaps="progressWatchStore.get(value)?.response"
                                 class-item="px-3 !py-[6px] mb-3"
                               />
                             </template>
@@ -869,6 +869,7 @@ const props = defineProps<{
     | ResponseDataSeasonError
   >
   fetchSeason: (season: string) => Promise<void>
+  progressWatchStore: any
 }>()
 
 const playerWrapRef = ref<HTMLDivElement>()
@@ -1151,7 +1152,6 @@ const saveCurTimeToPer = throttle(async () => {
   if (!seasonReady) return
   if (!props.currentChap) return
   if (typeof props.nameCurrentChap !== "string") return
-  if (!remounting) return
 
   await historyStore.setProgressChap(props.currentSeason, props.currentChap, {
     cur: artCurrentTime.value,
@@ -1308,17 +1308,14 @@ function runRemount() {
 // eslint-disable-next-line functional/no-let
 let currentHls: Hlsjs
 onBeforeUnmount(() => currentHls?.destroy())
-let remounting = true
 function remount() {
   currentHls?.destroy()
- remounting = true
 
   if (!currentStream.value) {
     $q.notify({
       position: "bottom-right",
       message: t("video-tam-thoi-khong-kha-dung"),
     })
- remounting = false
     return
   }
 
@@ -1424,7 +1421,6 @@ function remount() {
       hls.attachMedia(video.value!)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       hls.on((Hls as unknown as any).Events.MANIFEST_PARSED, () => {
- remounting = false
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         if (playing) video.value!.play()
       })
@@ -1432,14 +1428,12 @@ function remount() {
     default:
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       video.value!.src = url
- remounting = false
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (playing) video.value!.play()
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   video.value!.currentTime = currentTime
- remounting = false
 }
 const watcherVideoTagReady = watch(video, (video) => {
   if (!video) return

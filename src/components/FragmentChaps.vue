@@ -88,7 +88,7 @@
             :chaps="_tmp.response.chaps"
             :season="value"
             :find="(item) => value === currentSeason && item.id === currentChap"
-            :progress-chaps="_tmp.progressChaps"
+            :progress-chaps="progressWatchStore.get(value)?.response"
             class-item="px-3 !py-[6px] mb-3"
           />
         </template>
@@ -128,6 +128,7 @@ const props = defineProps<{
   >
   currentSeason?: undefined | string
   currentChap?: string | undefined
+  progressWatchStore: any
 }>()
 const { t } = useI18n()
 
