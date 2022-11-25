@@ -413,6 +413,7 @@ import { useI18n } from "vue-i18n"
 import { useRequest } from "vue-request"
 import { RouterLink, useRoute, useRouter } from "vue-router"
 
+import type { ProgressWatchStore, Season } from "./_season.interface"
 import type {
   ResponseDataSeasonError,
   ResponseDataSeasonPending,
@@ -469,12 +470,7 @@ watch(error, (error) => {
     })
 })
 
-const seasons = shallowRef<
-  {
-    name: string
-    value: string
-  }[]
->()
+const seasons = shallowRef<Season[]>()
 const _cacheDataSeasons = reactive<
   Map<
     string,
@@ -483,25 +479,7 @@ const _cacheDataSeasons = reactive<
     | ResponseDataSeasonError
   >
 >(new Map())
-const progressWatchStore = reactive(
-  new Map<
-    string,
-    | {
-        status: "pending"
-      }
-    | {
-        status: "success"
-        response: Awaited<ReturnType<typeof getProgressChaps>>
-      }
-    | {
-        status: "error"
-        error: Error
-      }
-    | {
-        status: "queue"
-      }
-  >()
-)
+const progressWatchStore = reactive<ProgressWatchStore>(new Map())
 
 watch(
   data,

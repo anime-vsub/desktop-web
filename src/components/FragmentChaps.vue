@@ -103,6 +103,10 @@ import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { QBtn, QSpinner, QTab, QTabPanel, QTabPanels, QTabs } from "quasar"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
+import type {
+  ProgressWatchStore,
+  Season,
+} from "src/pages/phim/_season.interface"
 import { ref, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
@@ -114,12 +118,7 @@ import type {
 
 const props = defineProps<{
   fetchSeason: (season: string) => Promise<void>
-  seasons?:
-    | {
-        name: string
-        value: string
-      }[]
-    | undefined
+  seasons?: Season[] | undefined
   _cacheDataSeasons: Map<
     string,
     | ResponseDataSeasonPending
@@ -128,29 +127,7 @@ const props = defineProps<{
   >
   currentSeason?: undefined | string
   currentChap?: string | undefined
-  progressWatchStore: Map<
-    string,
-    | {
-        status: "pending"
-      }
-    | {
-        status: "success"
-        response: Map<
-          string,
-          {
-            cur: number
-            dur: number
-          }
-        > | null
-      }
-    | {
-        status: "error"
-        error: Error
-      }
-    | {
-        status: "queue"
-      }
-  >
+  progressWatchStore: ProgressWatchStore
 }>()
 const { t } = useI18n()
 

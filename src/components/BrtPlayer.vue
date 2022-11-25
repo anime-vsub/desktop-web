@@ -806,6 +806,7 @@ import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
 import { fetchJava } from "src/logic/fetchJava"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
+import type { ProgressWatchStore } from "src/pages/phim/_season.interface"
 import type {
   ResponseDataSeasonError,
   ResponseDataSeasonPending,
@@ -871,29 +872,7 @@ const props = defineProps<{
     | ResponseDataSeasonError
   >
   fetchSeason: (season: string) => Promise<void>
-  progressWatchStore: Map<
-    string,
-    | {
-        status: "pending"
-      }
-    | {
-        status: "success"
-        response: Map<
-          string,
-          {
-            cur: number
-            dur: number
-          }
-        > | null
-      }
-    | {
-        status: "error"
-        error: Error
-      }
-    | {
-        status: "queue"
-      }
-  >
+  progressWatchStore: ProgressWatchStore
 }>()
 
 const playerWrapRef = ref<HTMLDivElement>()
