@@ -449,6 +449,7 @@ const { data, run, error, loading } = useRequest(
   {
     refreshDeps: [realIdCurrentSeason],
     refreshDepsAction() {
+      data.value = undefined
       run()
     },
   }
@@ -471,11 +472,20 @@ const seasons = shallowRef<
     value: string
   }[]
 >()
+const _cacheDataSeasons = reactive<
+  Map<
+    string,
+    | ResponseDataSeasonPending
+    | ResponseDataSeasonSuccess
+    | ResponseDataSeasonError
+  >
+>(new Map())
 watch(
   data,
   () => {
     if (!data.value) {
       seasons.value = undefined
+  _cacheDataSeasons.clear()
 
       return
     }
@@ -514,14 +524,6 @@ watch(
   }
 )
 
-const _cacheDataSeasons = reactive<
-  Map<
-    string,
-    | ResponseDataSeasonPending
-    | ResponseDataSeasonSuccess
-    | ResponseDataSeasonError
-  >
->(new Map())
 // eslint-disable-next-line camelcase
 watch([_cacheDataSeasons, () => authStore.user_data], ([cache, user_data]) => {
   // eslint-disable-next-line camelcase
@@ -752,9 +754,9 @@ const nextChap = computed(
     const isLastChapOfSeason =
       indexCurrentChap === currentDataSeason.value.chaps.length - 1
     if (!isLastChapOfSeason) {
+      if (!currentMetaSeason.value) return
       return {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        season: currentMetaSeason.value!,
+        season: currentMetaSeason.value,
         chap: currentDataSeason.value.chaps[indexCurrentChap + 1],
       }
     }
