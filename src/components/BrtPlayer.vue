@@ -447,7 +447,9 @@
                                     value === currentSeason &&
                                     item.id === currentChap
                                 "
-                                :progress-chaps="progressWatchStore.get(value)?.response"
+                                :progress-chaps="
+                                  (progressWatchStore.get(value) as unknown as any)?.response
+                                "
                                 class-item="px-3 !py-[6px] mb-3"
                               />
                             </template>
@@ -869,7 +871,29 @@ const props = defineProps<{
     | ResponseDataSeasonError
   >
   fetchSeason: (season: string) => Promise<void>
-  progressWatchStore: any
+  progressWatchStore: Map<
+    string,
+    | {
+        status: "pending"
+      }
+    | {
+        status: "success"
+        response: Map<
+          string,
+          {
+            cur: number
+            dur: number
+          }
+        > | null
+      }
+    | {
+        status: "error"
+        error: Error
+      }
+    | {
+        status: "queue"
+      }
+  >
 }>()
 
 const playerWrapRef = ref<HTMLDivElement>()

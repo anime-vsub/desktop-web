@@ -88,7 +88,7 @@
             :chaps="_tmp.response.chaps"
             :season="value"
             :find="(item) => value === currentSeason && item.id === currentChap"
-            :progress-chaps="progressWatchStore.get(value)?.response"
+            :progress-chaps="(progressWatchStore.get(value) as unknown as any)?.response"
             class-item="px-3 !py-[6px] mb-3"
           />
         </template>
@@ -128,7 +128,29 @@ const props = defineProps<{
   >
   currentSeason?: undefined | string
   currentChap?: string | undefined
-  progressWatchStore: any
+  progressWatchStore: Map<
+    string,
+    | {
+        status: "pending"
+      }
+    | {
+        status: "success"
+        response: Map<
+          string,
+          {
+            cur: number
+            dur: number
+          }
+        > | null
+      }
+    | {
+        status: "error"
+        error: Error
+      }
+    | {
+        status: "queue"
+      }
+  >
 }>()
 const { t } = useI18n()
 

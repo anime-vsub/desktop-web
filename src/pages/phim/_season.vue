@@ -483,23 +483,33 @@ const _cacheDataSeasons = reactive<
     | ResponseDataSeasonError
   >
 >(new Map())
-const progressWatchStore = reactive(new Map<string, {
-  status: "pending"
-} | {
-  status: "success",
-  response: any
-} | {
-  status: "error",
-  error: Error
-} | {}>())
+const progressWatchStore = reactive(
+  new Map<
+    string,
+    | {
+        status: "pending"
+      }
+    | {
+        status: "success"
+        response: Awaited<ReturnType<typeof getProgressChaps>>
+      }
+    | {
+        status: "error"
+        error: Error
+      }
+    | {
+        status: "queue"
+      }
+  >()
+)
 
 watch(
   data,
   () => {
     if (!data.value) {
       seasons.value = undefined
-  _cacheDataSeasons.clear()
-  progressWatchStore.clear()
+      _cacheDataSeasons.clear()
+      progressWatchStore.clear()
 
       return
     }
@@ -538,32 +548,35 @@ watch(
   }
 )
 
-// eslint-disable-next-line camelcase
-watch([progressWatchStore, () => authStore.user_data], ([progressWatchStore, user_data]) => {
+watch(
+  [progressWatchStore, () => authStore.user_data],
   // eslint-disable-next-line camelcase
-  if (!user_data) return
+  ([progressWatchStore, user_data]) => {
+    // eslint-disable-next-line camelcase
+    if (!user_data) return
 
-  // help me
-  progressWatchStore.forEach(async (item, season) => {
-    if (item.status && item.status !== "error") return; // "pending" or "success"
+    // help me
+    progressWatchStore.forEach(async (item, season) => {
+      if (item.status && item.status !== "error") return // "pending" or "success"
 
-    Object.assign(item, {
-      status: "pending"
+      Object.assign(item, {
+        status: "pending",
+      })
+      try {
+        console.log("%c fetch progress view", "color: blue")
+        Object.assign(item, {
+          status: "success",
+          response: await getProgressChaps(season),
+        })
+      } catch (err) {
+        Object.assign(item, {
+          status: "error",
+          error: err as Error,
+        })
+      }
     })
-    try {
-      console.log("%c fetch progress view", "color: blue")
-      Object.assign(item, {
-        status: "success",
-        response: await getProgressChaps(season)
-      })
-    } catch (err) {
-      Object.assign(item, {
-        status: "error",
-        error: err as Error
-      })
-    }
-  })
-})
+  }
+)
 
 async function fetchSeason(season: string) {
   if (!seasons.value) {
@@ -572,9 +585,8 @@ async function fetchSeason(season: string) {
   }
 
   if (!progressWatchStore.has(season))
-    progressWatchStore.set(season, {})
-  else
-    console.log(">> progress %s exists", season)
+    progressWatchStore.set(season, { status: "queue" })
+  else console.log(">> progress %s exists", season)
 
   if (_cacheDataSeasons.get(season)?.status === "success") {
     console.info("use data from cache not fetch")
