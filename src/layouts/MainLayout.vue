@@ -141,7 +141,7 @@
               <q-list>
                 <q-item class="rounded-xl">
                   <q-item-section class="text-[15px]">
-                    Về ứng dụng
+                    {{ t("ve-ung-dung") }}
                   </q-item-section>
                 </q-item>
 
@@ -162,7 +162,9 @@
                     />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Mã nguồn mở trên Github</q-item-label>
+                    <q-item-label>{{
+                      t("ma-nguon-mo-tren-github")
+                    }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item
@@ -180,7 +182,9 @@
                     />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Phản hồi hoặc báo lỗi</q-item-label>
+                    <q-item-label>{{
+                      t("phan-hoi-hoac-bao-loi")
+                    }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item
@@ -198,7 +202,7 @@
                     />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Thảo luận</q-item-label>
+                    <q-item-label>{{ t("thao-luan") }}</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item
@@ -218,14 +222,20 @@
                     />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Kiểm tra cập nhật</q-item-label>
+                    <q-item-label>{{ t("kiem-tra-cap-nhat") }}</q-item-label>
                     <q-item-label caption>
                       {{ version }}
                       <template v-if="newVersionAble">
-                        (Đã có bản mới {{ newVersionAble }})
-                        <q-btn flat rounded no-caps @click="updateApp"
-                          >Cập nhật</q-btn
-                        >
+                        ({{
+                          t("da-co-ban-cap-nhat-moi-_newVersion", [
+                            newVersionAble,
+                          ])
+                        }}
+                        &bull;
+                        <q-btn flat rounded no-caps @click="updateApp">{{
+                          t("cap-nhat")
+                        }}</q-btn
+                        >)
                       </template>
                     </q-item-label>
                   </q-item-section>
@@ -788,7 +798,7 @@
                       />
                     </q-btn>
                   </q-item-section>
-                  <q-item-section> Cài đặt chung </q-item-section>
+                  <q-item-section> {{ t("cai-dat-chung") }} </q-item-section>
                 </q-item>
 
                 <!-- <q-separator class="bg-[rgba(255,255,255,0.1)]" /> -->
@@ -1333,8 +1343,11 @@ async function checkForUpdate() {
     // new version avaliable
     newVersionAble.value = tagName.slice(1)
     $q.dialog({
-      title: "Đã có bản cập nhật mới",
-      message: `Phiên bản AnimeVsub đã có bản cập nhật mới. Tải lại trang để cập nhật.: <p style='white-space: pre-wrap'>${body}}</p>`,
+      title: t("da-co-ban-cap-nhat-moi"),
+      message: t(
+        "phien-ban-animevsub-da-co-ban-cap-nhat-moi-tai-lai-trang-de-cap-nhat-less-_body",
+        [body]
+      ),
       ok: { flat: true, rounded: true },
       cancel: { flat: true, rounded: true },
       focus: "cancel",
