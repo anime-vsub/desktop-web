@@ -129,6 +129,112 @@
 
         <q-space />
 
+        <q-btn round unelevated class="mr-2">
+          <Icon icon="codicon:github-inverted" width="24" height="24" />
+
+          <q-menu
+            anchor="bottom right"
+            self="top right"
+            class="rounded-xl bg-dark-page shadow-xl"
+          >
+            <q-card class="transparent w-[280px] px-2 pb-3">
+              <q-list>
+                <q-item class="rounded-xl">
+                  <q-item-section class="text-[15px]">
+                    Về ứng dụng
+                  </q-item-section>
+                </q-item>
+
+                <!-- <q-separator class="bg-[rgba(255,255,255,0.1)]" /> -->
+
+                <q-item
+                  clickable
+                  v-ripple
+                  class="rounded-xl"
+                  target="_blank"
+                  href="https://github.com/anime-vsub/desktop-web"
+                >
+                  <q-item-section avatar class="min-w-0">
+                    <Icon
+                      icon="carbon:repo-source-code"
+                      width="20"
+                      height="20"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Mã nguồn mở trên Github</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  class="rounded-xl"
+                  target="_blank"
+                  href="https://github.com/anime-vsub/desktop-web/issues"
+                >
+                  <q-item-section avatar class="min-w-0">
+                    <Icon
+                      icon="fluent:person-feedback-24-regular"
+                      width="20"
+                      height="20"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Phản hồi hoặc báo lỗi</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  class="rounded-xl"
+                  target="_blank"
+                  href="https://github.com/anime-vsub/desktop-web/discussions"
+                >
+                  <q-item-section avatar class="min-w-0">
+                    <Icon
+                      icon="fluent:plug-disconnected-24-regular"
+                      width="20"
+                      height="20"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Thảo luận</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  class="rounded-xl"
+                  @click="checkForUpdate"
+                >
+                  <q-item-section avatar class="min-w-0">
+                    <Icon
+                      icon="charm:refresh"
+                      width="20"
+                      height="20"
+                      :class="{
+                        'animate-spin': checkingForUpdate,
+                      }"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Kiểm tra cập nhật</q-item-label>
+                    <q-item-label caption>
+                      {{ version }}
+                      <template v-if="newVersionAble">
+                        (Đã có bản mới {{ newVersionAble }})
+                        <q-btn flat rounded no-caps @click="updateApp"
+                          >Cập nhật</q-btn
+                        >
+                      </template>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-card>
+          </q-menu>
+        </q-btn>
+
         <q-btn v-if="authStore.isLogged" round unelevated class="mr-2">
           <Icon
             :icon="
@@ -643,7 +749,7 @@
                   </q-item-section>
                 </q-item>
 
-                <q-separator class="bg-[rgba(255,255,255,0.1)]" />
+                <!-- <q-separator class="bg-[rgba(255,255,255,0.1)]" /> -->
 
                 <q-item
                   v-for="{ name, code } in languages"
@@ -682,10 +788,10 @@
                       />
                     </q-btn>
                   </q-item-section>
-                  <q-item-section>
-                    {{ t("chon-ngon-ngu-cua-ban") }}
-                  </q-item-section>
+                  <q-item-section> Cài đặt chung </q-item-section>
                 </q-item>
+
+                <!-- <q-separator class="bg-[rgba(255,255,255,0.1)]" /> -->
 
                 <q-item clickable v-ripple class="rounded-xl">
                   <q-item-section>
@@ -956,6 +1062,8 @@ import BottomBlur from "components/BottomBlur.vue"
 import CardVertical from "components/CardVertical.vue"
 import SkeletonCardVertical from "components/SkeletonCardVertical.vue"
 import { debounce, QInput, useQuasar } from "quasar"
+import semverGt from "semver/functions/gt"
+import { version } from "src/../package.json"
 import { PreSearch } from "src/apis/runs/pre-search"
 import { TuPhim } from "src/apis/runs/tu-phim"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
@@ -1195,6 +1303,7 @@ watch(showMenuAccount, (val) => {
   if (val) tabMenuAccountActive.value = "normal"
 })
 
+// key bind /
 const inputSearchRef = ref<QInput>()
 useEventListener(window, "keypress", (event) => {
   if (checkContentEditable(document.activeElement)) return
@@ -1204,6 +1313,34 @@ useEventListener(window, "keypress", (event) => {
     inputSearchRef.value?.focus()
   }
 })
+
+// check for update
+const newVersionAble = ref<string | null>(null)
+const checkingForUpdate = ref(false)
+function updateApp() {
+  location.reload()
+}
+async function checkForUpdate() {
+  checkingForUpdate.value = true
+
+  const { tag_name: tagName, body }: { tag_name: string; body: string } =
+    await fetch(
+      "https://api.github.com/repos/anime-vsub/desktop-web/releases/latest"
+    ).then((res) => res.json())
+
+  checkingForUpdate.value = false
+  if (semverGt(version, tagName.slice(1))) {
+    // new version avaliable
+    newVersionAble.value = tagName.slice(1)
+    $q.dialog({
+      title: "Đã có bản cập nhật mới",
+      message: `Phiên bản AnimeVsub đã có bản cập nhật mới. Tải lại trang để cập nhật.: <p style='white-space: pre-wrap'>${body}}</p>`,
+      ok: { flat: true, rounded: true },
+      cancel: { flat: true, rounded: true },
+      focus: "cancel",
+    }).onOk(updateApp)
+  }
+}
 </script>
 
 <style lang="scss">
