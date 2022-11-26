@@ -91,7 +91,11 @@ module.exports = configure(function (/* ctx */) {
                   protocol: "wss",
                   clientPort: 443,
                 }
-              : true,
+              : process.env.CODESPACE_NAME ?  {
+                host: `${process.env.CODESPACE_NAME}-9000.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`,
+protocol: "wss",
+clientPort: 443
+              } : true,
           },
         })
       },
