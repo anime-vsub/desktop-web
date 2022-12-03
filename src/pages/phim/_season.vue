@@ -768,59 +768,51 @@ interface SiblingChap {
   season: Exclude<typeof seasons.value, undefined>[0]
   chap?: Exclude<typeof currentDataSeason.value, undefined>["chaps"][0]
 }
-const nextChap = computed(
-  // eslint-disable-next-line vue/return-in-computed-property
-  (): SiblingChap | undefined => {
-    if (!currentDataSeason.value) return
-    // get index currentChap
-    const indexCurrentChap = !currentMetaChap.value
-      ? -1
-      : currentDataSeason.value.chaps.indexOf(currentMetaChap.value)
-    if (indexCurrentChap === -1) {
-      console.warn("current index not found %i", indexCurrentChap)
-      return
-    }
-
-    const isLastChapOfSeason =
-      indexCurrentChap === currentDataSeason.value.chaps.length - 1
-    if (!isLastChapOfSeason) {
-      if (!currentMetaSeason.value) return
-      return {
-        season: currentMetaSeason.value,
-        chap: currentDataSeason.value.chaps[indexCurrentChap + 1],
-      }
-    }
-
-    if (!seasons.value) return
-    // if current last chap of season
-    // check season of last
-    const indexSeason = !currentMetaSeason.value
-      ? -1
-      : seasons.value.indexOf(currentMetaSeason.value)
-    if (indexSeason === -1) {
-      console.warn("current index not found %i", indexSeason)
-      return
-    }
-
-    const isLastSeason = indexSeason === seasons.value.length - 1
-    if (!isLastSeason) {
-      // first chap of next season
-      return {
-        season: seasons.value[indexSeason + 1],
-      }
-    }
-
-    console.info("[[===THE END===]]")
+// eslint-disable-next-line vue/return-in-computed-property
+const nextChap = computed((): SiblingChap | undefined => {
+  if (!currentDataSeason.value) return
+  // get index currentChap
+  const indexCurrentChap = !currentMetaChap.value
+    ? -1
+    : currentDataSeason.value.chaps.indexOf(currentMetaChap.value)
+  if (indexCurrentChap === -1) {
+    console.warn("current index not found %i", indexCurrentChap)
+    return
   }
-)
-const prevChap = computed<
-  | {
-      season: typeof seasons.value[0]
-      chap?: typeof currentDataSeason.value.chaps[0]
+
+  const isLastChapOfSeason =
+    indexCurrentChap === currentDataSeason.value.chaps.length - 1
+  if (!isLastChapOfSeason) {
+    if (!currentMetaSeason.value) return
+    return {
+      season: currentMetaSeason.value,
+      chap: currentDataSeason.value.chaps[indexCurrentChap + 1],
     }
-  | undefined
-  // eslint-disable-next-line vue/return-in-computed-property
->(() => {
+  }
+
+  if (!seasons.value) return
+  // if current last chap of season
+  // check season of last
+  const indexSeason = !currentMetaSeason.value
+    ? -1
+    : seasons.value.indexOf(currentMetaSeason.value)
+  if (indexSeason === -1) {
+    console.warn("current index not found %i", indexSeason)
+    return
+  }
+
+  const isLastSeason = indexSeason === seasons.value.length - 1
+  if (!isLastSeason) {
+    // first chap of next season
+    return {
+      season: seasons.value[indexSeason + 1],
+    }
+  }
+
+  console.info("[[===THE END===]]")
+})
+// eslint-disable-next-line vue/return-in-computed-property
+const prevChap = computed((): SiblingChap | undefined => {
   if (!currentDataSeason.value) return
   // get index currentChap
   const indexCurrentChap = !currentMetaChap.value
@@ -833,6 +825,7 @@ const prevChap = computed<
 
   const isFirstChapOfSeason = indexCurrentChap === 0
   if (!isFirstChapOfSeason) {
+    if (!currentMetaSeason.value) return
     return {
       season: currentMetaSeason.value,
       chap: currentDataSeason.value.chaps[indexCurrentChap - 1],

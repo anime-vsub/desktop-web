@@ -889,7 +889,7 @@ function emitNextChap(noNotice?: boolean) {
     addNotice(
       props.currentSeason !== props.nextChap.season.value
         ? `Đang phát season ${props.nextChap.season.name} sau`
-        : `Đang phát tập ${props.nextChap.chap.name} tiếp theo`
+        : `Đang phát tập ${props.nextChap.chap?.name ?? ""} tiếp theo`
     )
 
   router.push(
@@ -909,7 +909,7 @@ function emitPrevChap(noNotice?: boolean) {
     addNotice(
       props.currentSeason !== props.prevChap.season.value
         ? `Đang phát season ${props.prevChap.season.name} trước`
-        : `Đang phát tập ${props.prevChap.chap.name} trước`
+        : `Đang phát tập ${props.prevChap.chap?.name ?? ""} trước`
     )
 
   router.push(
@@ -1854,6 +1854,7 @@ useEventListener(window, "keydown", (event: KeyboardEvent) => {
       break
     case "KeyP":
       if (event.shiftKey) emitPrevChap(true)
+      break
     case "KeyJ":
       skipOpening()
       break
