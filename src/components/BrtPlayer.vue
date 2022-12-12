@@ -725,7 +725,7 @@
                       <div
                         class="bg-[rgba(45,45,45,0.95)] py-2 px-4 flex items-center justify-between relative"
                       >
-                        Cài đặt
+                        {{ t("cai-dat") }}
 
                         <q-btn
                           dense
@@ -740,7 +740,7 @@
                         class="bg-[rgba(28,28,30,0.95)] !min-h-0 px-4 relative py-3"
                       >
                         <div class="text-zinc-500 text-[12px] mb-2">
-                          Chất lượng
+                          {{ t("chat-luong") }}
                         </div>
                         <div>
                           <q-btn
@@ -761,7 +761,7 @@
                         </div>
 
                         <div class="text-zinc-500 text-[12px] mt-4 mb-2">
-                          Tốc độ phát lại
+                          {{ t("toc-do-phat-lai") }}
                         </div>
                         <div class="flex flex-nowrap mx-[-8px]">
                           <q-btn
@@ -784,7 +784,7 @@
                         <div
                           class="flex items-center justify-between mt-4 mb-2"
                         >
-                          Tự động phát
+                          {{ t("tu-dong-phat") }}
                           <q-toggle
                             v-model="settingsStore.player.autoNext"
                             size="sm"
@@ -795,7 +795,7 @@
                         <div
                           class="flex items-center justify-between mt-4 mb-2"
                         >
-                          Giao diện mới
+                          {{ t("giao-dien-moi") }}
                           <q-toggle
                             v-model="settingsStore.ui.newPlayer"
                             size="sm"
@@ -806,7 +806,7 @@
                         <div
                           class="flex items-center justify-between mt-4 mb-2"
                         >
-                          Lối tắt chất lượng & tốc độ
+                          {{ t("loi-tat-chat-luong-and-toc-do") }}
                           <q-toggle
                             v-model="settingsStore.ui.shortcutsQAP"
                             size="sm"
@@ -824,7 +824,7 @@
                       transition-show="jump-up"
                       transition-hide="jump-down"
                     >
-                      Cài đặt
+                      {{ t("cai-dat") }}
                     </q-tooltip>
                   </q-btn>
                   <q-btn
