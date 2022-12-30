@@ -983,7 +983,6 @@ import {
 import BottomBlurRelative from "components/BottomBlurRelative.vue"
 import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
-import type Hlsjs from "hls.js"
 import type { PlaylistLoaderConstructor } from "hls.js"
 import Hls from "hls.js"
 import {
@@ -1581,7 +1580,7 @@ function runRemount() {
   }).onOk(remount)
 }
 // eslint-disable-next-line functional/no-let
-let currentHls: Hlsjs
+let currentHls: Hls
 onBeforeUnmount(() => currentHls?.destroy())
 function remount(resetCurrentTime?: boolean) {
   currentHls?.destroy()
