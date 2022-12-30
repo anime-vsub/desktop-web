@@ -1003,7 +1003,7 @@ import {
   useQuasar,
 } from "quasar"
 import { useMemoControl } from "src/composibles/memo-control"
-import { playbackRates } from "src/constants"
+import { DELAY_SAVE_VIEWING_PROGRESS, playbackRates } from "src/constants"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
 import { fetchJava } from "src/logic/fetchJava"
@@ -1397,6 +1397,8 @@ const emit = defineEmits<{
     }
   ): void
 }>()
+// eslint-disable-next-line functional/no-let
+let processingSaveCurTimeIn: string | null = null
 const saveCurTimeToPer = throttle(
   async (
     currentSeason: string,
@@ -1405,11 +1407,19 @@ const saveCurTimeToPer = throttle(
     dur: number,
     nameCurrentChap: string
   ) => {
-    await historyStore.setProgressChap(currentSeason, currentChap, {
-      cur,
-      dur,
-      name: nameCurrentChap,
-    })
+    const uid = `${currentSeason}/${currentChap}` // 255 byte
+
+    if (processingSaveCurTimeIn === uid) return // in progressing save this
+    processingSaveCurTimeIn = uid
+
+    await historyStore
+      .setProgressChap(currentSeason, currentChap, {
+        cur,
+        dur,
+        name: nameCurrentChap,
+      })
+      .finally(() => (processingSaveCurTimeIn = null))
+      .catch(() => console.warn("save viewing progress failed"))
 
     emit("cur-update", {
       cur,
@@ -1418,7 +1428,7 @@ const saveCurTimeToPer = throttle(
     })
     console.log("save viewing progress")
   },
-  3_000
+  DELAY_SAVE_VIEWING_PROGRESS
 )
 function onVideoTimeUpdate() {
   if (
