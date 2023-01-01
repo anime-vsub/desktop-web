@@ -477,10 +477,10 @@ const { data, run, error, loading } = useRequest(
         if (result) Object.assign(result.value, data)
         else result = ref(data)
 
-        // eslint-disable-next-line promise/catch-or-return, promise/no-nesting, @typescript-eslint/no-explicit-any
-        fs.writeFile(`/phim/${id}.json`, data as unknown as any).then(() =>
+        // eslint-disable-next-line promise/catch-or-return, promise/no-nesting, @typescript-eslint/no-explicit-any, promise/always-return
+        fs.writeFile(`/phim/${id}.json`, data as unknown as any).then(() => {
           console.log("[fs]: save cache to fs %s", id)
-        )
+        })
       }),
     ])
 
