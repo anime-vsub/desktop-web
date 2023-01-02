@@ -553,7 +553,7 @@
                         <div class="flex flex-nowrap">
                           <q-img
                             no-spinner
-                            :src="forceHttp2(item.image)"
+                            :src="forceHttp2(item.image!)"
                             width="128px"
                             :ratio="120 / 81"
                             class="rounded-sm"
