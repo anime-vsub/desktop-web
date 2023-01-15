@@ -334,7 +334,7 @@
 
       <!-- comment embed -->
       <div class="mt-5 flex items-center justify-between flex-nowrap">
-        <span class="text-subtitle1 text-[#eee]">Bình luận</span>
+        <span class="text-subtitle1 text-[#eee]">{{ t("binh-luan") }}</span>
         <q-toggle
           v-model="settingsStore.ui.commentAnime"
           color="main"
