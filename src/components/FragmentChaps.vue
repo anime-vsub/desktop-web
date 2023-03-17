@@ -79,21 +79,49 @@
         </div>
 
         <template v-else>
-          <div v-if="_tmp.response.update" class="mb-2 text-gray-300">
+          <div
+            v-if="_tmp.response.update"
+            class="mb-2 text-gray-300"
+            @mousedown.stop
+            @touchstart.stop
+          >
             <MessageScheludeChap :update="_tmp.response.update" />
           </div>
 
           <ChapsGridQBtn
+            class="chaps"
             grid
             :chaps="_tmp.response.chaps"
             :season="value"
             :find="(item) => value === currentSeason && item.id === currentChap"
             :progress-chaps="(progressWatchStore.get(value) as unknown as any)?.response"
             class-item="px-3 !py-[6px] mb-3"
+            :disable-no-watching="selectoing"
+            :ref="item => void( chapsGridBtnRef = item )"
           />
         </template>
       </q-tab-panel>
     </q-tab-panels>
+
+    <VueSelecto
+      :selectableTargets="chapsGridBtnRef?.itemRefs.map(item => item.$el) ?? []"
+      :dragContainer="'.panels-seasons'"
+      :hitRate="10"
+      :selectFromInside="false"
+      :selectByClick="false"
+      :toggleContinueSelect="'shift'"
+      :scrollOptions="{
+        container: '.panels-seasons .scroll',
+        throttleTime: 30,
+        threshold: 0,
+      }"
+      @keydown="onKeydown"
+      @keyup="onKeyup"
+      @selectStart="onSelectStart"
+      @selectEnd="onSelectEnd"
+      @select="onSelect"
+      @scroll="onScroll"
+    />
   </template>
 </template>
 
@@ -109,6 +137,7 @@ import type {
 } from "src/pages/phim/_season.interface"
 import { ref, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
+import { VueSelecto } from "vue3-selecto"
 
 import type {
   ResponseDataSeasonError,
@@ -177,6 +206,46 @@ let _tmp:
   | ResponseDataSeasonSuccess
   | ResponseDataSeasonError
   | undefined
+
+// ==================== selecto chap =====================
+const chapsGridBtnRef = ref<ChapsGridQBtn>(null)
+
+const selectoing = ref(false)
+function onSelectStart() {
+  selectoing.value = true
+}
+function onSelectEnd() {
+  selectoing.value = false
+}
+function onSelect(e) {
+  console.log("start", e)
+
+  e.added.forEach((el) => {
+    el.classList.add("selecto-item")
+  })
+  e.removed.forEach((el) => {
+    el.classList.remove("selecto-item")
+  })
+}
+// function onSelectEnd(e) {
+//   console.log("end", e)
+//   e.afterAdded.forEach((el) => {
+//     el.classList.add("selecto-item")
+//   })
+//   e.afterRemoved.forEach((el) => {
+//     el.classList.remove("selecto-item")
+//   })
+// }
+function onScroll(e) {
+  e.container.scrollBy(e.direction[0] * 10, e.direction[1] * 10)
+}
+function onKeydown() {
+  console.log("down")
+  document.querySelector(".button").classList.add("bg-light-green-3")
+}
+function onKeyup() {
+  document.querySelector(".button").classList.remove("bg-light-green-3")
+}
 </script>
 
 <style lang="scss" scoped>
