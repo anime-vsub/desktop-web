@@ -1002,7 +1002,7 @@ import {
   useQuasar,
 } from "quasar"
 import { useMemoControl } from "src/composibles/memo-control"
-import { DELAY_SAVE_VIEWING_PROGRESS, playbackRates } from "src/constants"
+import { CONFIRMATION_TIME_IS_ACTUALLY_WATCHING, DELAY_SAVE_VIEWING_PROGRESS, playbackRates } from "src/constants"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
 import { fetchJava } from "src/logic/fetchJava"
@@ -1420,7 +1420,7 @@ const storeFirstSaving = new Set<string>()
       timeout = setTimeout(() => {
         console.log("allow first saving")
         storeFirstSaving.add(uidChap.value)
-      }, DELAY_SAVE_VIEWING_PROGRESS / 4)
+      }, CONFIRMATION_TIME_IS_ACTUALLY_WATCHING)
       uidChapTimeout = uidChap.value
     } else {
       if (timeout) {
