@@ -1237,7 +1237,7 @@ watch(
       try {
         console.log(":restore progress")
         if (stateStorageStore.disableAutoRestoration) {
-          addNotice(t('bo-qua-khoi-phuc-tien-trinh-xem'))
+          addNotice(t("bo-qua-khoi-phuc-tien-trinh-xem"))
           // eslint-disable-next-line functional/no-throw-statement
           throw new Error("NOT_RESET")
         }
