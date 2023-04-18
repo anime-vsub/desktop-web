@@ -1468,6 +1468,14 @@ const saveCurTimeToPer = throttle(
   },
   DELAY_SAVE_VIEWING_PROGRESS
 )
+const throttleEmitCurUpdate = throttle(() => {
+  if (props.currentChap)
+    emit("cur-update", {
+      cur: artCurrentTime.value,
+      dur: artDuration.value,
+      id: props.currentChap,
+    })
+}, DELAY_SAVE_VIEWING_PROGRESS)
 function onVideoTimeUpdate() {
   if (
     artPlaying.value &&
@@ -1488,8 +1496,10 @@ function onVideoTimeUpdate() {
   if (!props.currentChap) return
   if (typeof props.nameCurrentChap !== "string") return
 
-  if (!storeFirstSaving.has(uidChap.value))
+  if (!storeFirstSaving.has(uidChap.value)) {
+    throttleEmitCurUpdate()
     return console.log("bypass because not first saving")
+  }
   saveCurTimeToPer(
     props.currentSeason,
     props.currentChap,
