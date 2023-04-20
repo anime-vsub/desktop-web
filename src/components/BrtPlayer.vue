@@ -1906,19 +1906,6 @@ const watcherVideoTagReady = watch(video, (video) => {
   )
 })
 
-// re-set quality if quality not in sources
-watch(
-  () => props.sources,
-  (sources) => {
-    if (!sources || sources.length === 0) return
-    // not ready quality on this
-    if (!artQuality.value || !currentStream.value) {
-      artQuality.value = sources[0].html // not use setArtQuality because skip notify
-    }
-  },
-  { immediate: true }
-)
-
 const currentingTime = ref(false)
 const progressInnerRef = ref<HTMLDivElement>()
 
