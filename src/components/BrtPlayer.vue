@@ -1882,8 +1882,10 @@ const watcherVideoTagReady = watch(video, (video) => {
   // eslint-disable-next-line promise/catch-or-return
   Promise.resolve().then(watcherVideoTagReady) // fix this not ready value
 
+  // eslint-disable-next-line functional/no-let
+  let lastEpStream: string | null = null
   watch(
-    () => currentStream.value?.url,
+    () => currentStream.value?.file,
     (url) => {
       if (!url) return currentHls?.destroy()
 
@@ -1891,13 +1893,14 @@ const watcherVideoTagReady = watch(video, (video) => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((Hls as unknown as any).isSupported()) {
-        remount(true)
+        remount(lastEpStream !== uidChap.value)
       } else {
         const canPlay = video.canPlayType("application/vnd.apple.mpegurl")
         if (canPlay === "probably" || canPlay === "maybe") {
           video.src = url
         }
       }
+      lastEpStream = uidChap.value
     },
     { immediate: true }
   )
