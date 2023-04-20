@@ -17,7 +17,7 @@
         </div>
       </q-responsive>
       <BrtPlayer
-        v-else-if="configPlayer?.playTech !== 'trailer'"
+        v-else-if="sources?.playTech !== 'trailer'"
         :sources="sources"
         :current-season="currentSeason"
         :name-current-season="currentMetaSeason?.name"
@@ -45,7 +45,7 @@
       <div v-else class="w-full overflow-hidden fixed top-0 left-0 z-200">
         <q-img
           no-spinner
-          v-if="sources?.[0]?.url"
+          v-if="sources?.link[0]?.file"
           :ratio="841 / 483"
           class="max-h-[calc(100vh-169px)] max-w-[100px]"
           src="~assets/ic_question_result_error.png"
@@ -55,7 +55,7 @@
           v-else
           :ratio="841 / 483"
           class="max-h-[calc(100vh-169px)]"
-          :src="sources![0]!.url"
+          :src="sources!.link[0].file"
         />
       </div>
     </div>
@@ -428,16 +428,16 @@ import {
   useQuasar,
 } from "quasar"
 import { AjaxLike, checkIsLike } from "src/apis/runs/ajax/like"
+import { PlayerFB } from "src/apis/runs/ajax/player-fb"
+import { PlayerLink } from "src/apis/runs/ajax/player-link"
 import { AjaxRate } from "src/apis/runs/ajax/rate"
 import { PhimId } from "src/apis/runs/phim/[id]"
 import { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
 // import BottomSheet from "src/components/BottomSheet.vue"
-import type { Source } from "src/components/sources"
 import { C_URL, labelToQuality } from "src/constants"
 import { forceHttp2 } from "src/logic/forceHttp2"
 import { formatView } from "src/logic/formatView"
 import { getRealSeasonId } from "src/logic/getRealSeasonId"
-import { post } from "src/logic/http"
 import { parseChapName } from "src/logic/parseChapName"
 import { unflat } from "src/logic/unflat"
 import { useAuthStore } from "stores/auth"
@@ -491,7 +491,7 @@ const { data, run, error, loading } = useRequest(
 
     await Promise.any([
       get(`data-${id}`).then((text: string) => {
-        // eslint-disable-next-line functional/no-throw-statement
+        // eslint-disable-next-line functional/no-throw-statements
         if (!text) throw new Error("not_found")
         console.log("[fs]: use cache from fs %s", id)
         // eslint-disable-next-line promise/always-return
@@ -766,7 +766,11 @@ const currentMetaChap = computed(() => {
   )
 })
 watchEffect(() => {
-  if (currentDataSeason.value && currentChap.value !== undefined && !currentMetaChap.value) {
+  if (
+    currentDataSeason.value &&
+    currentChap.value !== undefined &&
+    !currentMetaChap.value
+  ) {
     router.replace({
       name: "not_found",
       params: {
@@ -937,49 +941,70 @@ const prevChap = computed((): SiblingChap | undefined => {
   console.info("[[===THE END===]]")
 })
 
-const configPlayer = shallowRef<{
-  link: {
-    file: string
-    label: string
-    preload: string
-    type: "hls" | "youtube"
-  }[]
-  playTech: "api" | "trailer"
-}>()
+const sources = shallowRef<Readonly<Awaited<ReturnType<typeof PlayerLink>>>>()
 watch(
   currentMetaChap,
-  async (currentMetaChap) => {
-    if (!currentMetaChap) return
+  async (currentMetaChapValue) => {
+    sources.value = undefined
 
-    configPlayer.value = undefined
+    if (!currentMetaChapValue) return
 
-    if (currentMetaChap.id === "#youtube") {
-      configPlayer.value = {
+    if (currentMetaChapValue.id === "#youtube") {
+      sources.value = {
+        playTech: "trailer",
         link: [
           {
-            file: currentMetaChap.hash,
+            file: currentMetaChapValue.hash,
+            quality: `s${0}_${labelToQuality.HD}`,
+            qualityRate: 0,
             label: "HD",
-            preload: "auto",
+            preload: "0",
             type: "youtube",
           },
         ],
-        playTech: "trailer",
       }
 
       return
     }
 
     try {
-      configPlayer.value = JSON.parse(
-        (
-          await post("/ajax/player?v=2019a", {
-            link: currentMetaChap.hash,
-            play: currentMetaChap.play,
-            id: currentMetaChap.id,
-            backuplinks: "1",
-          })
-        ).data as string
-      )
+      const [DU, FB] = await Promise.all([
+        PlayerLink(
+          {
+            href: currentMetaChapValue.hash,
+            play: currentMetaChapValue.play,
+            id: currentMetaChapValue.id,
+          },
+          2
+        ),
+        settingsStore.player.lowQuality
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          ? PlayerFB(currentChap.value!, 1).catch(() => null)
+          : null,
+      ])
+
+      console.log({ DU, FB })
+
+      if (!FB) {
+        sources.value = DU
+        return
+      }
+
+      if (currentMetaChapValue !== currentMetaChap.value) return
+
+      if (FB.link.length >= 2 && DU?.link[0]) {
+        // DU is 1080p
+        DU.link[0].label = "1080p"
+        DU.link[0].quality = "s2_1080"
+        DU.link[0].qualityRate = 10802
+      }
+
+      sources.value = {
+        playTech: DU.playTech,
+        link: [...DU.link, ...FB.link].sort((a, b) => {
+          return b.qualityRate - a.qualityRate
+        }),
+      }
     } catch (err) {
       $q.notify({
         position: "bottom-right",
@@ -990,34 +1015,7 @@ watch(
       })
     }
   },
-  {
-    immediate: true,
-  }
-)
-const sources = computed<Source[] | undefined>(() =>
-  configPlayer.value?.link.map((item): Source => {
-    return {
-      html: labelToQuality[item.label] ?? item.label,
-      url: item.file.startsWith("http") ? item.file : `https:${item.file}`,
-      type: item.type as
-        | "aac"
-        | "f4a"
-        | "mp4"
-        | "f4v"
-        | "hls"
-        | "m3u"
-        | "m4v"
-        | "mov"
-        | "mp3"
-        | "mpeg"
-        | "oga"
-        | "ogg"
-        | "ogv"
-        | "vorbis"
-        | "webm"
-        | "youtube",
-    }
-  })
+  { immediate: true }
 )
 
 async function getProgressChaps(

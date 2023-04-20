@@ -7,6 +7,8 @@ export const useSettingsStore = defineStore("settings", {
       autoNext: true,
       enableRemindStop: true,
       volume: 1,
+      quality: <null|`s${number}_${number}`>null,
+      lowQuality: false
     },
     ui: {
       modeMovie: false,

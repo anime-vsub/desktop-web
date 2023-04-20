@@ -618,17 +618,19 @@
                         <BottomBlurRelative>
                           <ul class="mx-[-16px]">
                             <li
-                              v-for="({ html }, index) in sources"
-                              :key="html"
+                              v-for="(
+                                { label, quality }, index
+                              ) in sources?.link"
+                              :key="label"
                               class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
                               :class="{
                                 'c--main':
-                                  html === artQuality ||
+                                  quality === artQuality ||
                                   (!artQuality && index === 0),
                               }"
-                              @click="setArtQuality(html)"
+                              @click="setArtQuality(quality)"
                             >
-                              {{ html }}
+                              {{ label }}
                             </li>
                           </ul>
                         </BottomBlurRelative>
@@ -769,16 +771,16 @@
                             dense
                             flat
                             no-caps
-                            class="px-2 flex-1 text-weight-norrmal py-2 c--main rounded-xl"
-                            v-for="({ html }, index) in sources"
+                            class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
+                            v-for="({ label, quality }, index) in sources?.link"
                             :class="{
                               'c--main':
-                                html === artQuality ||
+                                quality === artQuality ||
                                 (!artQuality && index === 0),
                             }"
-                            :key="html"
-                            @click="setArtQuality(html)"
-                            >{{ html }}</q-btn
+                            :key="label"
+                            @click="setArtQuality(quality)"
+                            >{{ label }}</q-btn
                           >
                         </div>
 
@@ -842,6 +844,17 @@
                           Menu mờ
                           <q-toggle
                             v-model="settingsStore.ui.menuTransparency"
+                            size="sm"
+                            color="blue"
+                          />
+                        </div>
+
+                        <div
+                          class="flex items-center justify-between mt-4 mb-2"
+                        >
+                          Chế độ mạng yếu
+                          <q-toggle
+                            v-model="settingsStore.ui.lowQuality"
                             size="sm"
                             color="blue"
                           />
@@ -1001,6 +1014,7 @@ import {
   throttle,
   useQuasar,
 } from "quasar"
+import type { PlayerLink } from "src/apis/runs/ajax/player-link"
 import { useMemoControl } from "src/composibles/memo-control"
 import {
   CONFIRMATION_TIME_IS_ACTUALLY_WATCHING,
@@ -1033,8 +1047,6 @@ import {
 import { useI18n } from "vue-i18n"
 import { onBeforeRouteLeave, useRouter } from "vue-router"
 
-import type { Source } from "./sources"
-
 const { t } = useI18n()
 // fix toolip fullscreen not hide if change fullscreen
 
@@ -1060,7 +1072,7 @@ interface SiblingChap {
 }
 
 const props = defineProps<{
-  sources?: Source[]
+  sources?: Readonly<Awaited<ReturnType<typeof PlayerLink>>>
   currentSeason: string
   nameCurrentSeason?: string
   currentChap?: string
@@ -1181,7 +1193,10 @@ const menuChapsRef = ref<QMenu>()
 // =========================== huuuu player API。馬鹿馬鹿しい ====================================
 
 const currentStream = computed(() => {
-  return props.sources?.find((item) => item.html === artQuality.value)
+  return (
+    props.sources?.link.find((item) => item.quality === artQuality.value) ??
+    props.sources?.link[0]
+  )
 })
 
 const video = ref<HTMLVideoElement>()
@@ -1247,7 +1262,6 @@ watch(
         console.log(":restore progress")
         if (stateStorageStore.disableAutoRestoration) {
           addNotice(t("bo-qua-khoi-phuc-tien-trinh-xem"))
-          // eslint-disable-next-line functional/no-throw-statement
           throw new Error("NOT_RESET")
         }
         const cur = (
@@ -1261,7 +1275,6 @@ watch(
           setArtCurrentTime(cur)
           addNotice(t("da-khoi-phuc-phien-xem-truoc-_time", [parseTime(cur)]))
         } else {
-          // eslint-disable-next-line functional/no-throw-statement
           throw new Error("NOT_RESET")
         }
       } catch (err) {
@@ -1340,8 +1353,15 @@ watch(
   () => tooltipModeMovieRef.value?.hide()
 )
 
-const artQuality = ref<string>()
-const setArtQuality = (value: string) => {
+const artQuality = computed<`s${number}_${number}` | undefined>({
+  get: () => {
+    const qua = settingsStore.player.quality
+
+    return qua && props.sources?.link.some((item) => item.quality === artQuality.value) ? qua : props.sources?.link[0].quality
+  },
+  set: (value) => (settingsStore.player.quality = value),
+})
+const setArtQuality = (value: `s${number}_${number}`) => {
   artQuality.value = value
   addNotice(t("chat-luong-da-chuyen-sang-_value", [value]))
 }
@@ -1666,7 +1686,7 @@ function remount(resetCurrentTime?: boolean) {
     return
   }
 
-  const { url, type } = currentStream.value
+  const { file: url, type } = currentStream.value
 
   const currentTime = artCurrentTime.value
   const playing = artPlaying.value || artEnded
@@ -1677,9 +1697,9 @@ function remount(resetCurrentTime?: boolean) {
     case "m3u":
       // eslint-disable-next-line no-case-declarations
       const hls = new Hls({
-        debug: import.meta.env.isDev,
+        debug: import.meta.env.DEV,
         progressive: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, functional/no-classes
         pLoader: class CustomLoader extends (Hls.DefaultConfig.loader as any) {
           loadInternal(): void {
             const { config, context } = this
@@ -1887,7 +1907,12 @@ const watcherVideoTagReady = watch(video, (video) => {
   watch(
     () => currentStream.value?.file,
     (url) => {
-      if (!url) return currentHls?.destroy()
+      if (!url) {
+        currentHls?.destroy()
+
+        lastEpStream = null
+        return
+      }
 
       console.log("set url art %s", url)
 

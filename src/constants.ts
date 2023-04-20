@@ -1,7 +1,9 @@
-export const labelToQuality: Record<string, string> = {
-  HD: "720p",
-  SD: "480p",
-}
+export const labelToQuality = {
+  FHD: 1080,
+  HD: 720,
+  SD: 480,
+  "360p": 360,
+} as const
 export const playbackRates = [
   {
     name: "0.5x",
