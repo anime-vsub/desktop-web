@@ -2,6 +2,7 @@
 
 import MiniSearch from "minisearch"
 import type MyAnimeListSearchParser from "src/apis/parser/myanimelist/search"
+import { get } from "src/logic/http"
 
 import { useCache } from "../../useCache"
 import Worker from "../../workers/myanimelist/search?worker"
@@ -12,11 +13,11 @@ const BEFORE_SEASON = "ss|\\wd"
 
 async function runRawSearch(query: string) {
   return await useCache(`myanimelist/search/${query}`, async () => {
-    const html = await fetch(
+    const { data: html } = await get(
       `https://myanimelist.net/anime.php?cat=anime&q=${encodeURIComponent(
         query
       )}&type=0&score=0&status=0&p=0&r=0&sm=0&sd=0&sy=0&em=0&ed=0&ey=0&c%5B%5D=a&c%5B%5D=b&c%5B%5D=c&c%5B%5D=f`
-    ).then((res) => res.text())
+    )
 
     if (import.meta.env.MODE === "test") {
       return import("../../parser/myanimelist/search").then((res) =>
@@ -168,7 +169,9 @@ export async function getAmimeMyAnimeList(
       // Index all documents
       miniSearch.addAll(anime)
 
-      const result = miniSearch.search(otherRmd)[0] as unknown as Awaited<ReturnType<typeof runRawSearch>>[0]
+      const result = miniSearch.search(otherRmd)[0] as unknown as Awaited<
+        ReturnType<typeof runRawSearch>
+      >[0]
       console.log(otherRmd, result)
       // console.log(otherRmd, result.slice(0, 10))
       // .filter((item) => {
@@ -191,8 +194,4 @@ export async function getAmimeMyAnimeList(
     // eslint-disable-next-line functional/no-throw-statement
     throw err
   }
-}
-
-export function getEpisodesAnimeMyAnimeList(url: string) {
-  return fetch(`${url}/episode`).then((res) => res.text())
 }
