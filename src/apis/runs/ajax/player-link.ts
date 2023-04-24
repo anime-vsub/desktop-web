@@ -1,3 +1,4 @@
+import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { post } from "src/logic/http"
 
 const addProtocolUrl = (file: string) =>
@@ -6,7 +7,8 @@ const addProtocolUrl = (file: string) =>
 interface PlayerLinkReturn {
   readonly link: {
     readonly file: string
-    readonly label?: "FHD|HD" | "HD" | "FHD" | `${720 | 360 | 340}p`
+    readonly label: "FHD|HD" | "HD" | "FHD" | `${720 | 360 | 340}p`
+    readonly qualityCode: ReturnType<typeof getQualityByLabel>
     readonly preload?: string
     readonly type:
       | "hls"
@@ -15,6 +17,7 @@ interface PlayerLinkReturn {
       | "mp4"
       | "f4v"
       | "m3u"
+      | "m3u8"
       | "m4v"
       | "mov"
       | "mp3"
@@ -31,9 +34,9 @@ interface PlayerLinkReturn {
 export function PlayerLink(config: {
   id: string
   play: string
-  href: string
+  hash: string
 }): Promise<PlayerLinkReturn> {
-  const { id, play, href: link } = config
+  const { id, play, hash: link } = config
   return post("/ajax/player?v=2019a", {
     id,
     play,
@@ -49,7 +52,7 @@ export function PlayerLink(config: {
     config.link.forEach((item) => {
       item.file = addProtocolUrl(item.file)
       switch (
-        item.label?.toUpperCase() as
+        (item.label as typeof item.label | undefined)?.toUpperCase() as
           | Uppercase<Exclude<typeof item.label, undefined>>
           | undefined
       ) {
@@ -60,6 +63,8 @@ export function PlayerLink(config: {
           item.label = "HD"
           break
       }
+      item.qualityCode = getQualityByLabel(item.label)
+      item.type ??= "mp4"
     })
 
     return config

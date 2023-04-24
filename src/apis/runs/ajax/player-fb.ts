@@ -5,7 +5,7 @@ import { post } from "src/logic/http"
 
 import { PlayerLink } from "./player-link"
 
-export async function PlayerFB(episodeId: string, priote: number) {
+export async function PlayerFB(episodeId: string) {
   const { data: json } = await post("/ajax/player?v=2019a", {
     episodeId,
     backup: 1,
@@ -19,5 +19,5 @@ export async function PlayerFB(episodeId: string, priote: number) {
   const config =  await PostWorker<typeof AjaxPlayerFBParser>(Worker, data.html)
 
 
-  return await PlayerLink(config, priote)
+  return await PlayerLink(config)
 }
