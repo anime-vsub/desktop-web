@@ -690,13 +690,12 @@
                         <BottomBlurRelative>
                           <ul class="mx-[-16px]">
                             <li
-                              v-for="({ label, qualityCode }, index) in sources"
+                              v-for="({ label, qualityCode }) in sources"
                               :key="label"
                               class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
                               :class="{
                                 'c--main':
-                                  qualityCode === artQuality ||
-                                  (!artQuality && index === 0),
+                                  qualityCode === artQuality,
                               }"
                               @click="setArtQuality(qualityCode)"
                             >
@@ -861,11 +860,10 @@
                             flat
                             no-caps
                             class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
-                            v-for="({ label, qualityCode }, index) in sources"
+                            v-for="({ label, qualityCode }) in sources"
                             :class="{
                               'c--main':
-                                qualityCode === artQuality ||
-                                (!artQuality && index === 0),
+                                qualityCode === artQuality,
                             }"
                             :key="label"
                             @click="setArtQuality(qualityCode)"
