@@ -1097,23 +1097,7 @@ const sources = computed<Source[] | undefined>(() =>
     return {
       html: labelToQuality[item.label] ?? item.label,
       url: item.file.startsWith("http") ? item.file : `https:${item.file}`,
-      type: item.type as
-        | "aac"
-        | "f4a"
-        | "mp4"
-        | "f4v"
-        | "hls"
-        | "m3u"
-        | "m4v"
-        | "mov"
-        | "mp3"
-        | "mpeg"
-        | "oga"
-        | "ogg"
-        | "ogv"
-        | "vorbis"
-        | "webm"
-        | "youtube",
+      type: item.type as Source["type"],
     }
   })
 )

@@ -1,29 +1,19 @@
-import { labelToQuality } from "src/constants"
 import { post } from "src/logic/http"
 
 const addProtocolUrl = (file: string) =>
   file.startsWith("http") ? file : `https:${file}`
 
-export function PlayerLink(
-  config: {
-    id: string
-    play: string
-    href: string
-  },
-  priote: number
-): Promise<{
-  link: {
-    file: string
-    label: string
-    preload: string
-    quality: `s${number}_${(typeof labelToQuality)[keyof typeof labelToQuality]}`
-    qualityRate: number
-    type:
+interface PlayerLinkReturn {
+  readonly link: {
+    readonly file: string
+    readonly label?: "FHD|HD" | "HD" | "FHD" | `${720 | 360 | 340}p`
+    readonly preload?: string
+    readonly type:
+      | "hls"
       | "aac"
       | "f4a"
       | "mp4"
       | "f4v"
-      | "hls"
       | "m3u"
       | "m4v"
       | "mov"
@@ -36,8 +26,13 @@ export function PlayerLink(
       | "webm"
       | "youtube"
   }[]
-  playTech: "api" | "trailer"
-}> {
+  readonly playTech: "api" | "trailer"
+}
+export function PlayerLink(config: {
+  id: string
+  play: string
+  href: string
+}): Promise<PlayerLinkReturn> {
   const { id, play, href: link } = config
   return post("/ajax/player?v=2019a", {
     id,
@@ -45,16 +40,26 @@ export function PlayerLink(
     link,
     backuplinks: "1",
   }).then(({ data }) => {
-    const config = JSON.parse(data)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    config.link.forEach((item: any) => {
-      const qual =
-        labelToQuality[
-          item.label?.toUpperCase() as keyof typeof labelToQuality
-        ] ?? parseInt(item.label)
-      item.quality = `s${priote}_${qual}`
-      item.qualityRate = parseInt(qual + "" + priote)
+    // eslint-disable-next-line functional/no-throw-statement
+    if (!data) throw new Error("unknown_error")
+    type Writeable<T> = {
+      -readonly [P in keyof T]: T[P] extends object ? Writeable<T[P]> : T[P]
+    }
+    const config = JSON.parse(data) as Writeable<PlayerLinkReturn>
+    config.link.forEach((item) => {
       item.file = addProtocolUrl(item.file)
+      switch (
+        item.label?.toUpperCase() as
+          | Uppercase<Exclude<typeof item.label, undefined>>
+          | undefined
+      ) {
+        case "HD":
+          item.label = "FHD|HD"
+          break
+        case undefined:
+          item.label = "HD"
+          break
+      }
     })
 
     return config
