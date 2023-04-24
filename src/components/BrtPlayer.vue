@@ -1436,7 +1436,17 @@ watch(
   () => tooltipModeMovieRef.value?.hide()
 )
 
-const artQuality = ref<Awaited<ReturnType<typeof PlayerLink>>["link"][0]['qualityCode']>()
+const _artQuality = ref<Awaited<ReturnType<typeof PlayerLink>>["link"][0]['qualityCode']>()
+const artQuality = computed({
+  get() {
+    if (props.sources?.find((item) => item.qualityCode === _artQuality.value)) return _artQuality.value
+
+    return props.sources?.[0]?.qualityCode
+  },
+  set(value) {
+_artQuality.value = value
+  }
+})
 const setArtQuality = (value: Exclude<typeof artQuality.value, undefined>) => {
   artQuality.value = value
   addNotice(t("chat-luong-da-chuyen-sang-_value", [value]))
@@ -2021,19 +2031,6 @@ const watcherVideoTagReady = watch(video, (video) => {
     { immediate: true }
   )
 })
-
-// re-set quality if quality not in sources
-watch(
-  () => props.sources,
-  (sources) => {
-    if (!sources || sources.length === 0) return
-    // not ready quality on this
-    if (!artQuality.value || !currentStream.value) {
-      artQuality.value = sources[0].qualityCode // not use setArtQuality because skip notify
-    }
-  },
-  { immediate: true }
-)
 
 const currentingTime = ref(false)
 const progressInnerRef = ref<HTMLDivElement>()
