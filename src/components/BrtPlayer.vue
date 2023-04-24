@@ -1435,8 +1435,8 @@ watch(
   () => tooltipModeMovieRef.value?.hide()
 )
 
-const artQuality = ref<string>()
-const setArtQuality = (value: string) => {
+const artQuality = ref<Awaited<ReturnType<typeof PlayerLink>>["link"][0]['qualityCode']>()
+const setArtQuality = (value: Exclude<typeof artQuality.value, undefined>) => {
   artQuality.value = value
   addNotice(t("chat-luong-da-chuyen-sang-_value", [value]))
 }
