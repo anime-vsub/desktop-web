@@ -1272,12 +1272,13 @@ const menuChapsRef = ref<QMenu>()
 const currentStream = computed(() => {
   return props.sources?.find((item) => item.qualityCode === artQuality.value)
 })
-watch(
-  () => props.sources,
-  (sources) => {
-    console.log("sources changed: ", sources)
-  }
-)
+if (import.meta.env.DEV)
+  watch(
+    () => props.sources,
+    (sources) => {
+      console.log("sources changed: ", sources)
+    }
+  )
 
 const video = ref<HTMLVideoElement>()
 watch(
