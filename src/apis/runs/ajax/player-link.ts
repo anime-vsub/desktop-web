@@ -57,7 +57,7 @@ export function PlayerLink(config: {
           | undefined
       ) {
         case "HD":
-          item.label = "FHD|HD"
+          if (item.preload) item.label = "FHD|HD"
           break
         case undefined:
           item.label = "HD"
