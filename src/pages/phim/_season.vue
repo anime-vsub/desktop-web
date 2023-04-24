@@ -879,7 +879,7 @@ watchEffect(() => {
   if (!chaps) return
 
   const { chap: epId } = route.params
-
+  
   const metaEp = epId ? chaps.find((item) => item.id === epId) : chaps[0]
   if (!metaEp) return
 
