@@ -6,6 +6,7 @@ window.Http = {
       .then((text) => {
         return {
           data: text,
+          status: 200
         }
       })
   },
@@ -18,6 +19,7 @@ window.Http = {
       .then((text) => {
         return {
           data: text,
+          status: 200
         }
       })
   },
