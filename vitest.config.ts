@@ -9,6 +9,7 @@ export default defineConfig({
     },
   },
   test: {
+    setupFiles: ["@vitest/web-worker"],
     environment: "jsdom",
     globals: true,
     setupFiles: ["./setup.vitest.ts"],

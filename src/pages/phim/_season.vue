@@ -42,10 +42,13 @@
           })
         "
       />
-      <div v-else class="w-full overflow-hidden fixed top-0 left-0 z-200">
+      <div
+        v-else
+        class="w-full overflow-hidden bg-[#000] focus-visible:outline-none select-none"
+      >
         <q-img
           no-spinner
-          v-if="sources?.[0]?.url"
+          v-if="!sources?.[0]?.file"
           :ratio="841 / 483"
           class="max-h-[calc(100vh-169px)] max-w-[100px]"
           src="~assets/ic_question_result_error.png"
@@ -55,7 +58,7 @@
           v-else
           :ratio="841 / 483"
           class="max-h-[calc(100vh-169px)]"
-          :src="sources![0]!.url"
+          :src="sources[0].file"
         />
       </div>
     </div>
@@ -401,7 +404,6 @@
 <script lang="ts" setup>
 import { getAnalytics, logEvent } from "@firebase/analytics"
 import { Icon } from "@iconify/vue"
-import { computedAsync } from "@vueuse/core"
 import { useHead } from "@vueuse/head"
 import AddToPlaylist from "components/AddToPlaylist.vue"
 import BrtPlayer from "components/BrtPlayer.vue"
@@ -429,20 +431,18 @@ import {
   useQuasar,
 } from "quasar"
 import { AjaxLike, checkIsLike } from "src/apis/runs/ajax/like"
+import { PlayerFB } from "src/apis/runs/ajax/player-fb"
+import { PlayerLink } from "src/apis/runs/ajax/player-link"
 import { AjaxRate } from "src/apis/runs/ajax/rate"
 import { PhimId } from "src/apis/runs/phim/[id]"
 import { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
 // import BottomSheet from "src/components/BottomSheet.vue"
-import type { Source } from "src/components/sources"
-import {
-  C_URL,
-  labelToQuality,
-  TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE,
-} from "src/constants"
+import type { servers } from "src/constants"
+import { C_URL, TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE } from "src/constants"
 import { forceHttp2 } from "src/logic/forceHttp2"
 import { formatView } from "src/logic/formatView"
+import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { getRealSeasonId } from "src/logic/getRealSeasonId"
-import { post } from "src/logic/http"
 import { parseChapName } from "src/logic/parseChapName"
 import { unflat } from "src/logic/unflat"
 import { useAuthStore } from "stores/auth"
@@ -458,6 +458,7 @@ import {
   shallowRef,
   watch,
   watchEffect,
+  watchPostEffect,
 } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRequest } from "vue-request"
@@ -671,7 +672,7 @@ async function fetchSeason(season: string) {
       console.warn("chaps not found")
       response.chaps = [
         {
-          id: "#youtube",
+          id: "0",
           play: "1",
 
           hash:
@@ -766,27 +767,25 @@ const currentProgresWatch = computed(() => {
 
   return undefined
 })
-// eslint-disable-next-line functional/no-let, no-undef
-let timeoutResolveCurrentChap: NodeJS.Timeout | number | undefined
 // eslint-disable-next-line functional/no-let
-let resolveDefaultCurrentChap: ((epId: string | null) => void) | undefined
-const resetPromiseDefCurrentChap = () => {
-  clearTimeout(timeoutResolveCurrentChap)
-  timeoutResolveCurrentChap = undefined
-  resolveDefaultCurrentChap?.(null)
-  resolveDefaultCurrentChap = undefined
-}
-onBeforeUnmount(resetPromiseDefCurrentChap)
+let watcherChangeIdFirstEp: (() => void) | null = null
+onBeforeUnmount(() => watcherChangeIdFirstEp?.())
 /** @type - currentChap is episode id */
-const currentChap = computedAsync(async () => {
-  resetPromiseDefCurrentChap()
-
-  if (route.params.chap) return route.params.chap as string
+const currentChap = ref<string>()
+watchPostEffect(async (onCleanup): Promise<void> => {
+  watcherChangeIdFirstEp?.()
+  if (route.params.chap) {
+    currentChap.value = route.params.chap as string
+    return
+  }
   // if this does not exist make sure the status has not finished loading, this function call also useless
 
   // if not login -> return first episode in season
-  if (!authStore.uid) return currentDataSeason.value?.chaps[0].id
-
+  if (!authStore.uid) {
+    currentChap.value = currentDataSeason.value?.chaps[0].id
+    return
+  }
+  currentChap.value = undefined
   const episodeId = await Promise.race([
     // if logged -> get last episode viewing in season
     historyStore
@@ -799,22 +798,39 @@ const currentChap = computedAsync(async () => {
         console.log("usage last ep of season", res)
         return res
       }),
-    new Promise<string | null>((resolve) => {
-      resolveDefaultCurrentChap = resolve
-      timeoutResolveCurrentChap = setTimeout(
-        () => resolve(currentDataSeason.value?.chaps[0].id ?? null),
+    new Promise<null | undefined>((resolve) => {
+      const timeout = setTimeout(
+        () => resolve(null),
         TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE
       )
+
+      onCleanup(() => {
+        resolve(undefined)
+        clearTimeout(timeout)
+      })
     }),
   ])
 
-  resetPromiseDefCurrentChap()
-  // if not exists -> return first episode in season
-  if (episodeId === null) {
-    return currentDataSeason.value?.chaps[0].id
+  if (episodeId !== undefined) {
+    if (episodeId) {
+      const watcher = watchPostEffect(() => {
+        if (
+          currentDataSeason.value?.chaps.some((item) => item.id === episodeId)
+        ) {
+          currentChap.value = episodeId
+          watcher()
+        }
+      })
+    } else {
+      watcherChangeIdFirstEp = watch(
+        () => currentDataSeason.value?.chaps[0].id,
+        (idFirstEp) => {
+          currentChap.value = idFirstEp
+        },
+        { immediate: true }
+      )
+    }
   }
-
-  return episodeId
 })
 const currentMetaChap = computed(() => {
   if (!currentChap.value) return
@@ -833,6 +849,8 @@ watchEffect(() => {
   ) {
     const correctChapName = parseChapName(currentMetaChap.value.name)
 
+    if (import.meta.env.DEV)
+      console.log("%c Redirect to suspend path", "color: green")
     router.replace({
       path: `/phim/${route.params.season}/${correctChapName}-${currentChap.value}`,
       query: route.query,
@@ -842,11 +860,13 @@ watchEffect(() => {
 })
 watchEffect(() => {
   // currentChap != undefined because is load done from firestore and ready show but in chaps not found (!currentMetaChap.value)
-  if (
-    currentDataSeason.value &&
-    currentChap.value !== undefined &&
-    !currentMetaChap.value
-  ) {
+  const chaps = currentDataSeason.value?.chaps
+  if (!chaps) return
+
+  const { chap: epId } = route.params
+
+  if (!chaps.some((item) => item.id === epId)) {
+    if (import.meta.env.DEV) console.warn("Redirect to not_found")
     router.replace({
       name: "not_found",
       params: {
@@ -859,11 +879,15 @@ watchEffect(() => {
 })
 // TOOD: check chapName in url is chapName
 watchEffect(() => {
-  if (!currentMetaChap.value) return
+  const chaps = currentDataSeason.value?.chaps
+  if (!chaps) return
 
-  if (!route.params.chap) return // this first chap not need
+  const { chap: epId } = route.params
 
-  const correctChapName = parseChapName(currentMetaChap.value.name)
+  const metaEp = epId ? chaps.find((item) => item.id === epId) : chaps[0]
+  if (!metaEp) return
+
+  const correctChapName = parseChapName(metaEp.name)
   const urlChapName = route.params.chapName
 
   if (urlChapName) {
@@ -874,7 +898,7 @@ watchEffect(() => {
       `chapName wrong current: "${urlChapName}" not equal real: ${correctChapName}.\nAuto edit url to chapName correct`
     )
     router.replace({
-      path: `/phim/${route.params.season}/${correctChapName}-${route.params.chap}`,
+      path: `/phim/${route.params.season}/${correctChapName}-${epId}`,
       query: route.query,
       hash: route.hash,
     })
@@ -883,7 +907,7 @@ watchEffect(() => {
     // replace
     console.info("this url old type redirect to new type url")
     router.replace({
-      path: `/phim/${route.params.season}/${correctChapName}-${route.params.chap}`,
+      path: `/phim/${route.params.season}/${correctChapName}-${epId}`,
       query: route.query,
       hash: route.hash,
     })
@@ -1017,28 +1041,19 @@ const prevChap = computed((): SiblingChap | undefined => {
   console.info("[[===THE END===]]")
 })
 
-const configPlayer = shallowRef<{
-  link: {
-    file: string
-    label: string
-    preload: string
-    type: "hls" | "youtube"
-  }[]
-  playTech: "api" | "trailer"
-}>()
+const configPlayer = shallowRef<Awaited<ReturnType<typeof PlayerLink>>>()
 watch(
   currentMetaChap,
-  async (currentMetaChap) => {
+  (currentMetaChap, _, onCleanup) => {
     if (!currentMetaChap) return
 
-    configPlayer.value = undefined
-
-    if (currentMetaChap.id === "#youtube") {
+    if (currentMetaChap.id === "0") {
       configPlayer.value = {
         link: [
           {
             file: currentMetaChap.hash,
             label: "HD",
+            qualityCode: getQualityByLabel("HD"),
             preload: "auto",
             type: "youtube",
           },
@@ -1049,56 +1064,63 @@ watch(
       return
     }
 
-    try {
-      configPlayer.value = JSON.parse(
-        (
-          await post("/ajax/player?v=2019a", {
-            link: currentMetaChap.hash,
-            play: currentMetaChap.play,
-            id: currentMetaChap.id,
-            backuplinks: "1",
+    configPlayer.value = undefined
+
+    // eslint-disable-next-line functional/no-let
+    let typeCurrentConfig: keyof typeof servers | null = null
+    // setup watcher it
+    const watcher = watch(
+      () => settingsStore.player.server,
+      async (server) => {
+        try {
+          if (server === "DU") {
+            if (typeCurrentConfig !== "DU")
+              // eslint-disable-next-line promise/catch-or-return
+              PlayerLink(currentMetaChap).then((conf) => {
+                // eslint-disable-next-line promise/always-return
+                if (settingsStore.player.server === "DU") {
+                  configPlayer.value = conf
+                  typeCurrentConfig = "DU"
+                }
+              })
+          }
+          if (server === "FB") {
+            // PlayerFB は常に PlayerLink よりも遅いため、DU を使用して高速プリロード戦術を使用する必要があります。
+            if (typeCurrentConfig !== "DU")
+              // eslint-disable-next-line promise/catch-or-return
+              PlayerLink(currentMetaChap).then((conf) => {
+                // eslint-disable-next-line promise/always-return
+                if (settingsStore.player.server === "DU") {
+                  configPlayer.value = conf
+                  typeCurrentConfig = "DU"
+                }
+              })
+            // eslint-disable-next-line promise/catch-or-return
+            PlayerFB(currentMetaChap.id).then((conf) => {
+              // eslint-disable-next-line promise/always-return
+              if (settingsStore.player.server === "FB") {
+                configPlayer.value = conf
+                typeCurrentConfig = "FB"
+              }
+            })
+          }
+        } catch (err) {
+          $q.notify({
+            position: "bottom-right",
+            message: (err as Error).message,
           })
-        ).data as string
-      )
-    } catch (err) {
-      $q.notify({
-        position: "bottom-right",
-        message: (err as Error).message,
-      })
-      console.log({
-        err,
-      })
-    }
+          console.error(err)
+        }
+      },
+      { immediate: true }
+    )
+    onCleanup(watcher)
   },
   {
     immediate: true,
   }
 )
-const sources = computed<Source[] | undefined>(() =>
-  configPlayer.value?.link.map((item): Source => {
-    return {
-      html: labelToQuality[item.label] ?? item.label,
-      url: item.file.startsWith("http") ? item.file : `https:${item.file}`,
-      type: item.type as
-        | "aac"
-        | "f4a"
-        | "mp4"
-        | "f4v"
-        | "hls"
-        | "m3u"
-        | "m4v"
-        | "mov"
-        | "mp3"
-        | "mpeg"
-        | "oga"
-        | "ogg"
-        | "ogv"
-        | "vorbis"
-        | "webm"
-        | "youtube",
-    }
-  })
-)
+const sources = computed(() => configPlayer.value?.link)
 
 async function getProgressChaps(
   currentSeason: string

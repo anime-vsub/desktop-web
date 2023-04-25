@@ -581,7 +581,79 @@
                     class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
                   >
                     <Icon
-                      icon="bi:badge-hd"
+                      icon="solar:server-square-broken"
+                      class="mr-2 art-icon"
+                      width="18"
+                      height="18"
+                    />
+                    {{ settingsStore.player.server }}
+
+                    <q-menu
+                      v-model="showMenuServer"
+                      anchor="top middle"
+                      self="bottom middle"
+                      :offset="[0, 20]"
+                      class="text-shadow-menu rounded-xl shadow-xl min-w-[200px]"
+                      :class="{
+                        'm-transparency': settingsStore.ui.menuTransparency,
+                      }"
+                    >
+                      <div
+                        class="bg-[rgba(45,45,45,0.9)] py-2 px-4 flex items-center justify-between relative"
+                      >
+                        {{ t('may-chu-phat') }}
+
+                        <q-btn
+                          dense
+                          flat
+                          round
+                          icon="close"
+                          class="text-zinc-500"
+                          v-close-popup
+                        />
+                      </div>
+                      <div
+                        class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative"
+                      >
+                        <BottomBlurRelative>
+                          <ul class="mx-[-16px]">
+                            <li
+                              v-for="(label, id) in servers"
+                              :key="id"
+                              class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
+                              :class="{
+                                'c--main': id === settingsStore.player.server,
+                              }"
+                              @click="settingsStore.player.server = id"
+                            >
+                              {{ label }}
+                            </li>
+                          </ul>
+                        </BottomBlurRelative>
+                      </div>
+                    </q-menu>
+
+                    <q-tooltip
+                      v-if="!showMenuServer"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{ t('may-chu-phat') }}
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="settingsStore.ui.shortcutsQAP"
+                    dense
+                    flat
+                    no-caps
+                    rounded
+                    class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
+                  >
+                    <Icon
+                      icon="solar:high-quality-broken"
                       class="mr-2 art-icon"
                       width="18"
                       height="18"
@@ -618,17 +690,16 @@
                         <BottomBlurRelative>
                           <ul class="mx-[-16px]">
                             <li
-                              v-for="({ html }, index) in sources"
-                              :key="html"
+                              v-for="({ label, qualityCode }) in sources"
+                              :key="label"
                               class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
                               :class="{
                                 'c--main':
-                                  html === artQuality ||
-                                  (!artQuality && index === 0),
+                                  qualityCode === artQuality,
                               }"
-                              @click="setArtQuality(html)"
+                              @click="setArtQuality(qualityCode)"
                             >
-                              {{ html }}
+                              {{ label }}
                             </li>
                           </ul>
                         </BottomBlurRelative>
@@ -739,7 +810,7 @@
                       anchor="top middle"
                       self="bottom middle"
                       :offset="[-25, 20]"
-                      class="rounded-xl shadow-xl min-w-[200px]"
+                      class="rounded-xl shadow-xl min-w-[200px] flex column flex-nowrap overflow-visible"
                       :class="{
                         'm-transparency': settingsStore.ui.menuTransparency,
                       }"
@@ -759,9 +830,28 @@
                         />
                       </div>
                       <div
-                        class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative py-3"
+                        class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative py-3 overflow-y-auto scrollbar-custom"
                       >
                         <div class="text-zinc-500 text-[12px] mb-2">
+                          {{ t('may-chu-phat') }}
+                        </div>
+                        <div>
+                          <q-btn
+                            dense
+                            flat
+                            no-caps
+                            class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
+                            v-for="(label, id) in servers"
+                            :class="{
+                              'c--main': settingsStore.player.server === id,
+                            }"
+                            :key="label"
+                            @click="settingsStore.player.server = id"
+                            >{{ label }}</q-btn
+                          >
+                        </div>
+
+                        <div class="text-zinc-500 text-[12px] mt-4 mb-2">
                           {{ t("chat-luong") }}
                         </div>
                         <div>
@@ -769,16 +859,15 @@
                             dense
                             flat
                             no-caps
-                            class="px-2 flex-1 text-weight-norrmal py-2 c--main rounded-xl"
-                            v-for="({ html }, index) in sources"
+                            class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
+                            v-for="({ label, qualityCode }) in sources"
                             :class="{
                               'c--main':
-                                html === artQuality ||
-                                (!artQuality && index === 0),
+                                qualityCode === artQuality,
                             }"
-                            :key="html"
-                            @click="setArtQuality(html)"
-                            >{{ html }}</q-btn
+                            :key="label"
+                            @click="setArtQuality(qualityCode)"
+                            >{{ qualityCode }}</q-btn
                           >
                         </div>
 
@@ -790,7 +879,7 @@
                             dense
                             flat
                             no-caps
-                            class="px-2 flex-1 text-weight-norrmal py-2 c--main rounded-xl"
+                            class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
                             v-for="{ name, value } in playbackRates"
                             :key="name"
                             :class="
@@ -998,14 +1087,14 @@ import {
   QTabPanels,
   QTabs,
   QTooltip,
-  throttle,
   useQuasar,
 } from "quasar"
+import type { PlayerLink } from "src/apis/runs/ajax/player-link"
 import { useMemoControl } from "src/composibles/memo-control"
 import {
-  CONFIRMATION_TIME_IS_ACTUALLY_WATCHING,
   DELAY_SAVE_VIEWING_PROGRESS,
   playbackRates,
+  servers,
 } from "src/constants"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
@@ -1033,8 +1122,6 @@ import {
 import { useI18n } from "vue-i18n"
 import { onBeforeRouteLeave, useRouter } from "vue-router"
 
-import type { Source } from "./sources"
-
 const { t } = useI18n()
 // fix toolip fullscreen not hide if change fullscreen
 
@@ -1060,7 +1147,7 @@ interface SiblingChap {
 }
 
 const props = defineProps<{
-  sources?: Source[]
+  sources?: Awaited<ReturnType<typeof PlayerLink>>["link"]
   currentSeason: string
   nameCurrentSeason?: string
   currentChap?: string
@@ -1181,8 +1268,15 @@ const menuChapsRef = ref<QMenu>()
 // =========================== huuuu player API。馬鹿馬鹿しい ====================================
 
 const currentStream = computed(() => {
-  return props.sources?.find((item) => item.html === artQuality.value)
+  return props.sources?.find((item) => item.qualityCode === artQuality.value)
 })
+if (import.meta.env.DEV)
+  watch(
+    () => props.sources,
+    (sources) => {
+      console.log("sources changed: ", sources)
+    }
+  )
 
 const video = ref<HTMLVideoElement>()
 watch(
@@ -1340,8 +1434,18 @@ watch(
   () => tooltipModeMovieRef.value?.hide()
 )
 
-const artQuality = ref<string>()
-const setArtQuality = (value: string) => {
+const _artQuality = ref<Awaited<ReturnType<typeof PlayerLink>>["link"][0]['qualityCode']>()
+const artQuality = computed({
+  get() {
+    if (props.sources?.find((item) => item.qualityCode === _artQuality.value)) return _artQuality.value
+
+    return props.sources?.[0]?.qualityCode
+  },
+  set(value) {
+_artQuality.value = value
+  }
+})
+const setArtQuality = (value: Exclude<typeof artQuality.value, undefined>) => {
   artQuality.value = value
   addNotice(t("chat-luong-da-chuyen-sang-_value", [value]))
 }
@@ -1412,37 +1516,43 @@ const emit = defineEmits<{
   ): void
 }>()
 
-const storeFirstSaving = new Set<string>()
-{
-  // eslint-disable-next-line functional/no-let, no-undef
-  let timeout: NodeJS.Timeout | number | null = null
+const firstSaveStore = new Set<string>()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function throttle<T extends (...args: any[]) => void>(
+  fn: T
+): T & {
+  cancel: () => void
+} {
   // eslint-disable-next-line functional/no-let
-  let uidChapTimeout: string | null = null
-  onBeforeUnmount(() => {
-    if (timeout) clearTimeout(timeout)
-  })
-  const watcher = watch(artPlaying, (artPlaying) => {
-    if (artPlaying) {
-      if (timeout) {
-        if (uidChapTimeout === uidChap.value) return
-        console.log("stop timeout add first saving because change chap")
-        clearTimeout(timeout)
-      }
-      timeout = setTimeout(() => {
-        console.log("allow first saving")
-        storeFirstSaving.add(uidChap.value)
-      }, CONFIRMATION_TIME_IS_ACTUALLY_WATCHING)
-      uidChapTimeout = uidChap.value
-    } else {
-      if (timeout) {
-        console.log("stop timeout add first saving")
-        clearTimeout(timeout)
-        uidChapTimeout = null
-        watcher()
-      }
+  let wait = false
+  // eslint-disable-next-line functional/no-let, no-undef
+  let timeout: NodeJS.Timeout | number | undefined
+  // eslint-disable-next-line functional/functional-parameters, @typescript-eslint/no-explicit-any
+  const cb = function (...args: any[]) {
+    if (wait === false) {
+      wait = true
+      timeout = setTimeout(
+        () => {
+          firstSaveStore.add(uidChap.value)
+          fn(...args)
+          wait = false
+        },
+        firstSaveStore.has(uidChap.value)
+          ? DELAY_SAVE_VIEWING_PROGRESS
+          : DELAY_SAVE_VIEWING_PROGRESS / 2
+      )
     }
-  })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any
+
+  cb.cancel = () => {
+    clearTimeout(timeout)
+    wait = false
+  }
+
+  return cb
 }
+
 // eslint-disable-next-line functional/no-let
 let processingSaveCurTimeIn: string | null = null
 const saveCurTimeToPer = throttle(
@@ -1453,48 +1563,45 @@ const saveCurTimeToPer = throttle(
     dur: number,
     nameCurrentChap: string
   ) => {
+    emit("cur-update", {
+      cur,
+      dur,
+      id: currentChap,
+    })
+
+    console.log("call main fn cur time")
     const uid = uidChap.value // 255 byte
+    console.log({ uid, processingSaveCurTimeIn })
+    if (processingSaveCurTimeIn === uid) return // in progressing save this
+    processingSaveCurTimeIn = uid
     if (!(await createSeason())) return
 
     if (stateStorageStore.disableAutoRestoration === 2) return
 
-    if (processingSaveCurTimeIn === uid) return // in progressing save this
-    processingSaveCurTimeIn = uid
-
-    await historyStore
-      .setProgressChap(currentSeason, currentChap, {
-        cur,
-        dur,
-        name: nameCurrentChap,
-      })
-      .catch((err) => console.warn("save viewing progress failed: ", err))
-      .finally(() => {
-        emit("cur-update", {
+    console.log("%ccall sav curTime", "color: green")
+    try {
+      await historyStore
+        .setProgressChap(currentSeason, currentChap, {
           cur,
           dur,
-          id: currentChap,
+          name: nameCurrentChap,
         })
-        console.log("save viewing progress")
+        .catch((err) => console.warn("save viewing progress failed: ", err))
+    } catch {}
 
-        processingSaveCurTimeIn = null
-      })
-  },
-  DELAY_SAVE_VIEWING_PROGRESS
+    console.log("save viewing progress")
+
+    processingSaveCurTimeIn = null
+  }
 )
-const throttleEmitCurUpdate = throttle(() => {
-  if (props.currentChap)
-    emit("cur-update", {
-      cur: artCurrentTime.value,
-      dur: artDuration.value,
-      id: props.currentChap,
-    })
-}, DELAY_SAVE_VIEWING_PROGRESS)
+watch(uidChap, saveCurTimeToPer.cancel)
 function onVideoTimeUpdate() {
   if (
     artPlaying.value &&
     !currentingTime.value &&
     artControlShow.value &&
     !showMenuQuality.value &&
+    !showMenuServer.value &&
     !showMenuPlaybackRate.value &&
     !showMenuSettings.value &&
     !showMenuSelectChap.value &&
@@ -1505,14 +1612,11 @@ function onVideoTimeUpdate() {
     artControlShow.value = false
   }
 
-  if (!progressRestored) return
+  if (progressRestored !== uidChap.value) return
   if (!props.currentChap) return
   if (typeof props.nameCurrentChap !== "string") return
 
-  if (!storeFirstSaving.has(uidChap.value)) {
-    throttleEmitCurUpdate()
-    return console.log("bypass because not first saving")
-  }
+  console.log("call throw emit")
   saveCurTimeToPer(
     props.currentSeason,
     props.currentChap,
@@ -1655,8 +1759,26 @@ function runRemount() {
 // eslint-disable-next-line functional/no-let
 let currentHls: Hls
 onBeforeUnmount(() => currentHls?.destroy())
-function remount(resetCurrentTime?: boolean) {
-  currentHls?.destroy()
+function remount(resetCurrentTime?: boolean, noDestroy = false) {
+  if (!noDestroy) currentHls?.destroy()
+  else {
+    const type = currentStream.value?.type
+
+    if (
+      (type === "hls" || type === "m3u" || type === "m3u8") &&
+      Hls.isSupported()
+    ) {
+      // current stream is HLS -> no cancel if canPlay
+    } else {
+      console.warn("can't play HLS stream")
+      // cancel
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      video.value!.oncanplay = function () {
+        currentHls?.destroy()
+        this.oncanplay = null
+      }
+    }
+  }
 
   if (!currentStream.value) {
     $q.notify({
@@ -1666,201 +1788,200 @@ function remount(resetCurrentTime?: boolean) {
     return
   }
 
-  const { url, type } = currentStream.value
+  const { file, type } = currentStream.value
 
   const currentTime = artCurrentTime.value
   const playing = artPlaying.value || artEnded
   artEnded = false
 
-  switch (type) {
-    case "hls":
-    case "m3u":
-      // eslint-disable-next-line no-case-declarations
-      const hls = new Hls({
-        debug: import.meta.env.isDev,
-        progressive: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pLoader: class CustomLoader extends (Hls.DefaultConfig.loader as any) {
-          loadInternal(): void {
-            const { config, context } = this
-            if (!config) {
-              return
-            }
-
-            const { stats } = this
-            stats.loading.first = 0
-            stats.loaded = 0
-
-            const controller = new AbortController()
-            const xhr = (this.loader = {
-              readyState: 0,
-              status: 0,
-              abort() {
-                controller.abort()
-              },
-              onreadystatechange: <(() => void) | null>null,
-              onprogress: <
-                ((eventt: { loaded: number; total: number }) => void) | null
-              >null,
-              response: <ArrayBuffer | null>null,
-              responseText: <string | null>null,
-            })
-            const headers = new Headers()
-            if (this.context.headers)
-              for (const [key, val] of Object.entries(this.context.headers))
-                headers.set(key, val as string)
-
-            if (context.rangeEnd) {
-              headers.set(
-                "Range",
-                "bytes=" + context.rangeStart + "-" + (context.rangeEnd - 1)
-              )
-            }
-
-            xhr.onreadystatechange = this.readystatechange.bind(this)
-            xhr.onprogress = this.loadprogress.bind(this)
-            self.clearTimeout(this.requestTimeout)
-            this.requestTimeout = self.setTimeout(
-              this.loadtimeout.bind(this),
-              config.timeout
-            )
-
-            fetchJava(context.url + "#animevsub-vsub", {
-              headers,
-              signal: controller.signal,
-            })
-              .then(async (res) => {
-                // eslint-disable-next-line functional/no-let
-                let byteLength: number
-                if (context.responseType === "arraybuffer") {
-                  xhr.response = await res.arrayBuffer()
-                  byteLength = xhr.response.byteLength
-                } else {
-                  xhr.responseText = await res.text()
-                  byteLength = xhr.responseText.length
-                }
-
-                xhr.readyState = 4
-                xhr.status = 200
-
-                xhr.onprogress?.({
-                  loaded: byteLength,
-                  total: byteLength,
-                })
-                // eslint-disable-next-line promise/always-return
-                xhr.onreadystatechange?.()
-              })
-              .catch((e) => {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                this.callbacks!.onError(
-                  { code: xhr.status, text: e.message },
-                  context,
-                  xhr
-                )
-              })
+  if (
+    (type === "hls" || type === "m3u" || type === "m3u8") &&
+    Hls.isSupported()
+  ) {
+    const hls = new Hls({
+      debug: import.meta.env.isDev,
+      progressive: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pLoader: class CustomLoader extends (Hls.DefaultConfig.loader as any) {
+        loadInternal(): void {
+          const { config, context } = this
+          if (!config) {
+            return
           }
-        } as unknown as PlaylistLoaderConstructor,
-      })
-      currentHls = hls
-      // customLoader(hls.config)
-      hls.loadSource(url)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      hls.attachMedia(video.value!)
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (playing) video.value!.play()
-      })
-      // eslint-disable-next-line no-case-declarations, functional/no-let
-      let needSwapCodec = false
-      // eslint-disable-next-line no-case-declarations, functional/no-let, no-undef
-      let timeoutUnneedSwapCodec: NodeJS.Timeout | number | null = null
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.warn("Player fatal: ", data)
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR: {
-              // try to recover network error
-              $q.notify({
-                message: t("loi-mang-khong-kha-dung"),
-                position: "bottom-right",
-                timeout: 0,
-                actions: [
-                  {
-                    label: t("thu-lai"),
-                    color: "yellow",
-                    noCaps: true,
-                    handler: () => hls.startLoad(),
-                  },
-                  {
-                    icon: "close",
-                    round: true,
-                  },
-                ],
+
+          const { stats } = this
+          stats.loading.first = 0
+          stats.loaded = 0
+
+          const controller = new AbortController()
+          const xhr = (this.loader = {
+            readyState: 0,
+            status: 0,
+            abort() {
+              controller.abort()
+            },
+            onreadystatechange: <(() => void) | null>null,
+            onprogress: <
+              ((eventt: { loaded: number; total: number }) => void) | null
+            >null,
+            response: <ArrayBuffer | null>null,
+            responseText: <string | null>null,
+          })
+          const headers = new Headers()
+          if (this.context.headers)
+            for (const [key, val] of Object.entries(this.context.headers))
+              headers.set(key, val as string)
+
+          if (context.rangeEnd) {
+            headers.set(
+              "Range",
+              "bytes=" + context.rangeStart + "-" + (context.rangeEnd - 1)
+            )
+          }
+
+          xhr.onreadystatechange = this.readystatechange.bind(this)
+          xhr.onprogress = this.loadprogress.bind(this)
+          self.clearTimeout(this.requestTimeout)
+          this.requestTimeout = self.setTimeout(
+            this.loadtimeout.bind(this),
+            config.timeout
+          )
+
+          fetchJava(context.url + "#animevsub-vsub", {
+            headers,
+            signal: controller.signal,
+          })
+            .then(async (res) => {
+              // eslint-disable-next-line functional/no-let
+              let byteLength: number
+              if (context.responseType === "arraybuffer") {
+                xhr.response = await res.arrayBuffer()
+                byteLength = xhr.response.byteLength
+              } else {
+                xhr.responseText = await res.text()
+                byteLength = xhr.responseText.length
+              }
+
+              xhr.readyState = 4
+              xhr.status = 200
+
+              xhr.onprogress?.({
+                loaded: byteLength,
+                total: byteLength,
               })
-              break
+              // eslint-disable-next-line promise/always-return
+              xhr.onreadystatechange?.()
+            })
+            .catch((e) => {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              this.callbacks!.onError(
+                { code: xhr.status, text: e.message },
+                context,
+                xhr
+              )
+            })
+        }
+      } as unknown as PlaylistLoaderConstructor,
+    })
+    currentHls = hls
+    // customLoader(hls.config)
+    hls.loadSource(file)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    hls.attachMedia(video.value!)
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (playing) video.value!.play()
+    })
+    // eslint-disable-next-line functional/no-let
+    let needSwapCodec = false
+    // eslint-disable-next-line functional/no-let, no-undef
+    let timeoutUnneedSwapCodec: NodeJS.Timeout | number | null = null
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        console.warn("Player fatal: ", data)
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR: {
+            // try to recover network error
+            $q.notify({
+              message: t("loi-mang-khong-kha-dung"),
+              position: "bottom-right",
+              timeout: 0,
+              actions: [
+                {
+                  label: t("thu-lai"),
+                  color: "yellow",
+                  noCaps: true,
+                  handler: () => hls.startLoad(),
+                },
+                {
+                  icon: "close",
+                  round: true,
+                },
+              ],
+            })
+            break
+          }
+          case Hls.ErrorTypes.MEDIA_ERROR: {
+            const playing = artPlaying.value
+            if (timeoutUnneedSwapCodec) {
+              clearTimeout(timeoutUnneedSwapCodec)
+              timeoutUnneedSwapCodec = null
             }
-            case Hls.ErrorTypes.MEDIA_ERROR: {
-              const playing = artPlaying.value
+            console.warn("fatal media error encountered, try to recover")
+            if (needSwapCodec) {
+              hls.swapAudioCodec()
+              needSwapCodec = false
               if (timeoutUnneedSwapCodec) {
                 clearTimeout(timeoutUnneedSwapCodec)
                 timeoutUnneedSwapCodec = null
               }
-              console.warn("fatal media error encountered, try to recover")
-              if (needSwapCodec) {
-                hls.swapAudioCodec()
+            } else {
+              needSwapCodec = true
+              timeoutUnneedSwapCodec = setTimeout(() => {
                 needSwapCodec = false
-                if (timeoutUnneedSwapCodec) {
-                  clearTimeout(timeoutUnneedSwapCodec)
-                  timeoutUnneedSwapCodec = null
-                }
-              } else {
-                needSwapCodec = true
-                timeoutUnneedSwapCodec = setTimeout(() => {
-                  needSwapCodec = false
-                  timeoutUnneedSwapCodec = null
-                }, 1_000)
-              }
-              hls.recoverMediaError()
-              if (playing)
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                video.value!.play()
-              break
+                timeoutUnneedSwapCodec = null
+              }, 1_000)
             }
-            default: {
-              $q.notify({
-                message: t("da-gap-su-co-khi-phat-lai"),
-                position: "bottom-right",
-                timeout: 0,
-                actions: [
-                  {
-                    label: t("thu-lai"),
-                    color: "white",
-                    handler() {
-                      console.log("retry force")
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                      video.value!.load()
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                      video.value!.play()
-                    },
-                  },
-                  {
-                    label: t("remount"),
-                    color: "white",
-                    handler: remount,
-                  },
-                ],
-              })
-              break
-            }
+            hls.recoverMediaError()
+            if (playing)
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              video.value!.play()
+            break
           }
-        } else {
-          console.warn("Player error: ", data)
+          default: {
+            $q.notify({
+              message: t("da-gap-su-co-khi-phat-lai"),
+              position: "bottom-right",
+              timeout: 0,
+              actions: [
+                {
+                  label: t("thu-lai"),
+                  color: "white",
+                  handler() {
+                    console.log("retry force")
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    video.value!.load()
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    video.value!.play()
+                  },
+                },
+                {
+                  label: t("remount"),
+                  color: "white",
+                  handler: remount,
+                },
+              ],
+            })
+            break
+          }
         }
-      })
-      break
-    default:
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      video.value!.src = url
+      } else {
+        console.warn("Player error: ", data)
+      }
+    })
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    video.value!.src = file
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -1882,39 +2003,35 @@ const watcherVideoTagReady = watch(video, (video) => {
   // eslint-disable-next-line promise/catch-or-return
   Promise.resolve().then(watcherVideoTagReady) // fix this not ready value
 
+  // pre set volume to default
+  setArtVolume(artVolume.value)
+
+  // eslint-disable-next-line functional/no-let
+  let currentEpStream: null | string = null
   watch(
-    () => currentStream.value?.url,
+    () => currentStream.value?.file,
     (url) => {
       if (!url) return currentHls?.destroy()
 
       console.log("set url art %s", url)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((Hls as unknown as any).isSupported()) {
-        remount(true)
-      } else {
-        const canPlay = video.canPlayType("application/vnd.apple.mpegurl")
-        if (canPlay === "probably" || canPlay === "maybe") {
-          video.src = url
-        }
-      }
+      // // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // if ((Hls as unknown as any).isSupported()) {
+      remount(
+        currentEpStream !== uidChap.value,
+        currentEpStream === uidChap.value
+      )
+      currentEpStream = uidChap.value
+      // } else {
+      //   const canPlay = video.canPlayType("application/vnd.apple.mpegurl")
+      //   if (canPlay === "probably" || canPlay === "maybe") {
+      //     video.src = url
+      //   }
+      // }
     },
     { immediate: true }
   )
 })
-
-// re-set quality if quality not in sources
-watch(
-  () => props.sources,
-  (sources) => {
-    if (!sources || sources.length === 0) return
-    // not ready quality on this
-    if (!artQuality.value || !currentStream.value) {
-      artQuality.value = sources[0].html // not use setArtQuality because skip notify
-    }
-  },
-  { immediate: true }
-)
 
 const currentingTime = ref(false)
 const progressInnerRef = ref<HTMLDivElement>()
@@ -2173,6 +2290,7 @@ watch(showDialogChapter, (status) => {
 })
 
 const showMenuQuality = ref(false)
+const showMenuServer = ref(false)
 const showMenuPlaybackRate = ref(false)
 const showMenuSettings = ref(false)
 const showMenuSelectChap = ref(false)
