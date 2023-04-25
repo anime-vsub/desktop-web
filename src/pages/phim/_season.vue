@@ -865,6 +865,8 @@ watchEffect(() => {
 
   const { chap: epId } = route.params
 
+  if (!epId) return
+
   if (!chaps.some((item) => item.id === epId)) {
     if (import.meta.env.DEV) console.warn("Redirect to not_found")
     router.replace({
@@ -884,7 +886,7 @@ watchEffect(() => {
 
   const { chap: epId } = route.params
 
-  const metaEp = epId ? chaps.find((item) => item.id === epId) : chaps[0]
+  const metaEp = epId ? chaps.find((item) => item.id === epId) : undefined
   if (!metaEp) return
 
   const correctChapName = parseChapName(metaEp.name)
