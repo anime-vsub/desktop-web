@@ -9,9 +9,7 @@ import { PostWorker } from "../../wrap-worker"
 
 export async function getEpisodesMyAnimeList(url: string, offset: number = 0) {
   return await useCache(`${url}/episode`, async () => {
-    const html = await (
-            await get(`${url}/episode?offset=${offset}`)
-          ).data
+    const html = await (await get(`${url}/episode?offset=${offset}`)).data
 
     if (import.meta.env.MODE === "test") {
       return import("../../parser/myanimelist/episodes").then((res) =>

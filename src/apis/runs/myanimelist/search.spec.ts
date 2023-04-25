@@ -4,16 +4,16 @@ describe("episodes", () => {
   describe("getAmimeMyAnimeList", () => {
     test("Gate: Jieitai Kanochi nite, Kaku Tatakaeri", async () => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const anime = (
-        await getAmimeMyAnimeList(
-          "Cổng chiến tranh",
-          "GATE, Gate: Thus the JSDF Fought There!, Gate: Jieitai Kanochi nite, Kaku Tatakaeri"
-        )
-      )!
+      const anime = (await getAmimeMyAnimeList(
+        "Cổng chiến tranh",
+        "GATE, Gate: Thus the JSDF Fought There!, Gate: Jieitai Kanochi nite, Kaku Tatakaeri"
+      ))!
 
       expect(anime.id).toBe(28907)
       expect(anime.type).toBe("anime")
-      expect(anime.url).toBe("https://myanimelist.net/anime/28907/Gate__Jieitai_Kanochi_nite_Kaku_Tatakaeri")
+      expect(anime.url).toBe(
+        "https://myanimelist.net/anime/28907/Gate__Jieitai_Kanochi_nite_Kaku_Tatakaeri"
+      )
       expect(anime.name).toBe("Gate: Jieitai Kanochi nite, Kaku Tatakaeri")
     })
 
@@ -176,7 +176,6 @@ describe("episodes", () => {
         "Mahoutsukai no Yome Season 2, The Ancient Magus' Bride Season 2, The Ancient Magus Bride 2, Mahoutsukai no Yome 2, Mahoyome"
       )
 
-
       expect(anime.id).toBe(52955)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe(
@@ -270,14 +269,14 @@ describe("episodes", () => {
         "KonoSuba OVA, A Blessing to this Wonderful Choker!, Kono Subarashii Choker ni Shufuku wo!, Kono Subarashii Sekai ni Shukufuku wo! OVA"
       )
 
-
-
       expect(anime.id).toBe(32380)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe(
         "https://myanimelist.net/anime/32380/Kono_Subarashii_Sekai_ni_Shukufuku_wo_Kono_Subarashii_Choker_ni_Shukufuku_wo"
       )
-      expect(anime.name).toBe("Kono Subarashii Sekai ni Shukufuku wo! Kono Subarashii Choker ni Shukufuku wo!")
+      expect(anime.name).toBe(
+        "Kono Subarashii Sekai ni Shukufuku wo! Kono Subarashii Choker ni Shukufuku wo!"
+      )
     })
 
     test("Mở Ra Một Thế Giới Tuyệt Vời 2", async () => {
@@ -286,16 +285,12 @@ describe("episodes", () => {
         "KonoSuba: God's Blessing on This Wonderful World! 2, Give Blessings to This Wonderful World! 2, Kono Subarashii Sekai ni Shukufuku wo! 2"
       )
 
-
-
       expect(anime.id).toBe(32937)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe(
         "https://myanimelist.net/anime/32937/Kono_Subarashii_Sekai_ni_Shukufuku_wo_2"
       )
-      expect(anime.name).toBe(
-        "Kono Subarashii Sekai ni Shukufuku wo! 2"
-      )
+      expect(anime.name).toBe("Kono Subarashii Sekai ni Shukufuku wo! 2")
     })
 
     test("Mở Ra Một Thế Giới Tuyệt Vời OVA 2", async () => {
@@ -303,8 +298,6 @@ describe("episodes", () => {
         "Mở Ra Một Thế Giới Tuyệt Vời OVA 2",
         "KonoSuba: God's Blessing on This Wonderful World! Second Season OVA, KonoSuba: God's Blessing on This Wonderful World! Second Season OVA, Kono Subarashii Sekai ni Shukufuku wo! 2 OVA"
       )
-
-
 
       expect(anime.id).toBe(34626)
       expect(anime.type).toBe("anime")
@@ -322,8 +315,6 @@ describe("episodes", () => {
         "Konosuba: An Explosion on This Wonderful World!"
       )
 
-
-
       expect(anime.id).toBe(51958)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe(
@@ -338,8 +329,6 @@ describe("episodes", () => {
         "Please Teacher!, Onegai Sensei"
       )
 
-
-
       expect(anime.id).toBe(195)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe("https://myanimelist.net/anime/195/Onegai☆Teacher")
@@ -351,8 +340,6 @@ describe("episodes", () => {
         "Karakai Jouzu no Takagi-san",
         "Skilled Teaser Takagi-san"
       )
-
-
 
       expect(anime.id).toBe(35860)
       expect(anime.type).toBe("anime")
@@ -368,8 +355,6 @@ describe("episodes", () => {
         "Karakai Jouzu no Takagi-san 3, Skilled Teaser Takagi-san 3rd Season, Karakai Jouzu no Takagi-san Third Season, Teasing Master Takagi-san"
       )
 
-
-
       expect(anime.id).toBe(49721)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe(
@@ -383,8 +368,6 @@ describe("episodes", () => {
         "Tokyo Mew Mew New ♡ 2nd Season",
         "東京ミュウミュウ にゅ～♡"
       )
-
-
 
       expect(anime.id).toBe(53097)
       expect(anime.type).toBe("anime")
@@ -400,8 +383,6 @@ describe("episodes", () => {
         "東京ミュウミュウ にゅ～♡"
       )
 
-
-
       expect(anime.id).toBe(41589)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe(
@@ -416,8 +397,6 @@ describe("episodes", () => {
         "Tokyo Mew Mew, Mew Mew Power"
       )
 
-
-
       expect(anime.id).toBe(687)
       expect(anime.type).toBe("anime")
       expect(anime.url).toBe("https://myanimelist.net/anime/687/Tokyo_Mew_Mew")
@@ -429,8 +408,6 @@ describe("episodes", () => {
         "Isekai wa Smartphone to Tomo ni.",
         "TIn Another World With My Smartphone, In a Different World with a Smartphone"
       )
-
-
 
       expect(anime.id).toBe(35203)
       expect(anime.type).toBe("anime")
