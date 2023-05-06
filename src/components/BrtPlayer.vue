@@ -601,7 +601,7 @@
                       <div
                         class="bg-[rgba(45,45,45,0.9)] py-2 px-4 flex items-center justify-between relative"
                       >
-                        {{ t('may-chu-phat') }}
+                        {{ t("may-chu-phat") }}
 
                         <q-btn
                           dense
@@ -641,7 +641,7 @@
                       transition-show="jump-up"
                       transition-hide="jump-down"
                     >
-                      {{ t('may-chu-phat') }}
+                      {{ t("may-chu-phat") }}
                     </q-tooltip>
                   </q-btn>
                   <q-btn
@@ -690,12 +690,11 @@
                         <BottomBlurRelative>
                           <ul class="mx-[-16px]">
                             <li
-                              v-for="({ label, qualityCode }) in sources"
+                              v-for="{ label, qualityCode } in sources"
                               :key="label"
                               class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
                               :class="{
-                                'c--main':
-                                  qualityCode === artQuality,
+                                'c--main': qualityCode === artQuality,
                               }"
                               @click="setArtQuality(qualityCode)"
                             >
@@ -833,7 +832,7 @@
                         class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative py-3 overflow-y-auto scrollbar-custom"
                       >
                         <div class="text-zinc-500 text-[12px] mb-2">
-                          {{ t('may-chu-phat') }}
+                          {{ t("may-chu-phat") }}
                         </div>
                         <div>
                           <q-btn
@@ -860,10 +859,9 @@
                             flat
                             no-caps
                             class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
-                            v-for="({ label, qualityCode }) in sources"
+                            v-for="{ label, qualityCode } in sources"
                             :class="{
-                              'c--main':
-                                qualityCode === artQuality,
+                              'c--main': qualityCode === artQuality,
                             }"
                             :key="label"
                             @click="setArtQuality(qualityCode)"
@@ -1074,6 +1072,7 @@ import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import type { PlaylistLoaderConstructor } from "hls.js"
 import Hls from "hls.js"
+import workerHls from "hls.js/dist/hls.worker?url"
 import {
   debounce,
   QBtn,
@@ -1099,6 +1098,7 @@ import {
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
 import { fetchJava } from "src/logic/fetchJava"
+import { patcher } from "src/logic/hls-patcher"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
 import type { ProgressWatchStore } from "src/pages/phim/_season.interface"
@@ -1434,16 +1434,18 @@ watch(
   () => tooltipModeMovieRef.value?.hide()
 )
 
-const _artQuality = ref<Awaited<ReturnType<typeof PlayerLink>>["link"][0]['qualityCode']>()
+const _artQuality =
+  ref<Awaited<ReturnType<typeof PlayerLink>>["link"][0]["qualityCode"]>()
 const artQuality = computed({
   get() {
-    if (props.sources?.find((item) => item.qualityCode === _artQuality.value)) return _artQuality.value
+    if (props.sources?.find((item) => item.qualityCode === _artQuality.value))
+      return _artQuality.value
 
     return props.sources?.[0]?.qualityCode
   },
   set(value) {
-_artQuality.value = value
-  }
+    _artQuality.value = value
+  },
 })
 const setArtQuality = (value: Exclude<typeof artQuality.value, undefined>) => {
   artQuality.value = value
@@ -1478,10 +1480,14 @@ function onVideoCanPlay() {
 
 const seasonMetaCreated = new Set<string>()
 
-async function createSeason(): Promise<boolean> {
+async function createSeason(
+  currentSeason: string,
+  seasonName: string,
+  poster: string,
+  name: string
+): Promise<boolean> {
   // eslint-disable-next-line camelcase
   const { user_data } = authStore
-  const { currentSeason, nameCurrentChap: seasonName, poster, name } = props
   const visibility = documentVisibility.value === "visible"
 
   if (seasonMetaCreated.has(currentSeason)) return true
@@ -1489,18 +1495,14 @@ async function createSeason(): Promise<boolean> {
   if (
     // eslint-disable-next-line camelcase
     !user_data ||
-    !currentSeason ||
-    typeof seasonName !== "string" ||
-    !poster ||
-    !visibility ||
-    !name
+    !visibility
   )
     return false
   console.log("set new season poster %s", poster)
   await historyStore.createSeason(currentSeason, {
     poster,
     seasonName,
-    name
+    name,
   })
   seasonMetaCreated.add(currentSeason)
   return true
@@ -1526,6 +1528,7 @@ function throttle<T extends (...args: any[]) => void>(
 } {
   // eslint-disable-next-line functional/no-let
   let wait = false
+
   // eslint-disable-next-line functional/no-let, no-undef
   let timeout: NodeJS.Timeout | number | undefined
   // eslint-disable-next-line functional/functional-parameters, @typescript-eslint/no-explicit-any
@@ -1554,45 +1557,69 @@ function throttle<T extends (...args: any[]) => void>(
   return cb
 }
 
-// eslint-disable-next-line functional/no-let
-let processingSaveCurTimeIn: string | null = null
+const savingTimeEpStore = new Set<string>()
 const saveCurTimeToPer = throttle(
   async (
     currentSeason: string,
     currentChap: string,
-    cur: number,
-    dur: number,
-    nameCurrentChap: string
+    nameCurrentChap: string,
+    poster: string,
+    name: string
   ) => {
+    console.log("call main fn cur time")
+    const uidTask = uidChap.value
+
+    if (savingTimeEpStore.has(uidTask)) {
+      if (import.meta.env.DEV) console.warn("Task saving %s exists", uidTask)
+
+      return
+    }
+
+    savingTimeEpStore.add(uidTask)
+
+    // get data from uid and process because processingSaveCurTimeIn === uid then load all of time current
+    // eslint-disable-next-line functional/no-let
+    let cur = artCurrentTime.value
+    // eslint-disable-next-line functional/no-let
+    let dur = artDuration.value
+
+    if (!dur) {
+      console.warn("[saveCurTime]: artDuration is %s", dur)
+      return
+    }
+
+    if (!(await createSeason(currentSeason, nameCurrentChap, poster, name)))
+      return
+
+    // NOTE: if this uid (processingSaveCurTimeIn === uid) -> update cur and dur
+    if (uidTask === uidChap.value) {
+      // update value now
+      cur = artCurrentTime.value
+      dur = artDuration.value
+    } else {
+      // because changed ep -> use old data not change
+    }
+
+    if (stateStorageStore.disableAutoRestoration === 2) return
+
+    console.log("%ccall sav curTime", "color: green")
+
     emit("cur-update", {
       cur,
       dur,
       id: currentChap,
     })
-
-    console.log("call main fn cur time")
-    const uid = uidChap.value // 255 byte
-    console.log({ uid, processingSaveCurTimeIn })
-    if (processingSaveCurTimeIn === uid) return // in progressing save this
-    processingSaveCurTimeIn = uid
-    if (!(await createSeason())) return
-
-    if (stateStorageStore.disableAutoRestoration === 2) return
-
-    console.log("%ccall sav curTime", "color: green")
-    try {
-      await historyStore
-        .setProgressChap(currentSeason, currentChap, {
-          cur,
-          dur,
-          name: nameCurrentChap,
-        })
-        .catch((err) => console.warn("save viewing progress failed: ", err))
-    } catch {}
+    await historyStore
+      .setProgressChap(currentSeason, currentChap, {
+        cur,
+        dur,
+        name: nameCurrentChap,
+      })
+      .catch((err) => console.warn("save viewing progress failed: ", err))
 
     console.log("save viewing progress")
 
-    processingSaveCurTimeIn = null
+    savingTimeEpStore.delete(uidTask)
   }
 )
 watch(uidChap, saveCurTimeToPer.cancel)
@@ -1621,9 +1648,11 @@ function onVideoTimeUpdate() {
   saveCurTimeToPer(
     props.currentSeason,
     props.currentChap,
-    artCurrentTime.value,
-    artDuration.value,
-    props.nameCurrentChap
+    props.nameCurrentChap,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    props.poster!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    props.name!
   )
 }
 // function onVideoError(event: Event) {
@@ -1774,9 +1803,12 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
       console.warn("can't play HLS stream")
       // cancel
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      video.value!.oncanplay = function () {
+      const currentVideo = video.value!
+      currentVideo.oncanplay = function () {
+        const { src } = currentVideo
         currentHls?.destroy()
-        this.oncanplay = null
+        if (currentVideo.src !== src) currentVideo.src = src
+        currentVideo.oncanplay = null
       }
     }
   }
@@ -1801,7 +1833,13 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
   ) {
     const hls = new Hls({
       debug: import.meta.env.isDev,
+      workerPath: workerHls,
       progressive: true,
+      fetchSetup(context, initParams) {
+        context.url += "#animevsub-vsub"
+
+        return new Request(context.url, initParams)
+      },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       pLoader: class CustomLoader extends (Hls.DefaultConfig.loader as any) {
         loadInternal(): void {
@@ -1818,6 +1856,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
           const xhr = (this.loader = {
             readyState: 0,
             status: 0,
+            responseType: context.responseType,
             abort() {
               controller.abort()
             },
@@ -1832,6 +1871,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
           if (this.context.headers)
             for (const [key, val] of Object.entries(this.context.headers))
               headers.set(key, val as string)
+          const { maxTimeToFirstByteMs, maxLoadTimeMs } = config.loadPolicy
 
           if (context.rangeEnd) {
             headers.set(
@@ -1843,6 +1883,10 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
           xhr.onreadystatechange = this.readystatechange.bind(this)
           xhr.onprogress = this.loadprogress.bind(this)
           self.clearTimeout(this.requestTimeout)
+          config.timeout =
+            maxTimeToFirstByteMs && Number.isFinite(maxTimeToFirstByteMs)
+              ? maxTimeToFirstByteMs
+              : maxLoadTimeMs
           this.requestTimeout = self.setTimeout(
             this.loadtimeout.bind(this),
             config.timeout
@@ -1855,7 +1899,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
             .then(async (res) => {
               // eslint-disable-next-line functional/no-let
               let byteLength: number
-              if (context.responseType === "arraybuffer") {
+              if (context.responseType !== "text") {
                 xhr.response = await res.arrayBuffer()
                 byteLength = xhr.response.byteLength
               } else {
@@ -1865,6 +1909,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
 
               xhr.readyState = 4
               xhr.status = 200
+              xhr.responseType = context.responseType
 
               xhr.onprogress?.({
                 loaded: byteLength,
@@ -1884,6 +1929,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
         }
       } as unknown as PlaylistLoaderConstructor,
     })
+    if (window.Http?.version && window.Http.version < "0.0.24") patcher(hls)
     currentHls = hls
     // customLoader(hls.config)
     hls.loadSource(file)
