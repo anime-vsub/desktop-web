@@ -1,13 +1,13 @@
 import { i18n } from "src/boot/i18n"
 import { ref, watch } from "vue"
 
-const installed = ref<boolean>()
+const installed = ref<boolean>(typeof window.Http === 'object')
 setTimeout(() => {
   if (!installed.value) installed.value = false
 }, 5_0000)
 
 // eslint-disable-next-line functional/no-let
-let Http: Http
+let Http: Http = window.Http
 Object.defineProperty(window, "Http", {
   get() {
     // console.log("================= set Http ==================")

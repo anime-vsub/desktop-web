@@ -64,7 +64,7 @@ export async function get<
 
 export async function post(
   url: string,
-  data: Record<string, number | string | boolean>,
+  data: Record<string, number | string | boolean> | string,
   headers?: Record<string, string>
 ) {
   console.log("post: ", {
@@ -92,7 +92,7 @@ export async function post(
     )
 
   const response = (await window.Http.post({
-    url: C_URL + url + "#animevsub-vsub",
+    url: url.includes("://") ? url : C_URL + url + "#animevsub-vsub",
     headers: {
       "user-agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
