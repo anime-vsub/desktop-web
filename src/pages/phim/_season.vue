@@ -470,6 +470,9 @@ import type {
   ResponseDataSeasonPending,
   ResponseDataSeasonSuccess,
 } from "./response-data-season"
+import { getAmimeMyAnimeList } from "src/apis/runs/myanimelist/search"
+import { getEpisodesMyAnimeList } from "src/apis/runs/myanimelist/episodes"
+import { translateText } from "src/apis/runs/translate"
 // ================ follow ================
 // =======================================================
 // import SwipableBottom from "components/SwipableBottom.vue"
@@ -612,6 +615,25 @@ watch(
     immediate: true,
   }
 )
+watch(data,  async data => {
+  if (!data) return
+
+  console.time('time load info episodes')
+  const info = await getAmimeMyAnimeList(data.name, data.othername)
+
+  console.log("%cinfo: ", 'color: white; background-color: green', info)
+
+  const infoEpisodes = await getEpisodesMyAnimeList(info.url)
+
+  console.log("%cepisodes: ", 'color: white; background-color: green', infoEpisodes)
+  console.timeEnd('time load info episodes')
+
+  console.time('time translate')
+  const nameEpisodesTranslated = await translateText(infoEpisodes.map(item=>item.name), 'en', 'vi')
+
+  console.log("%cnameEpisodesTranslated: ", 'color: white; background-color: green',nameEpisodesTranslated)
+  console.timeEnd('time translate')
+})
 
 watch(
   [progressWatchStore, () => authStore.user_data],

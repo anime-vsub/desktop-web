@@ -25,7 +25,7 @@ async function runRawSearch(query: string) {
       )
     }
 
-    return PostWorker<typeof MyAnimeListSearchParser>(Worker, "123")
+    return PostWorker<typeof MyAnimeListSearchParser>(Worker, html)
   })
 }
 
