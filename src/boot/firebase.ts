@@ -3,8 +3,6 @@ import { getAnalytics } from "@firebase/analytics"
 import { initializeApp } from "@firebase/app"
 import {
   CACHE_SIZE_UNLIMITED,
-  disableNetwork,
-  enableNetwork,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
