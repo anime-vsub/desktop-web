@@ -545,9 +545,10 @@ const { data, run, error, loading } = useRequest(
           // eslint-disable-next-line promise/no-nesting, @typescript-eslint/no-empty-function
           .catch(() => {})
       }).catch(err => {
-        error.value = err
+        error.value = err as Error
         console.error(err)
-        return Promise.reject(err)
+      // eslint-disable-next-line functional/no-throw-statements
+      throw (err)
       }),
     ])
 
