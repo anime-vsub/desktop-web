@@ -544,13 +544,12 @@ const { data, run, error, loading } = useRequest(
           })
           // eslint-disable-next-line promise/no-nesting, @typescript-eslint/no-empty-function
           .catch(() => {})
+      }).catch(err => {
+        error.value = err
+        console.error(err)
+        return Promise.reject(err)
       }),
-    ]).catch((err) => {
-      error.value = err
-      console.error(err)
-      // eslint-disable-next-line promise/no-return-wrap
-      return Promise.reject(err)
-    })
+    ])
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return result!.value
@@ -789,6 +788,7 @@ async function fetchSeason(season: string) {
     console.log(_cacheDataSeasons)
   } catch (err) {
     console.warn(err)
+    error.value = err
     Object.assign(currentDataSeason, {
       status: "error",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
