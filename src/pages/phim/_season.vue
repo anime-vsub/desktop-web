@@ -791,7 +791,7 @@ async function fetchSeason(season: string) {
     console.log(_cacheDataSeasons)
   } catch (err) {
     console.warn(err)
-    error.value = err
+    error.value = err as Error
     Object.assign(currentDataSeason, {
       status: "error",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
