@@ -58,7 +58,7 @@ async function httpGet(
   // eslint-disable-next-line functional/no-throw-statement
   if (response.status !== 200 && response.status !== 201) throw response
 
-  return response
+  return response as Omit<typeof response, "data"> & { data: string }
 }
 
 async function httpPost(
@@ -82,7 +82,7 @@ async function httpPost(
   // eslint-disable-next-line functional/no-throw-statement
   if (response.status !== 200 && response.status !== 201) throw response
 
-  return response
+  return response as Omit<typeof response, "data"> & { data: string }
 }
 
 export const get = Http.version ? httpGet : noExt
