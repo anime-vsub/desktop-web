@@ -1,3 +1,9 @@
+<route lang="yaml">
+name: "search"
+meta:
+  forceScrollBehavior: true
+</route>
+
 <template>
   <q-page-sticky
     position="top"

@@ -421,10 +421,10 @@
                         item.timestamp.isToday()
                           ? "Hôm nay"
                           : item.timestamp.isYesterday()
-                          ? "Hôm qua"
-                          : item.timestamp.get("date") +
-                            " thg " +
-                            (item.timestamp.get("month") + 1)
+                            ? "Hôm qua"
+                            : item.timestamp.get("date") +
+                              " thg " +
+                              (item.timestamp.get("month") + 1)
                       }}
                     </div>
                     <router-link
@@ -1063,7 +1063,18 @@
     </q-drawer>
 
     <q-page-container>
-      <q-page :style-fn="route.meta?.styleFn">
+      <q-page
+        :style-fn="
+          route.meta?.perfectStyleFn
+            ? (offset, height) => {
+                return {
+                  height: height + 'px',
+                  marginTop: -offset + 'px'
+                }
+              }
+            : undefined
+        "
+      >
         <router-view v-if="Http.version" v-slot="{ Component }">
           <component :is="Component" />
         </router-view>

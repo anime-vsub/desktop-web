@@ -1,3 +1,8 @@
+<route lang="yaml">
+meta:
+  footer: false
+</route>
+
 <template>
   <q-page-sticky position="top" class="children:w-full bg-dark-page z-10">
     <div class="w-full">

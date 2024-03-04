@@ -1,3 +1,7 @@
+<route lang="yaml">
+name: "account"
+</route>
+
 <template>
   <header class="fixed top-0 bg-dark-page bg-dark-page z-1000 w-full">
     <q-item

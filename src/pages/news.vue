@@ -1,3 +1,9 @@
+<route lang="yaml">
+name: "news"
+meta:
+  forceScrollBehavior: true
+</route>
+
 <template>
   <header class="fixed z-1000 bg-dark-page w-full">
     <q-toolbar>

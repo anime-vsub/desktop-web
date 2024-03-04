@@ -1121,7 +1121,7 @@ import { fetchJava } from "src/logic/fetchJava"
 import { patcher } from "src/logic/hls-patcher"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
-import type { ProgressWatchStore } from "src/pages/phim/_season.interface"
+import type { ProgressWatchStore } from "src/pages/!phim/_season.interface"
 import type {
   ResponseDataSeasonError,
   ResponseDataSeasonPending,

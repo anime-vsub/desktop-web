@@ -423,69 +423,11 @@
 
 <script lang="ts" setup>
 import { getAnalytics, logEvent } from "@firebase/analytics"
-import { Icon } from "@iconify/vue"
-import { useHead } from "@vueuse/head"
-import AddToPlaylist from "components/AddToPlaylist.vue"
-import BottomBlur from "components/BottomBlur.vue"
-import BrtPlayer from "components/BrtPlayer.vue"
-import CardVertical from "components/CardVertical.vue"
-import FragmentChaps from "components/FragmentChaps.vue"
-import QImgCustom from "components/QImgCustom"
-import Quality from "components/Quality.vue"
-import ScreenError from "components/ScreenError.vue"
-import SkeletonCardVertical from "components/SkeletonCardVertical.vue"
-import Star from "components/Star.vue"
-import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { EmbedFbCmt } from "embed-fbcmt-client/vue"
 import { set } from "idb-keyval"
-import {
-  QBtn,
-  QCard,
-  QCardSection,
-  QMenu,
-  QRating,
-  QResponsive,
-  QSkeleton,
-  QTooltip,
-  QVideo,
-  useQuasar
-} from "quasar"
-import { AjaxLike, checkIsLike } from "src/apis/runs/ajax/like"
-import { PlayerFB } from "src/apis/runs/ajax/player-fb"
-import { PlayerLink } from "src/apis/runs/ajax/player-link"
-import { AjaxRate } from "src/apis/runs/ajax/rate"
-import { PhimId } from "src/apis/runs/phim/[id]"
-import { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
-// import BottomSheet from "src/components/BottomSheet.vue"
 import type { servers } from "src/constants"
-import { C_URL, TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE } from "src/constants"
 import { forceHttp2 } from "src/logic/forceHttp2"
 import { formatView } from "src/logic/formatView"
-import { getDataIDB } from "src/logic/get-data-IDB"
-import { getDataJson } from "src/logic/get-data-json"
-import { getQualityByLabel } from "src/logic/get-quality-by-label"
-import { getRealSeasonId } from "src/logic/getRealSeasonId"
-import { parseChapName } from "src/logic/parseChapName"
-import { unflat } from "src/logic/unflat"
-import { useAuthStore } from "stores/auth"
-import { useHistoryStore } from "stores/history"
-import { usePlaylistStore } from "stores/playlist"
-import { useSettingsStore } from "stores/settings"
-import type { Ref, ShallowRef } from "vue"
-import {
-  computed,
-  getCurrentInstance,
-  onBeforeUnmount,
-  reactive,
-  ref,
-  shallowRef,
-  toRaw,
-  watch,
-  watchEffect
-} from "vue"
-import { useI18n } from "vue-i18n"
-import { useRequest } from "vue-request"
-import { RouterLink, useRoute, useRouter } from "vue-router"
 
 import type { ProgressWatchStore, Season } from "./_season.interface"
 import type {

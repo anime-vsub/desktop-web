@@ -5,10 +5,14 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "preserveSymlinks": true,
+    "resolveJsonModule": true,
     "noEmitOnError": false,
-    /* end */
     "baseUrl": "./",
-    "types": ["vitest/globals"],
+    "types": [
+      "vitest/globals",
+      "@tachibana-shin/vite-plugin-pages/client",
+      "vite-plugin-vue-layouts/client",
+    ],
     "esModuleInterop": true,
     "lib": ["esnext", "DOM"]
   }

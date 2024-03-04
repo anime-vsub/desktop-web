@@ -155,7 +155,7 @@ import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
 import type {
   ProgressWatchStore,
   Season
-} from "src/pages/phim/_season.interface"
+} from "src/pages/!phim/_season.interface"
 import { useStateStorageStore } from "src/stores/state-storage"
 import { ref, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"

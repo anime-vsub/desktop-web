@@ -1,3 +1,9 @@
+<route lang="yaml">
+name: "notification"
+meta:
+  forceScrollBehavior: true
+</route>
+
 <template>
   <header class="fixed top-0 z-1000 w-full bg-dark-page">
     <q-toolbar class="relative">
