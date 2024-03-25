@@ -572,13 +572,14 @@ const { data, run, error, loading } = useRequest(
           }
           Object.assign(result.value, { [__ONLINE__]: true })
 
+          // eslint-disable-next-line promise/always-return
           if (changed) updateIndexedDB(toRaw(result.value))
-          else promiseLoadIndexedb.then(updateIndexedDB, updateIndexedDB)
+          else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
 
           function updateIndexedDB(data2?: Awaited<ReturnType<typeof PhimId>>) {
             if (JSON.stringify(data2) !== json) {
               // update indexeddb
-              set(`data-${id}`, JSON.stringify(data))
+              set(`data-${id}`, json)
                 // eslint-disable-next-line promise/no-nesting
                 .then(() => {
                   return console.log("[fs]: save cache to fs %s", id)
@@ -591,7 +592,7 @@ const { data, run, error, loading } = useRequest(
           }
         })
         .catch((err) => {
-          if (result) return
+          if (result.value) return
 
           error.value = err as Error
           console.error(err)
@@ -749,7 +750,6 @@ async function fetchSeason(season: string) {
         // mergeListEp(response.value, data)
         const json = JSON.stringify(data)
         let changed = false
-        // eslint-disable-next-line promise/always-return
         if (
           !response.value ||
           response.value.chaps.length !== data.chaps.length ||
@@ -764,10 +764,10 @@ async function fetchSeason(season: string) {
         }
         Object.assign(response.value, { [__ONLINE__]: true })
 
+        // eslint-disable-next-line promise/always-return
         if (changed) updateIndexedDB(toRaw(response.value))
-        else promiseLoadIndexedb.then(updateIndexedDB, updateIndexedDB)
+        else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
 
-        // eslint-disable-next-line promise/catch-or-return
         function updateIndexedDB(
           jsonCache?: Awaited<ReturnType<typeof PhimIdChap>>
         ) {
