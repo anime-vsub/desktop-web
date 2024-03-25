@@ -1097,7 +1097,11 @@ watchEffect(() => {
       })
     } else {
       if (import.meta.env.DEV) console.warn("Redirect to not_found")
-      if (data.value && __ONLINE__ in data.value)
+      if (
+        data.value &&
+        __ONLINE__ in data.value &&
+        __ONLINE__ in currentDataSeason.value
+      )
         router.replace({
           name: "not_found",
           params: {
