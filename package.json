@@ -1,6 +1,6 @@
 {
   "name": "git.shin.animevsub",
-  "version": "1.1.14",
+  "version": "1.1.20",
   "description": "Watch Anime without advertising, free, private.",
   "productName": "AnimeVsub",
   "author": "Tachibana Shin <45375496+tachibana-shin@users.noreply.github.com>",
@@ -38,6 +38,7 @@
     "embed-fbcmt-client": "^0.1.32",
     "eruda2": "0.0.2-b8",
     "fb-comments-web": "^0.0.13",
+    "filesize": "^10.1.0",
     "group-array": "^1.0.0",
     "htmlparser2": "^8.0.2",
     "idb-keyval": "^6.2.1",
