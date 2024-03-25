@@ -1027,8 +1027,8 @@ watchEffect(async (onCleanup): Promise<void> => {
   }
 })
 const currentMetaChap = computed(() => {
-  if (!currentChap.value) return
-  return currentDataSeason.value?.chaps.find(
+  if (!currentChap.value || !currentDataSeason.value) return null
+  return currentDataSeason.value.chaps.find(
     (item) => item.id === currentChap.value
   )
 })
@@ -1065,6 +1065,7 @@ watchEffect(() => {
   // currentChap != undefined because is load done from firestore and ready show but in chaps not found (!currentMetaChap.value)
   if (!currentDataSeason.value) return
   if (!currentChap.value) return
+  if (currentMetaChap.value === null) return
 
   if (!currentMetaChap.value) {
     const epId = currentChap.value
