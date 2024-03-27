@@ -616,63 +616,66 @@ const { data, run, error, loading } = useRequest(
 
     if (!id) return Promise.reject()
 
-    let result: Ref<Awaited<ReturnType<typeof PhimId>>>
+    const result = shallowRef<Awaited<ReturnType<typeof PhimId>>>()
 
+    let promiseLoadIndexedb: Promise<Awaited<ReturnType<typeof PhimId>>>
     await Promise.any([
-      new Promise<Awaited<ReturnType<typeof PhimId>>>((resolve, reject) => {
-        const data = getDataJson<Awaited<ReturnType<typeof PhimId>>>(
-          "anime_info",
-          id
-        )
-        if (data) {
-          resolve(data)
-          return
-        }
+      (promiseLoadIndexedb = new Promise<Awaited<ReturnType<typeof PhimId>>>(
+        (resolve, reject) => {
+          const data = getDataJson<Awaited<ReturnType<typeof PhimId>>>(
+            "anime_info",
+            id
+          )
+          if (data) {
+            resolve(data)
+            return
+          }
 
-        getDataIDB<string>(`data-${id}`)
-          .then((json) => JSON.parse(json))
-          .then(resolve)
-          .catch(reject)
-      }).then((text) => {
-        if (!text) throw new Error("not_found_on_idb")
+          getDataIDB<string>(`data-${id}`)
+            .then((json) => JSON.parse(json))
+            .then(resolve)
+            .catch(reject)
+        }
+      ).then((data) => {
+        if (!data) throw new Error("not_found_on_idb")
         console.log("[fs]: use cache from fs %s", id)
-        // eslint-disable-next-line promise/always-return
-        if (!result) result = ref(text)
-      }),
+        if (!result.value) result.value = data
+
+        return data
+      })),
       PhimId(id)
         .then(async (data) => {
-          let changed = !result // true if result is undefined
-          const watcher =
-            result &&
-            watch(
-              result,
-              () => {
-                watcher()
-                changed = true
-              },
-              { deep: true }
-            )
-          if (result) Object.assign(result.value, data)
-          else result = ref(data)
-          watcher?.()
+          const json = JSON.stringify(data)
 
+          let changed = false
+          if (!result.value || JSON.stringify(toRaw(result.value)) !== json) {
+            // changed
+            if (result.value) changed = true
+            result.value = data
+          }
           Object.assign(result.value, { [__ONLINE__]: true })
 
           // eslint-disable-next-line promise/always-return
-          if (changed) {
-            set(`data-${id}`, JSON.stringify(data))
-              // eslint-disable-next-line promise/no-nesting
-              .then(() => {
-                return console.log("[fs]: save cache to fs %s", id)
-              })
-              // eslint-disable-next-line promise/no-nesting, @typescript-eslint/no-empty-function
-              .catch(() => {})
-          } else if (import.meta.env.DEV) {
-            console.log("[data main]: No update data in IndexedDB")
+          if (changed) updateIndexedDB(toRaw(result.value))
+          else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
+
+          function updateIndexedDB(data2?: Awaited<ReturnType<typeof PhimId>>) {
+            if (JSON.stringify(data2) !== json) {
+              // update indexeddb
+              set(`data-${id}`, json)
+                // eslint-disable-next-line promise/no-nesting
+                .then(() => {
+                  return console.log("[fs]: save cache to fs %s", id)
+                })
+                // eslint-disable-next-line promise/no-nesting, @typescript-eslint/no-empty-function
+                .catch(() => {})
+            } else if (import.meta.env.DEV) {
+              console.log("[data main]: No update data in IndexedDB")
+            }
           }
         })
         .catch((err) => {
-          if (result) return
+          if (result.value) return
 
           error.value = err as Error
           console.error(err)
@@ -837,7 +840,6 @@ async function fetchSeason(season: string) {
             json !== JSON.stringify(toRaw(response.value))
           ) {
             console.info("cache wrong")
-
             // eslint-disable-next-line promise/catch-or-return
             promiseLoadIndexedb.finally((jsonCache?: string) => {
               if (json !== jsonCache) {
@@ -1125,8 +1127,8 @@ watchEffect(async (onCleanup): Promise<void> => {
   }
 })
 const currentMetaChap = computed(() => {
-  if (!currentChap.value) return
-  return currentDataSeason.value?.chaps.find(
+  if (!currentChap.value || !currentDataSeason.value) return null
+  return currentDataSeason.value.chaps.find(
     (item) => item.id === currentChap.value
   )
 })
@@ -1163,6 +1165,7 @@ watchEffect(() => {
   // currentChap != undefined because is load done from firestore and ready show but in chaps not found (!currentMetaChap.value)
   if (!currentDataSeason.value) return
   if (!currentChap.value) return
+  if (currentMetaChap.value === null) return
 
   if (!currentMetaChap.value) {
     const epId = currentChap.value
@@ -1194,7 +1197,11 @@ watchEffect(() => {
       })
     } else {
       if (import.meta.env.DEV) console.warn("Redirect to not_found")
-      if (data.value && __ONLINE__ in data.value)
+      if (
+        data.value &&
+        __ONLINE__ in data.value &&
+        __ONLINE__ in currentDataSeason.value
+      )
         router.replace({
           name: "not_found",
           params: {

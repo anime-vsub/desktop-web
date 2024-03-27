@@ -56,6 +56,11 @@ export function PlayerLink(config: {
   })
     .then((res) => res.json() as Promise<Writeable<PlayerLinkReturn>>)
     .then((config) => {
+      if (!config.link)
+        throw Object.assign(new Error("This server not found."), {
+          not_found: true
+        })
+
       config.link.forEach((item) => {
         item.file = addProtocolUrl(item.file)
         switch (

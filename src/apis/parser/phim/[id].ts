@@ -22,7 +22,7 @@ export default function PhimId(html: string, now: number) {
   const name = $(".Title:eq(0)").text()
   const othername = $(".SubTitle:eq(0)").text()
 
-  const image = $(".Image img").attr("src")
+  const image = $(".Image img").attr("src")!
   const poster = $(".TPostBg img").attr("src")
   const pathToView = $(".watch_button_more")
     ? getPathName($(".watch_button_more").attr("href")!)
