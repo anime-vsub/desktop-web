@@ -39,8 +39,8 @@ dependencies:
     specifier: ^9.13.0
     version: 9.13.0(vue@3.4.21)
   animevsub-download-manager:
-    specifier: github:anime-vsub/animevsub-download-manager.git#v0.0.12
-    version: github.com/anime-vsub/animevsub-download-manager/e6b40df4a8e40f20505af3c872240150bb72dd62(typescript@5.3.3)
+    specifier: github:anime-vsub/animevsub-download-manager.git#v0.0.13
+    version: github.com/anime-vsub/animevsub-download-manager/3453718bf07157866427c7625ddea72a31012480(typescript@5.3.3)
   cheerio:
     specifier: 1.0.0-rc.12
     version: 1.0.0-rc.12
@@ -65,6 +65,9 @@ dependencies:
   group-array:
     specifier: ^1.0.0
     version: 1.0.0
+  hls-parser:
+    specifier: ^0.10.9
+    version: 0.10.9
   htmlparser2:
     specifier: ^8.0.2
     version: 8.0.2
@@ -7336,6 +7339,10 @@ packages:
     hasBin: true
     dev: true
 
+  /hls-parser@0.10.9:
+    resolution: {integrity: sha512-BGtoMd3sbhndHYKVQEoEmpuRe6++iWQc38x84x5uqitYmP6V5opKHWaYJT4GAwhnVRaNhMTuZbS0AruzPw4qgw==}
+    dev: false
+
   /hls.js@1.5.7:
     resolution: {integrity: sha512-Hnyf7ojTBtXHeOW1/t6wCBJSiK1WpoKF9yg7juxldDx8u3iswrkPt2wbOA/1NiwU4j27DSIVoIEJRAhcdMef/A==}
     dev: true
@@ -12156,11 +12163,11 @@ packages:
       readable-stream: 3.6.2
     dev: true
 
-  github.com/anime-vsub/animevsub-download-manager/e6b40df4a8e40f20505af3c872240150bb72dd62(typescript@5.3.3):
-    resolution: {tarball: https://codeload.github.com/anime-vsub/animevsub-download-manager/tar.gz/e6b40df4a8e40f20505af3c872240150bb72dd62}
-    id: github.com/anime-vsub/animevsub-download-manager/e6b40df4a8e40f20505af3c872240150bb72dd62
+  github.com/anime-vsub/animevsub-download-manager/3453718bf07157866427c7625ddea72a31012480(typescript@5.3.3):
+    resolution: {tarball: https://codeload.github.com/anime-vsub/animevsub-download-manager/tar.gz/3453718bf07157866427c7625ddea72a31012480}
+    id: github.com/anime-vsub/animevsub-download-manager/3453718bf07157866427c7625ddea72a31012480
     name: animevsub-download-manager
-    version: 0.0.12
+    version: 0.0.13
     peerDependencies:
       typescript: ^54.3
     dependencies:
