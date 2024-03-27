@@ -39,8 +39,8 @@ dependencies:
     specifier: ^9.13.0
     version: 9.13.0(vue@3.4.21)
   animevsub-download-manager:
-    specifier: github:anime-vsub/animevsub-download-manager.git#v0.0.13
-    version: github.com/anime-vsub/animevsub-download-manager/3453718bf07157866427c7625ddea72a31012480(typescript@5.3.3)
+    specifier: github:anime-vsub/animevsub-download-manager.git#v0.0.14
+    version: github.com/anime-vsub/animevsub-download-manager/d8ecc906212adf84cb9c51c0249a449b05657c4b
   cheerio:
     specifier: 1.0.0-rc.12
     version: 1.0.0-rc.12
@@ -12163,13 +12163,10 @@ packages:
       readable-stream: 3.6.2
     dev: true
 
-  github.com/anime-vsub/animevsub-download-manager/3453718bf07157866427c7625ddea72a31012480(typescript@5.3.3):
-    resolution: {tarball: https://codeload.github.com/anime-vsub/animevsub-download-manager/tar.gz/3453718bf07157866427c7625ddea72a31012480}
-    id: github.com/anime-vsub/animevsub-download-manager/3453718bf07157866427c7625ddea72a31012480
+  github.com/anime-vsub/animevsub-download-manager/d8ecc906212adf84cb9c51c0249a449b05657c4b:
+    resolution: {tarball: https://codeload.github.com/anime-vsub/animevsub-download-manager/tar.gz/d8ecc906212adf84cb9c51c0249a449b05657c4b}
     name: animevsub-download-manager
-    version: 0.0.13
-    peerDependencies:
-      typescript: ^54.3
+    version: 0.0.14
     dependencies:
       '@isomorphic-git/lightning-fs': 4.6.0
       bumpp: 9.4.0
@@ -12177,5 +12174,4 @@ packages:
       idb: 8.0.0
       idb-keyval: 6.2.1
       m3u8-parser: 7.1.0
-      typescript: 5.3.3
     dev: false
