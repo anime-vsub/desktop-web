@@ -1076,6 +1076,16 @@
         <NotExistsExtension v-else />
       </q-page>
     </q-page-container>
+
+
+
+  <q-footer v-if="showStateNetwork" model-value class="text-center px-4 py-1 font-weight-medium bg-[#212121]"
+:class="{
+  'bg-green': isOnline
+}"
+  >
+    {{ isOnline ? "Đã có mạng trở lại" : "Không có kết nối internet" }}
+  </q-footer>
   </q-layout>
 
   <q-dialog v-model="showDialogLogin">
@@ -1201,6 +1211,7 @@ import { computed, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRequest } from "vue-request"
 import { useRoute, useRouter } from "vue-router"
+import { useOnline } from "src/composibles/online"
 
 import NotExistsExtension from "./NotExistsExtension.vue"
 
@@ -1282,6 +1293,21 @@ const settingsStore = useSettingsStore()
 const playlistStore = usePlaylistStore()
 const historyStore = useHistoryStore()
 const analytics = getAnalytics()
+
+const isOnline = useOnline()
+const showStateNetwork = ref(isOnline.value === false)
+watch(isOnline, (isOnline, _, onCleanup) => {
+  if (isOnline) {
+    showStateNetwork.value = true
+    onCleanup(
+    setTimeout(() => {
+      showStateNetwork.value = false 
+    },1_000)
+    )
+  } else {
+    showStateNetwork.value = true
+  }
+})
 
 const query = ref("")
 const {

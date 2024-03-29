@@ -472,7 +472,7 @@
                     >
                       <div>
                         <div
-                          class="py-1 px-4 text-subtitle1 flex items-center justify-between"
+                          class="min-h-42px py-1 px-4 text-subtitle1 flex items-center justify-between"
                         >
                           {{
                             gridModeTabsSeasons
@@ -481,6 +481,7 @@
                           }}
 
                           <q-btn
+                            v-if="seasons?.length > 1"
                             dense
                             round
                             unelevated
@@ -613,6 +614,7 @@
                                     )?.response
                                   "
                                   :deep-scroll="5"
+                                  :offlines="offlines"
                                   class-item="px-3 !py-[6px] mb-3"
                                 />
                               </template>
@@ -1244,6 +1246,8 @@ import {
 import { useI18n } from "vue-i18n"
 import { onBeforeRouteLeave, useRouter } from "vue-router"
 
+import type { SeasonInfo } from "animevietsub-download-manager/src/main"
+
 const { t } = useI18n()
 // fix toolip fullscreen not hide if change fullscreen
 
@@ -1301,6 +1305,10 @@ const props = defineProps<{
     end: number
   }
   uidChap: string | null
+
+
+
+  offlines?: SeasonInfo["episodesOffline"] 
 }>()
 
 const playerWrapRef = ref<HTMLDivElement>()

@@ -39,6 +39,7 @@
         :intro="inoutroEpisode?.intro"
         :outro="inoutroEpisode?.outro"
         :uid-chap="uniqueEpisode"
+          :offlines="data?.episodesOffline"
         @cur-update="
           currentProgresWatch?.set($event.id, {
             cur: $event.cur,
@@ -50,7 +51,7 @@
         v-else
         class="w-full overflow-hidden bg-[#000] focus-visible:outline-none select-none"
       >
-        <q-img-custom
+        <q-img-file
           no-spinner
           v-if="!sources?.[0]?.file"
           :ratio="841 / 483"
@@ -75,6 +76,7 @@
           :current-season="currentSeason"
           :current-chap="currentChap"
           :progressWatchStore="progressWatchStore"
+          :offlines="data?.episodesOffline"
         />
       </div>
     </div>
@@ -357,11 +359,11 @@
       {{ statusOffline }}
       <div class="flex mt-3">
         <div>
-          <q-img-custom
+          <q-img-file
             v-if="data?.image"
             width="152px"
             class="rounded-xl"
-            :src="imageAsync"
+            :src="data.image"
             referrerpolicy="no-referrer"
           />
         </div>
@@ -427,6 +429,7 @@
             :current-season="currentSeason"
             :current-chap="currentChap"
             :progressWatchStore="progressWatchStore"
+          :offlines="data?.episodesOffline"
           />
         </div>
       </q-responsive>
@@ -510,7 +513,7 @@ import BottomBlur from "components/BottomBlur.vue"
 import BrtPlayer from "components/BrtPlayer.vue"
 import CardVertical from "components/CardVertical.vue"
 import FragmentChaps from "components/FragmentChaps.vue"
-import QImgCustom from "components/QImgCustom"
+import QImgFile from "components/QImgFile.vue"
 import Quality from "components/Quality.vue"
 import ScreenError from "components/ScreenError.vue"
 import SkeletonCardVertical from "components/SkeletonCardVertical.vue"
@@ -545,7 +548,8 @@ import {
   API_OPEND,
   C_URL,
   TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE,
-  WARN
+  WARN,
+CODE_NOT_AVAILABLE_OFFLINE
 } from "src/constants"
 import { forceHttp2 } from "src/logic/forceHttp2"
 import { formatView } from "src/logic/formatView"
@@ -606,7 +610,7 @@ const { data, run, error, loading } = useRequest(
       const data = await admStore.adm.getSeason(realIdCurrentSeason.value)
       console.log(data)
 
-      if (!data) throw new Error("offline")
+      if (!data) throw Object.assign(new Error(CODE_NOT_AVAILABLE_OFFLINE), { code: CODE_NOT_AVAILABLE_OFFLINE} ) 
 
       return data
     }
@@ -900,10 +904,11 @@ async function fetchSeason(season: string) {
           update: null
         }
       } catch (err: any) {
-        if (err.code === "ENOENT")
-          throw Object.assign(new Error(t("msg-not-available-on-offline")), {
+        if (err.code === "ENOENT") 
+          throw (error.value = Object.assign(new Error(t("msg-not-available-on-offline")), {
+            code: CODE_NOT_AVAILABLE_OFFLINE,
             showMsg: true
-          })
+          }))
         else throw err
       }
     }
@@ -1396,6 +1401,16 @@ watch(
           return episode
         })
         .catch((err) => {
+          if (err.code === "ENOENT")
+            void $q.notify({
+              message: "Không có kết nối internet",
+              caption: "Hãy chuyển sang để xem những tập ngoại tuyến",
+              actions: [
+                { label: "Mở ngoại tuyến", color: "main", to: "/tai-khoan/offline"}],
+              position: "bottom-left",
+              timeout: 0
+            })
+          else 
           void $q.notify({
             message: `Play load error: ${err}`,
             position: "bottom-right",
@@ -1965,23 +1980,11 @@ const statusOffline = computedAsync(
   null,
   { onError: WARN }
 )
+const metaOffline = computedAsync(() => {
+  if (!statusOffline.value || !uniqueEpisode.value) return null
 
-const imageAsync = computedAsync(
-  async () => {
-    if (!data.value?.image) return
-    try {
-      if (data.value.image.startsWith("file:"))
-        return URL.createObjectURL(
-          new Blob([await admStore.fs.readFile(data.value.image.slice(5))])
-        )
-    } catch (err) {
-      WARN(err)
-    }
-    return forceHttp2(data.value.image)
-  },
-  undefined,
-  { onError: WARN }
-)
+    return admStore.adm.getEpisode(uniqueEpisode.value)
+}, null, { onError: WARN })
 </script>
 
 <style lang="scss" scoped>

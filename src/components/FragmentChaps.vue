@@ -45,7 +45,7 @@
           }}</q-tooltip
         >
       </q-btn>
-      <q-btn dense round @click="gridModeTabsSeasons = !gridModeTabsSeasons">
+      <q-btn v-if="seasons?.length > 1" dense round @click="(gridModeTabsSeasons = !gridModeTabsSeasons)">
         <Icon
           :icon="
             gridModeTabsSeasons
@@ -138,6 +138,7 @@
             :progress-chaps="
               (progressWatchStore.get(value) as unknown as any)?.response
             "
+            :offlines="offlines"
             class-item="px-3 !py-[6px] mb-3"
           />
         </template>
@@ -159,12 +160,14 @@ import type {
 import { useStateStorageStore } from "src/stores/state-storage"
 import { ref, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
+import type { SeasonInfo } from "animevietsub-download-manager/src/main"
 
 import type {
   ResponseDataSeasonError,
   ResponseDataSeasonPending,
   ResponseDataSeasonSuccess
 } from "../pages/phim/response-data-season"
+import { useOnline } from "src/composibles/online"
 
 const props = defineProps<{
   fetchSeason: (season: string) => Promise<void>
@@ -177,9 +180,12 @@ const props = defineProps<{
   >
   currentSeason?: undefined | string
   currentChap?: string | undefined
+  offlines?: SeasonInfo["episodesOffline"]
+
   progressWatchStore: ProgressWatchStore
 }>()
 const { t } = useI18n()
+const isOnline = useOnline()
 
 const stateStorageStore = useStateStorageStore()
 

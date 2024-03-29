@@ -18,6 +18,7 @@ import ErrorCloudflare from "./errors/cloudflare.vue"
 import ErrorDomainStrange from "./errors/domain-strange.vue"
 import RequireUpdateExt from "./errors/require-update-ext.vue"
 import ErrorUnknown from "./errors/unknown.vue"
+import ErrorOffline from "./errors/offline.vue"
 
 const props = defineProps<{
   noImage?: boolean
@@ -33,7 +34,8 @@ const componentErrors = {
   "domain-strange": ErrorDomainStrange,
   unknown: ErrorUnknown,
   "extension-not-exists": NotExistsExtension,
-  "require-update-ext": RequireUpdateExt
+  "require-update-ext": RequireUpdateExt,
+  offline: ErrorOffline
 }
 
 const typeError = computed(() => {
@@ -53,6 +55,7 @@ const typeError = computed(() => {
     return "domain-strange"
   if (props.error?.extesionNotExists) return "extension-not-exists"
   if (props.error?.requireUpdate) return "require-update-ext"
+  if (props.error?.code === CODE_NOT_AVAILABLE_OFFLINE) return "offline"
 
   return null
 })

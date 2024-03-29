@@ -1,7 +1,10 @@
 import { useEventListener } from "@vueuse/core"
 
+let online: Ref<boolean>
 export function useOnline() {
-	const online = ref(navigator.onLine)
+	if (online) return online
+
+	online = ref(false && navigator.onLine)
 
 
 	useEventListener(window, 'offline', () => {
@@ -11,5 +14,5 @@ export function useOnline() {
 		online.value = true
 	})
 
-	return ref(false) // online
+	return online
 }

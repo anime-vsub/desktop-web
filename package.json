@@ -33,7 +33,7 @@
     "@vueuse/core": "^9.13.0",
     "@vueuse/head": "^1.3.1",
     "@vueuse/shared": "^9.13.0",
-    "animevsub-download-manager": "github:anime-vsub/animevsub-download-manager.git#v0.0.14",
+    "animevsub-download-manager": "github:anime-vsub/animevsub-download-manager.git#v0.0.15",
     "cheerio": "1.0.0-rc.12",
     "client-ext-animevsub-helper": "^1.0.24",
     "dayjs": "^1.11.9",
