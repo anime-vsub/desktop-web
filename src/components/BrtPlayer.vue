@@ -1246,7 +1246,7 @@ import {
 import { useI18n } from "vue-i18n"
 import { onBeforeRouteLeave, useRouter } from "vue-router"
 
-import type { SeasonInfo } from "animevsub-download-manager/src/main"
+import type { SeasonInfo } from "animevsub-download-manager"
 
 const { t } = useI18n()
 // fix toolip fullscreen not hide if change fullscreen
@@ -1305,8 +1305,6 @@ const props = defineProps<{
     end: number
   }
   uidChap: string | null
-
-
 
   offlines?: SeasonInfo["episodesOffline"]
 }>()
@@ -1690,8 +1688,7 @@ function throttle<T extends (...args: any[]) => Promise<void>>(
       wait = true
       timeout = setTimeout(
         async () => {
-          if(props.uidChap)
-          firstSaveStore.add(props.uidChap)
+          if (props.uidChap) firstSaveStore.add(props.uidChap)
           // eslint-disable-next-line no-void
           await fn(...args).catch(() => void 0)
           wait = false
@@ -1724,7 +1721,7 @@ const saveCurTimeToPer = throttle(
   ) => {
     console.log("call main fn cur time")
     const uidTask = props.uidChap
-    if(!uidTask) return
+    if (!uidTask) return
 
     if (savingTimeEpStore.has(uidTask)) {
       if (import.meta.env.DEV) console.warn("Task saving %s exists", uidTask)
@@ -2013,43 +2010,43 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
   ) {
     const offEnds = "_extra"
 
-    if ( file.startsWith("file:") )
+    if (file.startsWith("file:"))
       currentHls = new HlsPatched(
-          {
-            debug: false && import.meta.env.DEV,
-            workerPath: workerHls,
-            progressive: true
-          },
-          (request) => {
-            return admStore.utils
-              .get(request.url.slice(6))
-              .then((buffer) => {
-                const res = new Response(buffer as Uint8Array, { status: 200 })
-                const { url } = request
-
-                Object.defineProperty(res, "url", {
-                  get: () => url
-                })
-
-                return res
-              })
-              .catch((err) => {
-                WARN(err)
-                return new Response("404", { status: 404 })
-              })
-          }
-        )
-    else
-    currentHls = new Hls({
+        {
           debug: false && import.meta.env.DEV,
           workerPath: workerHls,
-          progressive: true,
-          fetchSetup(context, initParams) {
-            context.url += "#animevsub-vsub" + offEnds
+          progressive: true
+        },
+        (request) => {
+          return admStore.utils
+            .get(request.url.slice(6))
+            .then((buffer) => {
+              const res = new Response(buffer as Uint8Array, { status: 200 })
+              const { url } = request
 
-            return new Request(context.url, initParams)
-          }
-        })
+              Object.defineProperty(res, "url", {
+                get: () => url
+              })
+
+              return res
+            })
+            .catch((err) => {
+              WARN(err)
+              return new Response("404", { status: 404 })
+            })
+        }
+      )
+    else
+      currentHls = new Hls({
+        debug: false && import.meta.env.DEV,
+        workerPath: workerHls,
+        progressive: true,
+        fetchSetup(context, initParams) {
+          context.url += "#animevsub-vsub" + offEnds
+
+          return new Request(context.url, initParams)
+        }
+      })
     // currentHls = hls
     // customLoader(hls.config)
     currentHls.loadSource(file)

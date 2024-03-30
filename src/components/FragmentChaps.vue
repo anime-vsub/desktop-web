@@ -45,7 +45,12 @@
           }}</q-tooltip
         >
       </q-btn>
-      <q-btn v-if="seasons?.length" dense round @click="(gridModeTabsSeasons = !gridModeTabsSeasons)">
+      <q-btn
+        v-if="seasons?.length"
+        dense
+        round
+        @click="gridModeTabsSeasons = !gridModeTabsSeasons"
+      >
         <Icon
           :icon="
             gridModeTabsSeasons
@@ -113,7 +118,11 @@
           v-else-if="_tmp.status === 'error'"
           class="absolute top-[50%] left-[50%] text-center transform -translate-x-1/2 -translate-y-1/2"
         >
-          {{_tmp.response.showMsg ? _tmp.response.message : t("loi-khi-lay-du-lieu") }}
+          {{
+            _tmp.response.showMsg
+              ? _tmp.response.message
+              : t("loi-khi-lay-du-lieu")
+          }}
           <br />
           <q-btn
             dense
@@ -149,7 +158,7 @@
 
 <script lang="ts" setup>
 import { Icon } from "@iconify/vue"
-import type { SeasonInfo } from "animevsub-download-manager/src/main"
+import type { SeasonInfo } from "animevsub-download-manager"
 import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { QBtn, QSpinner, QTab, QTabPanel, QTabPanels, QTabs } from "quasar"

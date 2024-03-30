@@ -566,7 +566,7 @@ import { useSettingsStore } from "stores/settings"
 import type { ShallowReactive, ShallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRequest } from "vue-request"
-import type { SeasonInfo } from "animevsub-download-manager/src/main"
+import type { SeasonInfo } from "animevsub-download-manager"
 
 import type { ProgressWatchStore, Season } from "./_season.interface"
 import type {
@@ -904,7 +904,7 @@ async function fetchSeason(season: string) {
     } else {
       try {
         const data = await admStore.adm.getListEpisodes(realIdSeason)
-        if (!data) throw { code : "ENOENT"}
+        if (!data) throw { code: "ENOENT" }
 
         response.value = {
           ...data,
@@ -1992,7 +1992,7 @@ const episodeOffline = computedAsync(
     const episode = await admStore.adm.getEpisode(uniqueEpisode.value)
     if (!episode) return null
 
-    return { episode, ... episode.progress}
+    return { episode, ...episode.progress }
   },
   null,
   { onError: WARN }

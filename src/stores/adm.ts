@@ -3,7 +3,7 @@ import {
   Utils,
   SeasonInfo,
   Episode
-} from "animevsub-download-manager/src/main"
+} from "animevsub-download-manager"
 import { get, getMany, set, setMany, createStore, UseStore } from "idb-keyval"
 import { defineStore } from "pinia"
 import { ShallowReactive } from "vue"

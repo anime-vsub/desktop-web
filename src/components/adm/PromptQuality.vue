@@ -57,7 +57,7 @@
 
 <script lang="ts" setup>
 import { computedAsync } from "@vueuse/core"
-import { retry, type SeasonInfo } from "animevsub-download-manager/src/main"
+import { retry, type SeasonInfo } from "animevsub-download-manager"
 import { filesize } from "filesize"
 import { useQuasar } from "quasar"
 import { PlayerFB } from "src/apis/runs/ajax/player-fb"
