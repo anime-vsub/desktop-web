@@ -40,7 +40,7 @@
                 {{ item.name }}
               </h2>
 
-              <p class="text-gray-300 text-12px">{{ item.seasonName }}</p>
+              <p class="text-gray-300 text-12px">{{ item.currentSeason?.name }}</p>
               <p class="text-gray-300 text-12px flex items-center truncate">
                 {{
                   $t("formatview-data-views-luot-xem", [formatView(item.views)])

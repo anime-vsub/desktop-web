@@ -491,6 +491,7 @@
       route.path &&
       currentMetaChap &&
       uniqueEpisode &&
+      currentMetaSeason &&
       showDownload
     "
     v-model="showDownload"
@@ -499,6 +500,7 @@
     :path="route.path"
     :unique-episode="uniqueEpisode"
     :current-episode="currentMetaChap"
+    :current-season="currentMetaSeason"
   />
 </template>
 

@@ -77,6 +77,10 @@ const props = defineProps<{
     hash: string
     name: string
   }
+  currentSeason: {
+    name: string
+    value: string
+  }
 }>()
 
 const admStore = useADM()
@@ -210,7 +214,8 @@ async function download() {
       count_rate,
       duration,
       season,
-      follows
+      follows,
+      currentSeason: props.currentSeason
     },
     { chaps: chaps.chaps, image: chaps.image, poster: chaps.poster },
     props.currentEpisode.id,
