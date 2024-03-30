@@ -1,14 +1,36 @@
-import { AnimeDownloadManager } from "animevsub-download-manager/src/main"
-import { get, getMany, set, setMany } from "idb-keyval"
+import {
+  AnimeDownloadManager,
+  Utils,
+  SeasonInfo,
+  Episode
+} from "animevsub-download-manager/src/main"
+import { get, getMany, set, setMany, createStore, UseStore } from "idb-keyval"
 import { defineStore } from "pinia"
+import { ShallowReactive } from "vue"
+
+let store: UseStore
+function getFilesStore() {
+  if (store) return store
+  return (store = createStore("keyval-store", "files"))
+}
 
 export const useADM = defineStore("adm", () => {
-  const tasks = shallowReactive(new Map())
-  const utils = markRaw({
-    get,
-    set,
-    getMany,
-    setMany
+  const tasks = shallowReactive(
+    new Map<
+      string,
+      {
+        seasonInfo: ShallowReactive<SeasonInfo>
+        episodes: ShallowReactive<
+          Map<string, { episode: Episode; cur: number; total: number }>
+        >
+      }
+    >()
+  )
+  const utils: Utils = markRaw({
+    get: (key) => get(key, getFilesStore()),
+    set: (key) => set(key, getFilesStore()),
+    getMany: (key) => getMany(key, getFilesStore()),
+    setMany: (key) => setMany(key, getFilesStore())
   })
 
   const adm = markRaw(
@@ -22,21 +44,23 @@ export const useADM = defineStore("adm", () => {
       onstart(seasonInfo, episode) {
         this.onprogress(seasonInfo, episode, 0, 0)
       },
-      onprogress(seasonInfo, episode, current, total) {
+      onprogress(seasonInfo, episode, cur, total) {
         let inTask = tasks.get(seasonInfo.seasonId)
 
         if (!inTask) {
           tasks.set(
             seasonInfo.seasonId,
             (inTask = {
-              seasonInfo,
+              seasonInfo: shallowReactive(seasonInfo),
               episodes: shallowReactive(new Map())
             })
           )
+        } else {
+          Object.assign(inTask.seasonInfo, seasonInfo)
         }
 
-        inTask.episodes.set(episode.id, { episode, current, total })
-        console.log("downloaded segment %i on %i", current, total)
+        inTask.episodes.set(episode.id, { episode, cur, total })
+        console.log("downloaded segment %i on %i", cur, total)
       }
     })
   )

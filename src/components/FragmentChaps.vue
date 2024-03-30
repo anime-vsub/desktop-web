@@ -45,7 +45,7 @@
           }}</q-tooltip
         >
       </q-btn>
-      <q-btn v-if="seasons?.length > 1" dense round @click="(gridModeTabsSeasons = !gridModeTabsSeasons)">
+      <q-btn v-if="seasons?.length" dense round @click="(gridModeTabsSeasons = !gridModeTabsSeasons)">
         <Icon
           :icon="
             gridModeTabsSeasons
@@ -149,6 +149,7 @@
 
 <script lang="ts" setup>
 import { Icon } from "@iconify/vue"
+import type { SeasonInfo } from "animevsub-download-manager/src/main"
 import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { QBtn, QSpinner, QTab, QTabPanel, QTabPanels, QTabs } from "quasar"
@@ -160,14 +161,12 @@ import type {
 import { useStateStorageStore } from "src/stores/state-storage"
 import { ref, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
-import type { SeasonInfo } from "animevietsub-download-manager/src/main"
 
 import type {
   ResponseDataSeasonError,
   ResponseDataSeasonPending,
   ResponseDataSeasonSuccess
 } from "../pages/phim/response-data-season"
-import { useOnline } from "src/composibles/online"
 
 const props = defineProps<{
   fetchSeason: (season: string) => Promise<void>
@@ -185,7 +184,6 @@ const props = defineProps<{
   progressWatchStore: ProgressWatchStore
 }>()
 const { t } = useI18n()
-const isOnline = useOnline()
 
 const stateStorageStore = useStateStorageStore()
 

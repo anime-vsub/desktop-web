@@ -481,7 +481,7 @@
                           }}
 
                           <q-btn
-                            v-if="seasons?.length > 1"
+                            v-if="seasons?.length"
                             dense
                             round
                             unelevated
@@ -1246,7 +1246,7 @@ import {
 import { useI18n } from "vue-i18n"
 import { onBeforeRouteLeave, useRouter } from "vue-router"
 
-import type { SeasonInfo } from "animevietsub-download-manager/src/main"
+import type { SeasonInfo } from "animevsub-download-manager/src/main"
 
 const { t } = useI18n()
 // fix toolip fullscreen not hide if change fullscreen
@@ -1308,7 +1308,7 @@ const props = defineProps<{
 
 
 
-  offlines?: SeasonInfo["episodesOffline"] 
+  offlines?: SeasonInfo["episodesOffline"]
 }>()
 
 const playerWrapRef = ref<HTMLDivElement>()
@@ -2024,7 +2024,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
             return admStore.utils
               .get(request.url.slice(6))
               .then((buffer) => {
-                const res = new Response(buffer, { status: 200 })
+                const res = new Response(buffer as Uint8Array, { status: 200 })
                 const { url } = request
 
                 Object.defineProperty(res, "url", {

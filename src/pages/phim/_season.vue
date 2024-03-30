@@ -39,7 +39,7 @@
         :intro="inoutroEpisode?.intro"
         :outro="inoutroEpisode?.outro"
         :uid-chap="uniqueEpisode"
-          :offlines="data?.episodesOffline"
+        :offlines="(data as SeasonInfo)?.episodesOffline"
         @cur-update="
           currentProgresWatch?.set($event.id, {
             cur: $event.cur,
@@ -76,7 +76,7 @@
           :current-season="currentSeason"
           :current-chap="currentChap"
           :progressWatchStore="progressWatchStore"
-          :offlines="data?.episodesOffline"
+          :offlines="(data as SeasonInfo)?.episodesOffline"
         />
       </div>
     </div>
@@ -270,11 +270,11 @@
             class="bg-[rgba(113,113,113,0.3)] mr-4 text-weight-normal"
             @click="showDownload = true"
           >
-            <template v-if="statusOffline">
+            <template v-if="episodeOffline">
               <i-fluent-mdl2-completed
                 v-if="
-                  statusOffline.current === statusOffline.total &&
-                  statusOffline.total !== 0
+                  episodeOffline.cur === episodeOffline.total &&
+                  episodeOffline.total !== 0
                 "
                 class="size-28px"
               />
@@ -282,7 +282,7 @@
                 v-else
                 show-value
                 size="28px"
-                :value="(statusOffline.current / statusOffline.total) * 100"
+                :value="(episodeOffline.cur / episodeOffline.total) * 100"
                 color="main"
               >
                 <i-fluent-arrow-download-24-regular width="2em" height="2em" />
@@ -356,7 +356,7 @@
       </div>
 
       <div class="mt-5 text-[#eee] text-[16px]">{{ t("gioi-thieu") }}</div>
-      {{ statusOffline }}
+      {{ episodeOffline }}
       <div class="flex mt-3">
         <div>
           <q-img-file
@@ -429,7 +429,7 @@
             :current-season="currentSeason"
             :current-chap="currentChap"
             :progressWatchStore="progressWatchStore"
-          :offlines="data?.episodesOffline"
+            :offlines="(data as SeasonInfo)?.episodesOffline"
           />
         </div>
       </q-responsive>
@@ -547,9 +547,9 @@ import type { servers } from "src/constants"
 import {
   API_OPEND,
   C_URL,
+  CODE_NOT_AVAILABLE_OFFLINE,
   TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE,
-  WARN,
-CODE_NOT_AVAILABLE_OFFLINE
+  WARN
 } from "src/constants"
 import { forceHttp2 } from "src/logic/forceHttp2"
 import { formatView } from "src/logic/formatView"
@@ -566,6 +566,7 @@ import { useSettingsStore } from "stores/settings"
 import type { ShallowReactive, ShallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRequest } from "vue-request"
+import type { SeasonInfo } from "animevsub-download-manager/src/main"
 
 import type { ProgressWatchStore, Season } from "./_season.interface"
 import type {
@@ -610,7 +611,10 @@ const { data, run, error, loading } = useRequest(
       const data = await admStore.adm.getSeason(realIdCurrentSeason.value)
       console.log(data)
 
-      if (!data) throw Object.assign(new Error(CODE_NOT_AVAILABLE_OFFLINE), { code: CODE_NOT_AVAILABLE_OFFLINE} ) 
+      if (!data)
+        throw Object.assign(new Error(CODE_NOT_AVAILABLE_OFFLINE), {
+          code: CODE_NOT_AVAILABLE_OFFLINE
+        })
 
       return data
     }
@@ -899,16 +903,22 @@ async function fetchSeason(season: string) {
       ])
     } else {
       try {
+        const data = await admStore.adm.getListEpisodes(realIdSeason)
+        if (!data) throw { code : "ENOENT"}
+
         response.value = {
-          ...(await admStore.adm.getListEpisodes(realIdSeason)),
+          ...data,
           update: null
         }
       } catch (err: any) {
-        if (err.code === "ENOENT") 
-          throw (error.value = Object.assign(new Error(t("msg-not-available-on-offline")), {
-            code: CODE_NOT_AVAILABLE_OFFLINE,
-            showMsg: true
-          }))
+        if (err.code === "ENOENT")
+          throw (error.value = Object.assign(
+            new Error(t("msg-not-available-on-offline")),
+            {
+              code: CODE_NOT_AVAILABLE_OFFLINE,
+              showMsg: true
+            }
+          ))
         else throw err
       }
     }
@@ -1393,6 +1403,8 @@ watch(
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         .getEpisode(uniqueEpisode.value!)
         .then((episode) => {
+          if (!episode) throw { code: "ENOENT" }
+
           configPlayer.value = {
             link: [episode.source],
             playTech: "api"
@@ -1406,16 +1418,21 @@ watch(
               message: "Không có kết nối internet",
               caption: "Hãy chuyển sang để xem những tập ngoại tuyến",
               actions: [
-                { label: "Mở ngoại tuyến", color: "main", to: "/tai-khoan/offline"}],
+                {
+                  label: "Mở ngoại tuyến",
+                  color: "main",
+                  to: "/tai-khoan/offline"
+                }
+              ],
               position: "bottom-left",
               timeout: 0
             })
-          else 
-          void $q.notify({
-            message: `Play load error: ${err}`,
-            position: "bottom-right",
-            timeout: 0
-          })
+          else
+            void $q.notify({
+              message: `Play load error: ${err}`,
+              position: "bottom-right",
+              timeout: 0
+            })
         })
 
       return
@@ -1961,12 +1978,9 @@ const uniqueEpisode = computed(() =>
     : null
 )
 
-const statusOffline = computedAsync(
-  () => {
+const episodeOffline = computedAsync(
+  async () => {
     if (!uniqueEpisode.value) return null
-
-    if (localStorage.getItem(`offline-${uniqueEpisode.value}`)) return true
-
     if (!currentMetaChap.value) return null
 
     const onTask = admStore.tasks
@@ -1975,16 +1989,14 @@ const statusOffline = computedAsync(
 
     if (onTask) return onTask
 
-    return admStore.adm.hasEpisode(uniqueEpisode.value)
+    const episode = await admStore.adm.getEpisode(uniqueEpisode.value)
+    if (!episode) return null
+
+    return { episode, ... episode.progress}
   },
   null,
   { onError: WARN }
 )
-const metaOffline = computedAsync(() => {
-  if (!statusOffline.value || !uniqueEpisode.value) return null
-
-    return admStore.adm.getEpisode(uniqueEpisode.value)
-}, null, { onError: WARN })
 </script>
 
 <style lang="scss" scoped>
