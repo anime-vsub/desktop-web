@@ -1256,6 +1256,12 @@ const drawers = computed(() => [
     active: "fluent:history-24-filled",
     name: t("lich-su"),
     path: "/tai-khoan/history"
+  },
+  {
+    icon: "fluent:arrow-download-24-regular",
+    active: "fluent:arrow-download-24-filled",
+    name: "Tải xuống",
+    path: "/tai-khoan/offline"
   }
 ])
 const drawersBottom = computed(() => [

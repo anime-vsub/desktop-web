@@ -9,7 +9,11 @@
       <ScreenNotFound v-if="seasons.length === 0" />
 
       <div v-else class="row">
-        <div v-for="item in seasons" :key="item.seasonId" class="col-sm-4 col-md-3">
+        <div
+          v-for="item in seasons"
+          :key="item.seasonId"
+          class="col-6 col-sm-4 col-md-3"
+        >
           <router-link :to="`/phim/${item.seasonId}`" class="mt-1 mb-4">
             <div class="w-full">
               <q-img-file
@@ -43,12 +47,16 @@
                 }}
                 <span class="mx-2">&bull;</span> <Star /> {{ item.rate }}
               </p>
+
+              <span
+                v-for="contri in item.contries"
+                :key="contri.path"
+                class="rounded-md bg-gray-700 bg-opacity-50 px-2 py-0.5 mx-1 leading-normal mt-1 inline-block text-12px text-gray-400"
+                >{{ contri.name }}</span
+              >
             </div>
           </router-link>
         </div>
-        <p class="whitespace-pre-wrap">
-          {{ JSON.stringify(seasons, null, 2) }}
-        </p>
       </div>
     </template>
     <ScreenError v-else @click:retry="run" :error="error" />

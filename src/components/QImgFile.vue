@@ -20,12 +20,12 @@ async	() => {
 		try {
 			if (props.src.startsWith("file:"))
 				return URL.createObjectURL(
-					new Blob([await admStore.fs.readFile(props.src.slice(5))])
+					new Blob([await admStore.utils.get(props.src.slice(5))])
 				)
 		} catch (err) {
 			WARN(err)
 		}
-		return forceHttp2(data.value.image)
+		return forceHttp2(props.src)
 	},
 	undefined,
 	{ onError: WARN }

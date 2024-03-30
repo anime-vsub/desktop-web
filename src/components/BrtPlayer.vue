@@ -2021,8 +2021,8 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
             progressive: true
           },
           (request) => {
-            return admStore.fs
-              .readFile(request.url.slice(6))
+            return admStore.utils
+              .get(request.url.slice(6))
               .then((buffer) => {
                 const res = new Response(buffer, { status: 200 })
                 const { url } = request
