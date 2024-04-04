@@ -35,8 +35,44 @@ export const useADM = defineStore("adm", () => {
 
   const adm = markRaw(
     new AnimeDownloadManager(utils, {
-      request(uri: string, method = "GET"): Promise<Response> {
-        return fetch(uri + "#animevsub-vsub_extra", { method })
+      async request(
+        uri: string,
+        method = "GET",
+        onprogress
+      ): Promise<Response> {
+        const response = await fetch(uri + "#animevsub-vsub_extra", { method })
+
+        const reader = response.body.getReader()
+        const contentLength = +response.headers.get("Content-Length")
+        let receivedLength = 0
+        const chunks = []
+
+        return new Promise<Response>((resolve) => {
+          reader.read().then(function processResult(result) {
+            if (result.done) {
+              let data = new Uint8Array(receivedLength)
+              let position = 0
+              for (let chunk of chunks) {
+                data.set(chunk, position)
+                position += chunk.length
+              }
+              resolve(new Response(data.buffer, { headers: response.headers }))
+              return
+            }
+
+            chunks.push(result.value)
+            receivedLength += result.value.length
+            onprogress(receivedLength, contentLength)
+            const progress = (receivedLength / contentLength) * 100
+            console.log(
+              `Downloaded ${receivedLength} of ${contentLength} bytes (${progress.toFixed(
+                2
+              )}%)`
+            )
+
+            reader.read().then(processResult)
+          })
+        })
       },
       delay: 300,
       repeat: 5,
