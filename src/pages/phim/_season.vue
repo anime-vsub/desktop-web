@@ -267,6 +267,7 @@
             no-caps
             rounded
             unelevated
+            :disable="!canDownload"
             class="bg-[rgba(113,113,113,0.3)] mr-4 text-weight-normal"
             @click="showDownload = true"
           >
@@ -286,6 +287,13 @@
                 color="main"
               >
                 <i-fluent-arrow-download-24-regular width="2em" height="2em" />
+                <q-tooltip>
+                  {{
+                    ((episodeOffline.cur / episodeOffline.total) * 100).toFixed(
+                      2
+                    )
+                  }}%
+                </q-tooltip>
               </q-circular-progress>
             </template>
             <i-fluent-arrow-download-24-regular v-else class="size-28px" />
@@ -356,7 +364,6 @@
       </div>
 
       <div class="mt-5 text-[#eee] text-[16px]">{{ t("gioi-thieu") }}</div>
-      {{ episodeOffline }}
       <div class="flex mt-3">
         <div>
           <q-img-file
@@ -485,22 +492,15 @@
   />
 
   <PromptQuality
-    v-if="
-      data &&
-      realIdCurrentSeason &&
-      route.path &&
-      currentMetaChap &&
-      uniqueEpisode &&
-      currentMetaSeason &&
-      showDownload
-    "
+    v-if="canDownload && showDownload"
     v-model="showDownload"
-    :data="data"
+    :data="data!"
     :season-id="realIdCurrentSeason"
     :path="route.path"
-    :unique-episode="uniqueEpisode"
-    :current-episode="currentMetaChap"
-    :current-season="currentMetaSeason"
+    :unique-episode="uniqueEpisode!"
+    :current-episode="currentMetaChap!"
+    :current-season="currentMetaSeason!"
+    :state-offline="episodeOffline!"
   />
 </template>
 
@@ -523,7 +523,7 @@ import Star from "components/Star.vue"
 import FbComments from "components/fb-comments/index.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { EmbedFbCmt } from "embed-fbcmt-client/vue"
-import { set } from "idb-keyval"
+import { DEFAULT_STORE, set } from "idb-keyval"
 import {
   QBtn,
   QCard,
@@ -576,6 +576,7 @@ import type {
   ResponseDataSeasonPending,
   ResponseDataSeasonSuccess
 } from "./response-data-season"
+import { customGetStore } from "src/boot/idb"
 // ================ follow ================
 // =======================================================
 // import SwipableBottom from "components/SwipableBottom.vue"
@@ -606,7 +607,9 @@ const currentMetaSeason = computed(() => {
 const realIdCurrentSeason = computed(() => {
   return getRealSeasonId(currentSeason.value)
 })
-const { data, run, error, loading } = useRequest(
+const { data, run, error, loading } = useRequest<
+  SeasonInfo | Awaited<ReturnType<typeof PhimId>>
+>(
   async () => {
     if (!isOnline.value) {
       // get data on offline
@@ -672,7 +675,7 @@ const { data, run, error, loading } = useRequest(
           function updateIndexedDB(data2?: Awaited<ReturnType<typeof PhimId>>) {
             if (JSON.stringify(data2) !== json) {
               // update indexeddb
-              set(`data-${id}`, json)
+              set(`data-${id}`, json, DEFAULT_STORE, customGetStore())
                 // eslint-disable-next-line promise/no-nesting
                 .then(() => {
                   return console.log("[fs]: save cache to fs %s", id)
@@ -695,7 +698,7 @@ const { data, run, error, loading } = useRequest(
     ])
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return result!.value
+    return result!.value as Awaited<ReturnType<typeof PhimId>>
   },
   {
     refreshDeps: [realIdCurrentSeason],
@@ -853,7 +856,12 @@ async function fetchSeason(season: string) {
             // eslint-disable-next-line promise/catch-or-return
             promiseLoadIndexedb.finally((jsonCache?: string) => {
               if (json !== jsonCache) {
-                const task = set(`season_data ${realIdSeason}`, json)
+                const task = set(
+                  `season_data ${realIdSeason}`,
+                  json,
+                  DEFAULT_STORE,
+                  customGetStore()
+                )
 
                 if (import.meta.env.DEV)
                   task
@@ -1415,6 +1423,7 @@ watch(
           return episode
         })
         .catch((err) => {
+          WARN(err)
           if (err.code === "ENOENT")
             void $q.notify({
               message: "Không có kết nối internet",
@@ -1479,6 +1488,7 @@ watch(
                   }
                 })
                 .catch((err) => {
+                  WARN(err)
                   void $q.notify({
                     message: `Play load error: ${err}`,
                     position: "bottom-right",
@@ -1498,6 +1508,7 @@ watch(
                   }
                 })
                 .catch((err) => {
+                  WARN(err)
                   void $q.notify({
                     message: `Play load error: ${err}`,
                     position: "bottom-right",
@@ -1514,6 +1525,7 @@ watch(
                 loadedServerFB = true
               })
               .catch((err) => {
+                WARN(err)
                 void $q.notify({
                   message: `Play load error: ${err}`,
                   position: "bottom-right",
@@ -1856,7 +1868,12 @@ const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
         .then((data) => {
           if (data.progress.current === data.progress.total) {
             // ok backup data now
-            void set(`episodes_opend:${realId}`, JSON.stringify(data))
+            void set(
+              `episodes_opend:${realId}`,
+              JSON.stringify(data),
+              DEFAULT_STORE,
+              customGetStore()
+            )
           }
 
           // eslint-disable-next-line promise/always-return
@@ -1944,7 +1961,12 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
       fetch(`${API_OPEND}/episode-skip/${id}`)
         .then((res) => res.json() as Promise<InOutroEpisode>)
         .then((data) => {
-          void set(`inoutro:${id}`, JSON.stringify(data))
+          void set(
+            `inoutro:${id}`,
+            JSON.stringify(data),
+            DEFAULT_STORE,
+            customGetStore()
+          )
 
           // eslint-disable-next-line promise/always-return
           if (results) {
@@ -1973,6 +1995,16 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
 )
 
 // ================ download ==================
+const canDownload = computed(
+  () =>
+    data.value &&
+    realIdCurrentSeason.value &&
+    route.path &&
+    currentMetaChap.value &&
+    uniqueEpisode.value &&
+    currentMetaSeason.value &&
+    episodeOffline.value !== undefined
+)
 const showDownload = ref(false)
 const uniqueEpisode = computed(() =>
   currentMetaChap.value
@@ -1982,8 +2014,8 @@ const uniqueEpisode = computed(() =>
 
 const episodeOffline = computedAsync(
   async () => {
-    if (!uniqueEpisode.value) return null
-    if (!currentMetaChap.value) return null
+    if (!uniqueEpisode.value) return undefined
+    if (!currentMetaChap.value) return undefined
 
     const onTask = admStore.tasks
       .get(realIdCurrentSeason.value)
@@ -1996,7 +2028,7 @@ const episodeOffline = computedAsync(
 
     return { episode, ...episode.progress }
   },
-  null,
+  undefined,
   { onError: WARN }
 )
 </script>
@@ -2063,3 +2095,4 @@ const episodeOffline = computedAsync(
   z-index: 12;
 }
 </style>
+DEFAULT_STORE, import { customGetStore } from "src/boot/idb"

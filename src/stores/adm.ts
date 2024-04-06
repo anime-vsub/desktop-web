@@ -4,15 +4,10 @@ import {
   SeasonInfo,
   Episode
 } from "animevsub-download-manager"
-import { get, getMany, set, setMany, createStore, UseStore } from "idb-keyval"
+import { get, getMany, set, setMany } from "idb-keyval"
 import { defineStore } from "pinia"
+import { customGetStore } from "src/boot/idb"
 import { ShallowReactive } from "vue"
-
-let store: UseStore
-function getFilesStore() {
-  if (store) return store
-  return (store = createStore("keyval-store", "files"))
-}
 
 export const useADM = defineStore("adm", () => {
   const tasks = shallowReactive(
@@ -27,10 +22,10 @@ export const useADM = defineStore("adm", () => {
     >()
   )
   const utils: Utils = markRaw({
-    get: (key) => get(key, getFilesStore()),
-    set: (key) => set(key, getFilesStore()),
-    getMany: (key) => getMany(key, getFilesStore()),
-    setMany: (key) => setMany(key, getFilesStore())
+    get: (key) => get(key, "files", customGetStore()),
+    set: (key, val) => set(key, val, "files", customGetStore()),
+    getMany: (keys) => getMany(keys, "files", customGetStore()),
+    setMany: (contents) => setMany(contents, "files", customGetStore())
   })
 
   const adm = markRaw(
@@ -42,10 +37,12 @@ export const useADM = defineStore("adm", () => {
       ): Promise<Response> {
         const response = await fetch(uri + "#animevsub-vsub_extra", { method })
 
-        const reader = response.body.getReader()
-        const contentLength = +response.headers.get("Content-Length")
+        if (!onprogress) return response
+        console.log("active progress")
+        const reader = response.body!.getReader()
+        const contentLength = +response.headers.get("Content-Length")!
         let receivedLength = 0
-        const chunks = []
+        const chunks: Uint8Array[] = []
 
         return new Promise<Response>((resolve) => {
           reader.read().then(function processResult(result) {

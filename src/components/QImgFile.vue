@@ -20,7 +20,7 @@ async	() => {
 		try {
 			if (props.src.startsWith("file:"))
 				return URL.createObjectURL(
-					new Blob([await admStore.utils.get(props.src.slice(5))])
+					new Blob([await admStore.utils.get(props.src.slice(5)) as Uint8Array])
 				)
 		} catch (err) {
 			WARN(err)

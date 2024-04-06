@@ -1964,9 +1964,14 @@ function runRemount() {
   }).onOk(remount)
 }
 
+const blobCanFree = new Set<string>()
+onBeforeUnmount(() => blobCanFree.forEach(blobUrl => URL.revokeObjectURL(blobUrl)))
+
 let currentHls: Hls
 onBeforeUnmount(() => currentHls?.destroy())
 function remount(resetCurrentTime?: boolean, noDestroy = false) {
+  blobCanFree.forEach(blobUrl => URL.revokeObjectURL(blobUrl))
+
   if (!noDestroy) currentHls?.destroy()
   else {
     const type = currentStream.value?.type
@@ -2144,8 +2149,16 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
       }
     })
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    video.value!.src = file
+    if (file.startsWith("file:")) {
+      void admStore.utils.get(file.slice(5)).then((uint8) => {
+        // convert to blob
+        video.value!.src = URL.createObjectURL(new Blob([uint8 as Uint8Array]))
+        blobCanFree.add(video.value!.src)
+      })
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      video.value!.src = file
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

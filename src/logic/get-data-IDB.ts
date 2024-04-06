@@ -1,4 +1,5 @@
-import { get } from "idb-keyval"
+import { DEFAULT_STORE, get } from "idb-keyval"
+import { customGetStore } from "src/boot/idb"
 import { v4 } from "uuid"
 
 const swReady = !!document.head.querySelector('script[type="flags"][sw]')
@@ -12,7 +13,7 @@ const idbCast = swReady && new BroadcastChannel("idb-cast")
 export function getDataIDB<T>(key: string) {
   return new Promise<T>((resolve, reject) => {
     if (!idbCast) {
-      void get(key)
+      void get(key, DEFAULT_STORE, customGetStore())
         .then((data) => {
           // eslint-disable-next-line promise/always-return
           if (data) resolve(data)

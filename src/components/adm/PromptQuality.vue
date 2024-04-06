@@ -9,6 +9,30 @@
       </q-card-section>
 
       <q-card-section class="px-0 pt-0 min-h-0 flex flex-col flex-nowrap">
+        <template v-if="stateOffline">
+          <label class="text-12px text-gray-300">Đã tải xuống</label>
+          <q-item>
+            <q-item-section>
+              <q-item-label
+                >{{ stateOffline.episode.source.qualityCode }} -
+                {{
+                  (
+                    (stateOffline.episode.progress.cur /
+                      stateOffline.episode.progress.total) *
+                    100
+                  ).toFixed(2)
+                }}%</q-item-label
+              >
+              <q-item-label caption>{{
+                filesize(stateOffline.episode.size, { standard: "jedec" })
+              }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn round flat>d</q-btn>
+            </q-item-section>
+          </q-item>
+        </template>
+
         <div v-if="loading" class="py-6 px-5 flex items-center justify-center">
           <q-spinner size="40px" />
         </div>
@@ -57,7 +81,7 @@
 
 <script lang="ts" setup>
 import { computedAsync } from "@vueuse/core"
-import { retry, type SeasonInfo } from "animevsub-download-manager"
+import { Episode, retry, type SeasonInfo } from "animevsub-download-manager"
 import { filesize } from "filesize"
 import { useQuasar } from "quasar"
 import { PlayerFB } from "src/apis/runs/ajax/player-fb"
@@ -81,6 +105,7 @@ const props = defineProps<{
     name: string
     value: string
   }
+  stateOffline: {episode: Episode} & Episode["progress"] | null
 }>()
 
 const admStore = useADM()
@@ -141,7 +166,9 @@ const sizes = computed(() => {
       case "hls":
       case "m3u8":
       case "m3u":
-        return computedAsync(() => admStore.adm.getHlsSize(item.file, 20))
+        return computedAsync(() =>
+          admStore.adm.getHlsSize(item.file, 1).then((value) => value * 2.524)
+        )
       default:
         return { value: -1 }
     }

@@ -117,6 +117,7 @@ module.exports = configure(function (/* ctx */) {
             alias: {
               path: "path-browserify",
             },
+            extensions: [...viteConf.resolve.extensions ?? [], ".rb"]
           },
           server: {
             // configure vite for HMR with Gitpod
@@ -172,11 +173,11 @@ module.exports = configure(function (/* ctx */) {
         ["vite-plugin-rewrite-all", {}],
         ["vite-plugin-remove-console", {}],
         [vitePluginI18nLangs, {}],
-        [require("vite-plugin-node-polyfills").nodePolyfills , {
-           globals: {
-              Buffer: true
-            }
-        }]
+		["@ruby2js/vite-plugin", {
+			refresh: require("@vitejs/plugin-react-refresh"),
+			eslevel: 2021,
+			autoexports: "default"
+		}]
       ],
     },
 
