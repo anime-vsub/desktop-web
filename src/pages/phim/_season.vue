@@ -38,6 +38,8 @@
         :progressWatchStore="progressWatchStore"
         :intro="inoutroEpisode?.intro"
         :outro="inoutroEpisode?.outro"
+        :uid-chap="uniqueEpisode"
+        :offlines="(data as SeasonInfo)?.episodesOffline"
         @cur-update="
           currentProgresWatch?.set($event.id, {
             cur: $event.cur,
@@ -49,7 +51,7 @@
         v-else
         class="w-full overflow-hidden bg-[#000] focus-visible:outline-none select-none"
       >
-        <q-img-custom
+        <q-img-file
           no-spinner
           v-if="!sources?.[0]?.file"
           :ratio="841 / 483"
@@ -74,6 +76,7 @@
           :current-season="currentSeason"
           :current-chap="currentChap"
           :progressWatchStore="progressWatchStore"
+          :offlines="(data as SeasonInfo)?.episodesOffline"
         />
       </div>
     </div>
@@ -260,6 +263,44 @@
               t("luu")
             }}</span>
           </q-btn>
+          <q-btn
+            no-caps
+            rounded
+            unelevated
+            :disable="!canDownload"
+            class="bg-[rgba(113,113,113,0.3)] mr-4 text-weight-normal"
+            @click="showDownload = true"
+          >
+            <template v-if="episodeOffline">
+              <i-fluent-mdl2-completed
+                v-if="
+                  episodeOffline.cur === episodeOffline.total &&
+                  episodeOffline.total !== 0
+                "
+                class="size-28px"
+              />
+              <q-circular-progress
+                v-else
+                show-value
+                size="28px"
+                :value="(episodeOffline.cur / episodeOffline.total) * 100"
+                color="main"
+              >
+                <i-fluent-arrow-download-24-regular width="2em" height="2em" />
+                <q-tooltip>
+                  {{
+                    ((episodeOffline.cur / episodeOffline.total) * 100).toFixed(
+                      2
+                    )
+                  }}%
+                </q-tooltip>
+              </q-circular-progress>
+            </template>
+            <i-fluent-arrow-download-24-regular v-else class="size-28px" />
+            <span class="text-[14px] font-weight-normal ml-1">{{
+              t("tai-xuong")
+            }}</span>
+          </q-btn>
         </div>
       </div>
 
@@ -325,11 +366,11 @@
       <div class="mt-5 text-[#eee] text-[16px]">{{ t("gioi-thieu") }}</div>
       <div class="flex mt-3">
         <div>
-          <q-img-custom
+          <q-img-file
             v-if="data?.image"
             width="152px"
             class="rounded-xl"
-            :src="forceHttp2(data.image)"
+            :src="data.image"
             referrerpolicy="no-referrer"
           />
         </div>
@@ -342,11 +383,31 @@
       </div>
 
       <!-- comment embed -->
-      <FbComments
-        v-if="semverGt(Http.version, '1.0.29')"
-        :href="`http://animevietsub.tv/phim/-${seasonId}/`"
-        :lang="locale?.replace('-', '_')"
-      />
+      <template v-if="isOnline">
+        <FbComments
+          v-if="semverGt(Http.version, '1.0.29')"
+          :href="`http://animevietsub.tv/phim/-${seasonId}/`"
+          :lang="locale?.replace('-', '_')"
+        />
+        <template v-else>
+          <div class="mt-5 flex items-center justify-between flex-nowrap">
+            <span class="text-subtitle1 text-[#eee]">{{ t("binh-luan") }}</span>
+            <q-toggle
+              v-model="settingsStore.ui.commentAnime"
+              color="main"
+              size="sm"
+            />
+          </div>
+          <EmbedFbCmt
+            v-if="settingsStore.ui.commentAnime"
+            :key="seasonId"
+            :href="`http://animevietsub.tv/phim/-${seasonId}/`"
+            :lang="locale?.replace('-', '_')"
+            no_socket
+            class="bg-gray-300 rounded-xl mt-3 overflow-hidden"
+          />
+        </template>
+      </template>
       <template v-else>
         <div class="mt-5 flex items-center justify-between flex-nowrap">
           <span class="text-subtitle1 text-[#eee]">{{ t("binh-luan") }}</span>
@@ -356,14 +417,9 @@
             size="sm"
           />
         </div>
-        <EmbedFbCmt
-          v-if="settingsStore.ui.commentAnime"
-          :key="seasonId"
-          :href="`http://animevietsub.tv/phim/-${seasonId}/`"
-          :lang="locale?.replace('-', '_')"
-          no_socket
-          class="bg-gray-300 rounded-xl mt-3 overflow-hidden"
-        />
+        <div class="mt-5 py-4 text-gray-300 text-center">
+          {{ t("msg-view-cmt-on-online") }}
+        </div>
       </template>
     </div>
     <div class="col-3">
@@ -380,6 +436,7 @@
             :current-season="currentSeason"
             :current-chap="currentChap"
             :progressWatchStore="progressWatchStore"
+            :offlines="(data as SeasonInfo)?.episodesOffline"
           />
         </div>
       </q-responsive>
@@ -387,6 +444,7 @@
       <div class="text-h6 mt-3 text-subtitle1">{{ t("de-xuat") }}</div>
 
       <CardVertical
+        v-if="isOnline && 'toPut' in data"
         v-for="item in data?.toPut"
         :key="item.name"
         :data="item"
@@ -412,6 +470,9 @@
           }}</Quality>
         </template>
       </CardVertical>
+      <div class="text-center py-3 text-gray-300">
+        {{ t("msg-not-available-on-offline") }}
+      </div>
     </div>
   </div>
 
@@ -429,6 +490,18 @@
     @action:del="removeAnimePlaylist"
     @after-create-playlist="addAnimePlaylist"
   />
+
+  <PromptQuality
+    v-if="canDownload && showDownload"
+    v-model="showDownload"
+    :data="data!"
+    :season-id="realIdCurrentSeason"
+    :path="route.path"
+    :unique-episode="uniqueEpisode!"
+    :current-episode="currentMetaChap!"
+    :current-season="currentMetaSeason!"
+    :state-offline="episodeOffline!"
+  />
 </template>
 
 <script lang="ts" setup>
@@ -442,7 +515,7 @@ import BottomBlur from "components/BottomBlur.vue"
 import BrtPlayer from "components/BrtPlayer.vue"
 import CardVertical from "components/CardVertical.vue"
 import FragmentChaps from "components/FragmentChaps.vue"
-import QImgCustom from "components/QImgCustom"
+import QImgFile from "components/QImgFile.vue"
 import Quality from "components/Quality.vue"
 import ScreenError from "components/ScreenError.vue"
 import SkeletonCardVertical from "components/SkeletonCardVertical.vue"
@@ -450,7 +523,7 @@ import Star from "components/Star.vue"
 import FbComments from "components/fb-comments/index.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { EmbedFbCmt } from "embed-fbcmt-client/vue"
-import { set } from "idb-keyval"
+import { DEFAULT_STORE, set } from "idb-keyval"
 import {
   QBtn,
   QCard,
@@ -471,10 +544,12 @@ import { AjaxRate } from "src/apis/runs/ajax/rate"
 import { PhimId } from "src/apis/runs/phim/[id]"
 import { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
 // import BottomSheet from "src/components/BottomSheet.vue"
+import { useOnline } from "src/composibles/online"
 import type { servers } from "src/constants"
 import {
   API_OPEND,
   C_URL,
+  CODE_NOT_AVAILABLE_OFFLINE,
   TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE,
   WARN
 } from "src/constants"
@@ -493,6 +568,7 @@ import { useSettingsStore } from "stores/settings"
 import type { ShallowReactive, ShallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRequest } from "vue-request"
+import type { SeasonInfo } from "animevsub-download-manager"
 
 import type { ProgressWatchStore, Season } from "./_season.interface"
 import type {
@@ -500,11 +576,16 @@ import type {
   ResponseDataSeasonPending,
   ResponseDataSeasonSuccess
 } from "./response-data-season"
+import { customGetStore } from "src/boot/idb"
 // ================ follow ================
 // =======================================================
 // import SwipableBottom from "components/SwipableBottom.vue"
 
 // ============================================
+
+const PromptQuality = defineAsyncComponent(
+  () => import("components/adm/PromptQuality.vue")
+)
 
 const __ONLINE__ = import.meta.env.DEV ? Symbol("__ONLINE__") : Symbol("")
 
@@ -516,18 +597,33 @@ const authStore = useAuthStore()
 const playlistStore = usePlaylistStore()
 const historyStore = useHistoryStore()
 const settingsStore = useSettingsStore()
+const admStore = useADM()
+const isOnline = useOnline()
 
 const currentSeason = computed(() => route.params.season as string)
 const currentMetaSeason = computed(() => {
   return seasons.value?.find((item) => item.value === currentSeason.value)
 })
 const realIdCurrentSeason = computed(() => {
-  if (!currentSeason.value) return
-
   return getRealSeasonId(currentSeason.value)
 })
-const { data, run, error, loading } = useRequest(
+const { data, run, error, loading } = useRequest<
+  SeasonInfo | Awaited<ReturnType<typeof PhimId>>
+>(
   async () => {
+    if (!isOnline.value) {
+      // get data on offline
+      const data = await admStore.adm.getSeason(realIdCurrentSeason.value)
+      console.log(data)
+
+      if (!data)
+        throw Object.assign(new Error(CODE_NOT_AVAILABLE_OFFLINE), {
+          code: CODE_NOT_AVAILABLE_OFFLINE
+        })
+
+      return data
+    }
+
     // const { }
     const id = realIdCurrentSeason.value
 
@@ -579,7 +675,7 @@ const { data, run, error, loading } = useRequest(
           function updateIndexedDB(data2?: Awaited<ReturnType<typeof PhimId>>) {
             if (JSON.stringify(data2) !== json) {
               // update indexeddb
-              set(`data-${id}`, json)
+              set(`data-${id}`, json, DEFAULT_STORE, customGetStore())
                 // eslint-disable-next-line promise/no-nesting
                 .then(() => {
                   return console.log("[fs]: save cache to fs %s", id)
@@ -602,7 +698,7 @@ const { data, run, error, loading } = useRequest(
     ])
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return result!.value
+    return result!.value as Awaited<ReturnType<typeof PhimId>>
   },
   {
     refreshDeps: [realIdCurrentSeason],
@@ -742,82 +838,100 @@ async function fetchSeason(season: string) {
 
     const response = shallowRef<Awaited<ReturnType<typeof PhimIdChap>>>()
 
-    let promiseLoadIndexedb: Promise<
-      Awaited<ReturnType<typeof PhimIdChap>> | undefined
-    > = Promise.resolve(undefined)
-    await Promise.any([
-      PhimIdChap(realIdSeason).then((data) => {
-        // mergeListEp(response.value, data)
-        const json = JSON.stringify(data)
-        let changed = false
-        if (
-          !response.value ||
-          response.value.chaps.length !== data.chaps.length ||
-          json !== JSON.stringify(toRaw(response.value))
-        ) {
-          if (response.value) changed = true
-          console.info("cache wrong")
-
-          console.log("[online]: use data from internet")
-          response.value = data
-          console.log("data from internet is ", data)
-        }
-        Object.assign(response.value, { [__ONLINE__]: true })
-
-        // eslint-disable-next-line promise/always-return
-        if (changed) updateIndexedDB(toRaw(response.value))
-        else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
-
-        function updateIndexedDB(
-          jsonCache?: Awaited<ReturnType<typeof PhimIdChap>>
-        ) {
-          if (json !== JSON.stringify(jsonCache)) {
-            const task = set(`season_data ${realIdSeason}`, json)
-
-            if (import.meta.env.DEV)
-              task
-                // eslint-disable-next-line promise/no-nesting, promise/always-return
-                .then(() => {
-                  console.log("[fs]: save cache season %s", realIdSeason)
-                })
-                // eslint-disable-next-line promise/no-nesting
-                .catch((err) =>
-                  console.warn(
-                    "[fs]: failure save cache season %s",
-                    realIdSeason,
-                    err
-                  )
+    if (isOnline.value) {
+      let promiseLoadIndexedb: Promise<
+        Awaited<ReturnType<typeof PhimIdChap>> | undefined
+      > = Promise.resolve(undefined)
+      await Promise.any([
+        PhimIdChap(realIdSeason).then((data) => {
+          // mergeListEp(response.value, data)
+          const json = JSON.stringify(data)
+          // eslint-disable-next-line promise/always-return
+          if (
+            !response.value ||
+            response.value.chaps.length !== data.chaps.length ||
+            json !== JSON.stringify(toRaw(response.value))
+          ) {
+            console.info("cache wrong")
+            // eslint-disable-next-line promise/catch-or-return
+            promiseLoadIndexedb.finally((jsonCache?: string) => {
+              if (json !== jsonCache) {
+                const task = set(
+                  `season_data ${realIdSeason}`,
+                  json,
+                  DEFAULT_STORE,
+                  customGetStore()
                 )
-          } else if (import.meta.env.DEV) {
-            console.log("[data season]: No update response in IndexedDB")
+
+                if (import.meta.env.DEV)
+                  task
+                    // eslint-disable-next-line promise/no-nesting, promise/always-return
+                    .then(() => {
+                      console.log("[fs]: save cache season %s", realIdSeason)
+                    })
+                    // eslint-disable-next-line promise/no-nesting
+                    .catch((err) =>
+                      console.warn(
+                        "[fs]: failure save cache season %s",
+                        realIdSeason,
+                        err
+                      )
+                    )
+              } else if (import.meta.env.DEV) {
+                console.log("[data season]: No update response in IndexedDB")
+              }
+            })
+            console.log("[online]: use data from internet")
+            response.value = data
+            console.log("data from internet is ", data)
           }
-        }
-        responseOnlineStore.add(response)
-      }),
-      (promiseLoadIndexedb = new Promise<
-        Awaited<ReturnType<typeof PhimIdChap>>
-      >((resolve, reject) => {
-        const data = getDataJson<Awaited<ReturnType<typeof PhimIdChap>>>(
-          "anime_list",
-          realIdSeason
-        )
-        if (data) {
-          resolve(data)
-          return
-        }
+          responseOnlineStore.add(response)
+        }),
+        (promiseLoadIndexedb = new Promise<
+          Awaited<ReturnType<typeof PhimIdChap>>
+        >((resolve, reject) => {
+          const data = getDataJson<Awaited<ReturnType<typeof PhimIdChap>>>(
+            "anime_list",
+            realIdSeason
+          )
+          if (data) {
+            resolve(data)
+            return
+          }
 
-        getDataIDB<string>(`season_data ${realIdSeason}`)
-          .then((json) => JSON.parse(json))
-          .then(resolve)
-          .catch(reject)
-      }).then((json) => {
-        if (!json) throw new Error("not_found")
-        console.log("[fs]: use cache %s", realIdSeason)
-        if (!response.value) response.value = json
+          getDataIDB<string>(`season_data ${realIdSeason}`)
+            .then((json) => JSON.parse(json))
+            .then(resolve)
+            .catch(reject)
+        }).then((json) => {
+          if (!json) throw new Error("not_found")
+          console.log("[fs]: use cache %s", realIdSeason)
+          if (!response.value) response.value = json
 
-        return json
-      }))
-    ])
+          return json
+        }))
+      ])
+    } else {
+      try {
+        const data = await admStore.adm.getListEpisodes(realIdSeason)
+        if (!data) throw { code: "ENOENT" }
+
+        response.value = {
+          ...data,
+          update: null
+        }
+      } catch (err: any) {
+        if (err.code === "ENOENT")
+          throw (error.value = Object.assign(
+            new Error(t("msg-not-available-on-offline")),
+            {
+              code: CODE_NOT_AVAILABLE_OFFLINE,
+              showMsg: true
+            }
+          ))
+        else throw err
+      }
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (response.value!.chaps.length === 0) {
@@ -1294,6 +1408,47 @@ watch(
   (currentMetaChap, _, onCleanup) => {
     if (!currentMetaChap) return
 
+    if (!isOnline.value) {
+      void admStore.adm
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        .getEpisode(uniqueEpisode.value!)
+        .then((episode) => {
+          if (!episode) throw { code: "ENOENT" }
+
+          configPlayer.value = {
+            link: [episode.source],
+            playTech: "api"
+          }
+
+          return episode
+        })
+        .catch((err) => {
+          WARN(err)
+          if (err.code === "ENOENT")
+            void $q.notify({
+              message: "Không có kết nối internet",
+              caption: "Hãy chuyển sang để xem những tập ngoại tuyến",
+              actions: [
+                {
+                  label: "Mở ngoại tuyến",
+                  color: "main",
+                  to: "/tai-khoan/offline"
+                }
+              ],
+              position: "bottom-left",
+              timeout: 0
+            })
+          else
+            void $q.notify({
+              message: `Play load error: ${err}`,
+              position: "bottom-right",
+              timeout: 0
+            })
+        })
+
+      return
+    }
+
     if (currentMetaChap.id === "0") {
       configPlayer.value = {
         link: [
@@ -1333,6 +1488,7 @@ watch(
                   }
                 })
                 .catch((err) => {
+                  WARN(err)
                   void $q.notify({
                     message: `Play load error: ${err}`,
                     position: "bottom-right",
@@ -1352,6 +1508,7 @@ watch(
                   }
                 })
                 .catch((err) => {
+                  WARN(err)
                   void $q.notify({
                     message: `Play load error: ${err}`,
                     position: "bottom-right",
@@ -1368,10 +1525,11 @@ watch(
                 loadedServerFB = true
               })
               .catch((err) => {
+                WARN(err)
                 void $q.notify({
                   message: `Play load error: ${err}`,
                   position: "bottom-right",
-                  timeout: 0
+                  timeout: 1_500
                 })
               })
           }
@@ -1710,7 +1868,12 @@ const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
         .then((data) => {
           if (data.progress.current === data.progress.total) {
             // ok backup data now
-            void set(`episodes_opend:${realId}`, JSON.stringify(data))
+            void set(
+              `episodes_opend:${realId}`,
+              JSON.stringify(data),
+              DEFAULT_STORE,
+              customGetStore()
+            )
           }
 
           // eslint-disable-next-line promise/always-return
@@ -1798,7 +1961,12 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
       fetch(`${API_OPEND}/episode-skip/${id}`)
         .then((res) => res.json() as Promise<InOutroEpisode>)
         .then((data) => {
-          void set(`inoutro:${id}`, JSON.stringify(data))
+          void set(
+            `inoutro:${id}`,
+            JSON.stringify(data),
+            DEFAULT_STORE,
+            customGetStore()
+          )
 
           // eslint-disable-next-line promise/always-return
           if (results) {
@@ -1823,6 +1991,44 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
     return results!
   },
   null,
+  { onError: WARN }
+)
+
+// ================ download ==================
+const canDownload = computed(
+  () =>
+    data.value &&
+    realIdCurrentSeason.value &&
+    route.path &&
+    currentMetaChap.value &&
+    uniqueEpisode.value &&
+    currentMetaSeason.value &&
+    episodeOffline.value !== undefined
+)
+const showDownload = ref(false)
+const uniqueEpisode = computed(() =>
+  currentMetaChap.value
+    ? realIdCurrentSeason.value + "/" + currentMetaChap.value.id
+    : null
+)
+
+const episodeOffline = computedAsync(
+  async () => {
+    if (!uniqueEpisode.value) return undefined
+    if (!currentMetaChap.value) return undefined
+
+    const onTask = admStore.tasks
+      .get(realIdCurrentSeason.value)
+      ?.episodes?.get(currentMetaChap.value.id)
+
+    if (onTask) return onTask
+
+    const episode = await admStore.adm.getEpisode(uniqueEpisode.value)
+    if (!episode) return null
+
+    return { episode, ...episode.progress }
+  },
+  undefined,
   { onError: WARN }
 )
 </script>
@@ -1889,3 +2095,4 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
   z-index: 12;
 }
 </style>
+DEFAULT_STORE, import { customGetStore } from "src/boot/idb"

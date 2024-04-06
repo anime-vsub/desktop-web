@@ -135,6 +135,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import("pages/tai-khoan/follow.vue")
       },
       {
+        path: "offline",
+        component: () => import("pages/tai-khoan/offline.vue")
+      },
+      {
         path: "settings",
         component: () => import("pages/tai-khoan/settings/index_outlet.vue"),
         children: [

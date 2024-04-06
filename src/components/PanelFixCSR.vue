@@ -42,10 +42,11 @@
 
 <script lang="ts" setup>
 import * as Client from "client-ext-animevsub-helper"
-import { getMany, set } from "idb-keyval"
+import { DEFAULT_STORE, getMany, set } from "idb-keyval"
 import groupBy from "object.groupby"
 import { PhimId } from "src/apis/runs/phim/[id]"
 import { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
+import { customGetStore } from "src/boot/idb"
 import { ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRequest } from "vue-request"
@@ -81,7 +82,10 @@ async function fix() {
   const ids = data.value.map((item) => item.id)
   const urls = data.value.map((item) => item.url)
 
-  const $grouped = groupBy(await getMany(keys), (item, index) => ~~(index / 2))
+  const $grouped = groupBy(
+    await getMany(keys, DEFAULT_STORE, customGetStore()),
+    (item, index) => ~~(index / 2)
+  )
   Object.assign($grouped, { length: Object.keys($grouped).length })
   const grouped = Array.from(
     $grouped as [string | undefined, string | undefined][]
@@ -93,11 +97,16 @@ async function fix() {
       try {
         if (!data) {
           data = JSON.stringify(await PhimId(urls[index]))
-          set(`data-${urls[index]}`, data)
+          set(`data-${urls[index]}`, data, DEFAULT_STORE, customGetStore())
         }
         if (!season) {
           season = JSON.stringify(await PhimIdChap(urls[index]))
-          set(`season_data ${urls[index]}`, season)
+          set(
+            `season_data ${urls[index]}`,
+            season,
+            DEFAULT_STORE,
+            customGetStore()
+          )
         }
 
         return [data, season]

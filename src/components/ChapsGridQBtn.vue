@@ -18,6 +18,7 @@
       ]"
       :to="`/phim/${season}/${parseChapName(item.name)}-${item.id}`"
       :ref="(el: QBtn) => void (find(item) && (activeRef = el as QBtn))"
+      :disable="!isOnline && !offlines?.[ item.id ]"
     >
       {{ item.name }}
       <q-linear-progress
@@ -37,6 +38,9 @@ import type { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
 import { scrollYIntoView } from "src/helpers/scrollIntoView"
 import { parseChapName } from "src/logic/parseChapName"
 import { ref, watchEffect } from "vue"
+import type { SeasonInfo } from "animevietsub-download-manager/src/main"
+import { useOnline } from "src/composibles/online"
+
 
 const props = defineProps<{
   find: (value: Awaited<ReturnType<typeof PhimIdChap>>["chaps"][0]) => boolean
@@ -53,7 +57,13 @@ const props = defineProps<{
     }
   > | null
   deepScroll?: number
+
+
+  offlines?: SeasonInfo["episodesOffline"]
 }>()
+
+
+const isOnline = useOnline()
 
 const activeRef = ref<QBtn>()
 function scrollToView() {

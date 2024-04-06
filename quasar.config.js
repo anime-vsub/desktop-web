@@ -117,6 +117,7 @@ module.exports = configure(function (/* ctx */) {
             alias: {
               path: "path-browserify",
             },
+            extensions: [...viteConf.resolve.extensions ?? [], ".rb"]
           },
           server: {
             // configure vite for HMR with Gitpod
@@ -162,8 +163,8 @@ module.exports = configure(function (/* ctx */) {
           })]
         }],
         [AutoImport, {
-          imports: ["vue", "vue-router", {"quasar": ["useQuasar"], "vue-i18n": ["useI18n"]}],
-          dirs: ["./src/*.ts"],
+          imports: ["vue", "vue-router", {"quasar": ["useQuasar"], "vue-i18n": ["useI18n"], "vue-request": ["useRequest"]}],
+          dirs: ["./src/*.ts", "./src/stores/*.ts"],
           dts: "./auto-imports.d.ts",
           eslintrc: {
             enabled: true
@@ -171,7 +172,12 @@ module.exports = configure(function (/* ctx */) {
         }],
         ["vite-plugin-rewrite-all", {}],
         ["vite-plugin-remove-console", {}],
-        [vitePluginI18nLangs, {}]
+        [vitePluginI18nLangs, {}],
+		["@ruby2js/vite-plugin", {
+			refresh: require("@vitejs/plugin-react-refresh"),
+			eslevel: 2021,
+			autoexports: "default"
+		}]
       ],
     },
 

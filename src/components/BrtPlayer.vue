@@ -472,7 +472,7 @@
                     >
                       <div>
                         <div
-                          class="py-1 px-4 text-subtitle1 flex items-center justify-between"
+                          class="min-h-42px py-1 px-4 text-subtitle1 flex items-center justify-between"
                         >
                           {{
                             gridModeTabsSeasons
@@ -481,6 +481,7 @@
                           }}
 
                           <q-btn
+                            v-if="seasons?.length"
                             dense
                             round
                             unelevated
@@ -613,6 +614,7 @@
                                     )?.response
                                   "
                                   :deep-scroll="5"
+                                  :offlines="offlines"
                                   class-item="px-3 !py-[6px] mb-3"
                                 />
                               </template>
@@ -1191,7 +1193,6 @@ import {
 import BottomBlurRelative from "components/BottomBlurRelative.vue"
 import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
-import type { PlaylistLoaderConstructor } from "hls.js"
 import Hls from "hls.js"
 import workerHls from "hls.js/dist/hls.worker?url"
 import {
@@ -1219,8 +1220,7 @@ import {
 } from "src/constants"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
-import { fetchJava } from "src/logic/fetchJava"
-import { patcher } from "src/logic/hls-patcher"
+import { HlsPatched } from "src/logic/hls-patched"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
 import { sleep } from "src/logic/sleep"
@@ -1246,6 +1246,8 @@ import {
 import { useI18n } from "vue-i18n"
 import { onBeforeRouteLeave, useRouter } from "vue-router"
 
+import type { SeasonInfo } from "animevsub-download-manager"
+
 const { t } = useI18n()
 // fix toolip fullscreen not hide if change fullscreen
 
@@ -1255,6 +1257,7 @@ const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
 const historyStore = useHistoryStore()
 const stateStorageStore = useStateStorageStore()
+const admStore = useADM()
 
 const router = useRouter()
 const $q = useQuasar()
@@ -1301,12 +1304,10 @@ const props = defineProps<{
     start: number
     end: number
   }
-}>()
-const uidChap = computed(() => {
-  const uid = `${props.currentSeason}/${props.currentChap ?? ""}` // 255 byte
+  uidChap: string | null
 
-  return uid
-})
+  offlines?: SeasonInfo["episodesOffline"]
+}>()
 
 const playerWrapRef = ref<HTMLDivElement>()
 const documentVisibility = useDocumentVisibility()
@@ -1470,7 +1471,8 @@ watch(
         return
       }
 
-      const currentUid = uidChap.value
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const currentUid = props.uidChap!
 
       try {
         console.log(":restore progress")
@@ -1483,7 +1485,7 @@ watch(
           await historyStore.getProgressChap(currentSeason, currentChap)
         )?.cur
 
-        if (uidChap.value !== currentUid) {
+        if (props.uidChap !== currentUid) {
           // if process of this result != current process -> skip
 
           throw new Error("PROCESS_NOT_EQUAL")
@@ -1680,16 +1682,18 @@ function throttle<T extends (...args: any[]) => Promise<void>>(
   let timeout: NodeJS.Timeout | number | undefined
   // eslint-disable-next-line functional/functional-parameters, @typescript-eslint/no-explicit-any
   const cb = function (...args: any[]) {
+    if (!props.uidChap) return 0x0
+
     if (wait === false) {
       wait = true
       timeout = setTimeout(
         async () => {
-          firstSaveStore.add(uidChap.value)
+          if (props.uidChap) firstSaveStore.add(props.uidChap)
           // eslint-disable-next-line no-void
           await fn(...args).catch(() => void 0)
           wait = false
         },
-        firstSaveStore.has(uidChap.value)
+        firstSaveStore.has(props.uidChap)
           ? DELAY_SAVE_VIEWING_PROGRESS
           : DELAY_SAVE_HISTORY
       )
@@ -1716,7 +1720,8 @@ const saveCurTimeToPer = throttle(
     name: string
   ) => {
     console.log("call main fn cur time")
-    const uidTask = uidChap.value
+    const uidTask = props.uidChap
+    if (!uidTask) return
 
     if (savingTimeEpStore.has(uidTask)) {
       if (import.meta.env.DEV) console.warn("Task saving %s exists", uidTask)
@@ -1733,7 +1738,8 @@ const saveCurTimeToPer = throttle(
 
       let dur = artDuration.value
 
-      if (!dur || cur <= 5) { // <5s -> pass
+      if (!dur || cur <= 5) {
+        // <5s -> pass
         console.warn("[saveCurTime]: artDuration is %s", dur)
         return
       }
@@ -1741,7 +1747,7 @@ const saveCurTimeToPer = throttle(
       if (!(await createSeason(currentSeason, nameSeason, poster, name))) return
 
       // NOTE: if this uid (processingSaveCurTimeIn === uid) -> update cur and dur
-      if (uidTask === uidChap.value) {
+      if (uidTask === props.uidChap) {
         // update value now
         cur = artCurrentTime.value
         dur = artDuration.value
@@ -1793,7 +1799,7 @@ const saveCurTimeToPer = throttle(
     }
   }
 )
-watch(uidChap, saveCurTimeToPer.cancel)
+watch(() => props.uidChap, saveCurTimeToPer.cancel)
 function onVideoTimeUpdate() {
   if (
     artPlaying.value &&
@@ -1811,7 +1817,7 @@ function onVideoTimeUpdate() {
     artControlShow.value = false
   }
 
-  if (progressRestored !== uidChap.value) return
+  if (progressRestored !== props.uidChap) return
   if (props.currentChap === undefined || props.nameCurrentSeason === undefined)
     return
   if (typeof props.nameCurrentChap !== "string") return
@@ -1958,9 +1964,14 @@ function runRemount() {
   }).onOk(remount)
 }
 
+const blobCanFree = new Set<string>()
+onBeforeUnmount(() => blobCanFree.forEach(blobUrl => URL.revokeObjectURL(blobUrl)))
+
 let currentHls: Hls
 onBeforeUnmount(() => currentHls?.destroy())
 function remount(resetCurrentTime?: boolean, noDestroy = false) {
+  blobCanFree.forEach(blobUrl => URL.revokeObjectURL(blobUrl))
+
   if (!noDestroy) currentHls?.destroy()
   else {
     const type = currentStream.value?.type
@@ -2003,113 +2014,50 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
     Hls.isSupported()
   ) {
     const offEnds = "_extra"
-    const hls = new Hls({
-      debug: import.meta.env.DEV,
-      workerPath: workerHls,
-      progressive: true,
-      fetchSetup(context, initParams) {
-        context.url += "#animevsub-vsub" + offEnds
 
-        return new Request(context.url, initParams)
-      },
+    if (file.startsWith("file:"))
+      currentHls = new HlsPatched(
+        {
+          debug: false && import.meta.env.DEV,
+          workerPath: workerHls,
+          progressive: true
+        },
+        (request) => {
+          return admStore.utils
+            .get(request.url.slice(6))
+            .then((buffer) => {
+              const res = new Response(buffer as Uint8Array, { status: 200 })
+              const { url } = request
 
-      pLoader: offEnds
-        ? undefined
-        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (class CustomLoader extends (Hls.DefaultConfig.loader as any) {
-            loadInternal(): void {
-              const { config, context } = this
-              if (!config) {
-                return
-              }
-
-              const { stats } = this
-              stats.loading.first = 0
-              stats.loaded = 0
-
-              const controller = new AbortController()
-              const xhr = (this.loader = {
-                readyState: 0,
-                status: 0,
-                responseType: context.responseType,
-                abort() {
-                  controller.abort()
-                },
-                onreadystatechange: <(() => void) | null>null,
-                onprogress: <
-                  ((eventt: { loaded: number; total: number }) => void) | null
-                >null,
-                response: <ArrayBuffer | null>null,
-                responseText: <string | null>null
+              Object.defineProperty(res, "url", {
+                get: () => url
               })
-              const headers = new Headers()
-              if (this.context.headers)
-                for (const [key, val] of Object.entries(this.context.headers))
-                  headers.set(key, val as string)
-              const { maxTimeToFirstByteMs, maxLoadTimeMs } = config.loadPolicy
 
-              if (context.rangeEnd) {
-                headers.set(
-                  "Range",
-                  "bytes=" + context.rangeStart + "-" + (context.rangeEnd - 1)
-                )
-              }
+              return res
+            })
+            .catch((err) => {
+              WARN(err)
+              return new Response("404", { status: 404 })
+            })
+        }
+      )
+    else
+      currentHls = new Hls({
+        debug: false && import.meta.env.DEV,
+        workerPath: workerHls,
+        progressive: true,
+        fetchSetup(context, initParams) {
+          context.url += "#animevsub-vsub" + offEnds
 
-              xhr.onreadystatechange = this.readystatechange.bind(this)
-              xhr.onprogress = this.loadprogress.bind(this)
-              self.clearTimeout(this.requestTimeout)
-              config.timeout =
-                maxTimeToFirstByteMs && Number.isFinite(maxTimeToFirstByteMs)
-                  ? maxTimeToFirstByteMs
-                  : maxLoadTimeMs
-              this.requestTimeout = self.setTimeout(
-                this.loadtimeout.bind(this),
-                config.timeout
-              )
-
-              fetchJava(context.url + "#animevsub-vsub", {
-                headers,
-                signal: controller.signal
-              })
-                .then(async (res) => {
-                  let byteLength: number
-                  if (context.responseType !== "text") {
-                    xhr.response = await res.arrayBuffer()
-                    byteLength = xhr.response.byteLength
-                  } else {
-                    xhr.responseText = await res.text()
-                    byteLength = xhr.responseText.length
-                  }
-
-                  xhr.readyState = 4
-                  xhr.status = 200
-                  xhr.responseType = context.responseType
-
-                  xhr.onprogress?.({
-                    loaded: byteLength,
-                    total: byteLength
-                  })
-                  // eslint-disable-next-line promise/always-return
-                  xhr.onreadystatechange?.()
-                })
-                .catch((e) => {
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  this.callbacks!.onError(
-                    { code: xhr.status, text: e.message },
-                    context,
-                    xhr
-                  )
-                })
-            }
-          } as unknown as PlaylistLoaderConstructor)
-    })
-    if (!offEnds) patcher(hls)
-    currentHls = hls
+          return new Request(context.url, initParams)
+        }
+      })
+    // currentHls = hls
     // customLoader(hls.config)
-    hls.loadSource(file)
+    currentHls.loadSource(file)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    hls.attachMedia(video.value!)
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+    currentHls.attachMedia(video.value!)
+    currentHls.on(Hls.Events.MANIFEST_PARSED, () => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (playing) void video.value!.play()
     })
@@ -2117,7 +2065,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
     let needSwapCodec = false
 
     let timeoutUnneedSwapCodec: NodeJS.Timeout | number | null = null
-    hls.on(Hls.Events.ERROR, (event, data) => {
+    currentHls.on(Hls.Events.ERROR, (event, data) => {
       if (data.fatal) {
         console.warn("Player fatal: ", data)
         switch (data.type) {
@@ -2132,7 +2080,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
                   label: t("thu-lai"),
                   color: "yellow",
                   noCaps: true,
-                  handler: () => hls.startLoad()
+                  handler: () => currentHls.startLoad()
                 },
                 {
                   icon: "close",
@@ -2150,7 +2098,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
             }
             console.warn("fatal media error encountered, try to recover")
             if (needSwapCodec) {
-              hls.swapAudioCodec()
+              currentHls.swapAudioCodec()
               needSwapCodec = false
               if (timeoutUnneedSwapCodec) {
                 clearTimeout(timeoutUnneedSwapCodec)
@@ -2163,7 +2111,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
                 timeoutUnneedSwapCodec = null
               }, 1_000)
             }
-            hls.recoverMediaError()
+            currentHls.recoverMediaError()
             if (playing)
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               void video.value!.play()
@@ -2201,8 +2149,16 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
       }
     })
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    video.value!.src = file
+    if (file.startsWith("file:")) {
+      void admStore.utils.get(file.slice(5)).then((uint8) => {
+        // convert to blob
+        video.value!.src = URL.createObjectURL(new Blob([uint8 as Uint8Array]))
+        blobCanFree.add(video.value!.src)
+      })
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      video.value!.src = file
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -2210,7 +2166,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
 
   if (
     resetCurrentTime
-      ? props.currentChap && progressRestored === uidChap.value
+      ? props.currentChap && progressRestored === props.uidChap
       : true
   )
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -2237,10 +2193,10 @@ const watcherVideoTagReady = watch(video, (video) => {
       // // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // if ((Hls as unknown as any).isSupported()) {
       remount(
-        currentEpStream !== uidChap.value,
-        currentEpStream === uidChap.value
+        currentEpStream !== props.uidChap,
+        currentEpStream === props.uidChap
       )
-      currentEpStream = uidChap.value
+      currentEpStream = props.uidChap
       // } else {
       //   const canPlay = video.canPlayType("application/vnd.apple.mpegurl")
       //   if (canPlay === "probably" || canPlay === "maybe") {
