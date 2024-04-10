@@ -573,11 +573,11 @@ const { data, run, error, loading } = useRequest(
           Object.assign(result.value, { [__ONLINE__]: true })
 
           // eslint-disable-next-line promise/always-return
-          if (changed) updateIndexedDB(toRaw(result.value))
+          if (changed) updateIndexedDB()
           else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
 
           function updateIndexedDB(data2?: Awaited<ReturnType<typeof PhimId>>) {
-            if (JSON.stringify(data2) !== json) {
+            if (!data2 || JSON.stringify(data2) !== json) {
               // update indexeddb
               set(`data-${id}`, json)
                 // eslint-disable-next-line promise/no-nesting
@@ -765,13 +765,13 @@ async function fetchSeason(season: string) {
         Object.assign(response.value, { [__ONLINE__]: true })
 
         // eslint-disable-next-line promise/always-return
-        if (changed) updateIndexedDB(toRaw(response.value))
+        if (changed) updateIndexedDB()
         else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
 
         function updateIndexedDB(
           jsonCache?: Awaited<ReturnType<typeof PhimIdChap>>
         ) {
-          if (json !== JSON.stringify(jsonCache)) {
+          if (!jsonCache || json !== JSON.stringify(jsonCache)) {
             const task = set(`season_data ${realIdSeason}`, json)
 
             if (import.meta.env.DEV)
