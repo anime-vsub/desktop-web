@@ -54,3 +54,5 @@ export const API_OPEND = "https://opend-9animetv.animevsub.eu.org"
 export const WARN = console.warn.bind(console)
 
 export const NAME_GET_MEMORY = "get memory"
+
+export const API_PROXY = "https://proxy-google-animevsub.tachibshin.workers.dev"

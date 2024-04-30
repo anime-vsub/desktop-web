@@ -227,10 +227,10 @@
                       artCurrentTimeHoving <= intro.end
                         ? '\n ' + $t('mo-dau')
                         : outro &&
-                          artCurrentTimeHoving >= outro.start &&
-                          artCurrentTimeHoving <= outro.end
-                        ? '\n ' + $t('ket-thuc')
-                        : '')
+                            artCurrentTimeHoving >= outro.start &&
+                            artCurrentTimeHoving <= outro.end
+                          ? '\n ' + $t('ket-thuc')
+                          : '')
                     "
                     :style="{
                       width: `${(artCurrentTimeHoving / artDuration) * 100}%`
@@ -1212,6 +1212,7 @@ import {
 import type { PlayerLink } from "src/apis/runs/ajax/player-link"
 import { useMemoControl } from "src/composibles/memo-control"
 import {
+  API_PROXY,
   DELAY_SAVE_HISTORY,
   DELAY_SAVE_VIEWING_PROGRESS,
   playbackRates,
@@ -1733,7 +1734,8 @@ const saveCurTimeToPer = throttle(
 
       let dur = artDuration.value
 
-      if (!dur || cur <= 5) { // <5s -> pass
+      if (!dur || cur <= 5) {
+        // <5s -> pass
         console.warn("[saveCurTime]: artDuration is %s", dur)
         return
       }
@@ -2003,105 +2005,40 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
     Hls.isSupported()
   ) {
     const offEnds = "_extra"
-    const hls = new Hls({
+    let networkSlow = false
+    const hls = new HlsPatched({
       debug: import.meta.env.DEV,
       workerPath: workerHls,
       progressive: true,
-      fetchSetup(context, initParams) {
+      async fetchSetup(context, initParams) {
         context.url += "#animevsub-vsub" + offEnds
+
+        if (networkSlow) {
+          const { url } = await fetch(context.url, {
+            ...initParams,
+            redirect: "manual"
+          })
+
+          const { hostname, pathname } = new URL(url)
+          const indexGoogleUserContent = hostname.indexOf(
+            ".googleusercontent.com"
+          )
+          if (indexGoogleUserContent === -1) {
+            return new Request(context.url, initParams)
+          }
+
+          const locate = hostname.slice(0, indexGoogleUserContent)
+
+          const url = `${API_PROXY}/stream/${locate + pathname}`
+
+          context.url = url
+        }
 
         return new Request(context.url, initParams)
       },
-
-      pLoader: offEnds
-        ? undefined
-        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (class CustomLoader extends (Hls.DefaultConfig.loader as any) {
-            loadInternal(): void {
-              const { config, context } = this
-              if (!config) {
-                return
-              }
-
-              const { stats } = this
-              stats.loading.first = 0
-              stats.loaded = 0
-
-              const controller = new AbortController()
-              const xhr = (this.loader = {
-                readyState: 0,
-                status: 0,
-                responseType: context.responseType,
-                abort() {
-                  controller.abort()
-                },
-                onreadystatechange: <(() => void) | null>null,
-                onprogress: <
-                  ((eventt: { loaded: number; total: number }) => void) | null
-                >null,
-                response: <ArrayBuffer | null>null,
-                responseText: <string | null>null
-              })
-              const headers = new Headers()
-              if (this.context.headers)
-                for (const [key, val] of Object.entries(this.context.headers))
-                  headers.set(key, val as string)
-              const { maxTimeToFirstByteMs, maxLoadTimeMs } = config.loadPolicy
-
-              if (context.rangeEnd) {
-                headers.set(
-                  "Range",
-                  "bytes=" + context.rangeStart + "-" + (context.rangeEnd - 1)
-                )
-              }
-
-              xhr.onreadystatechange = this.readystatechange.bind(this)
-              xhr.onprogress = this.loadprogress.bind(this)
-              self.clearTimeout(this.requestTimeout)
-              config.timeout =
-                maxTimeToFirstByteMs && Number.isFinite(maxTimeToFirstByteMs)
-                  ? maxTimeToFirstByteMs
-                  : maxLoadTimeMs
-              this.requestTimeout = self.setTimeout(
-                this.loadtimeout.bind(this),
-                config.timeout
-              )
-
-              fetchJava(context.url + "#animevsub-vsub", {
-                headers,
-                signal: controller.signal
-              })
-                .then(async (res) => {
-                  let byteLength: number
-                  if (context.responseType !== "text") {
-                    xhr.response = await res.arrayBuffer()
-                    byteLength = xhr.response.byteLength
-                  } else {
-                    xhr.responseText = await res.text()
-                    byteLength = xhr.responseText.length
-                  }
-
-                  xhr.readyState = 4
-                  xhr.status = 200
-                  xhr.responseType = context.responseType
-
-                  xhr.onprogress?.({
-                    loaded: byteLength,
-                    total: byteLength
-                  })
-                  // eslint-disable-next-line promise/always-return
-                  xhr.onreadystatechange?.()
-                })
-                .catch((e) => {
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  this.callbacks!.onError(
-                    { code: xhr.status, text: e.message },
-                    context,
-                    xhr
-                  )
-                })
-            }
-          } as unknown as PlaylistLoaderConstructor)
+      onSlow() {
+        networkSlow = true
+      }
     })
     if (!offEnds) patcher(hls)
     currentHls = hls
