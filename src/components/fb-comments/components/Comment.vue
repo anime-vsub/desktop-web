@@ -96,7 +96,7 @@
 
           <!-- button more options -->
           <div class="min-w-42px">
-            <q-btn  v-show="(!isOutside || menuShowing) && !editing" round>
+            <q-btn v-show="(!isOutside || menuShowing) && !editing" round>
               <i-solar-menu-dots-bold class="transform rotate-90" />
               <q-menu
                 v-model="menuShowing"
@@ -148,7 +148,7 @@
                       }}</q-item-section>
                     </q-item>
                   </template>
-<!-- 
+                  <!-- 
                   <q-separator />
 
                   <q-item
@@ -209,7 +209,7 @@ import type {
 import { useQuasar } from "quasar"
 import dayjs from "src/logic/dayjs"
 
-import type { EventBus } from "../index.vue";
+import type { EventBus } from "../index.vue"
 
 import Comments from "./Comments.vue"
 import Reply from "./Reply.vue"
@@ -256,11 +256,11 @@ const repling = ref(false)
 
 const liked = ref(false)
 async function like() {
-    if (props.user.id === "0") {
-      // not login
-      await bus?.emit("sign_in",undefined)
-      return
-    }
+  if (props.user.id === "0") {
+    // not login
+    await bus?.emit("sign_in", undefined)
+    return
+  }
 
   liked.value = !liked.value
   try {
@@ -307,11 +307,11 @@ async function loadMoreReply(after_cursor?: string) {
 const editing = ref(false)
 
 function remove() {
-    if (props.user.id === "0") {
-      // not login
-     bus?.emit("sign_in", undefined)
-      return
-    }
+  if (props.user.id === "0") {
+    // not login
+    bus?.emit("sign_in", undefined)
+    return
+  }
 
   $q.dialog({
     class: "rounded-xl",

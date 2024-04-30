@@ -227,10 +227,10 @@
                       artCurrentTimeHoving <= intro.end
                         ? '\n ' + $t('mo-dau')
                         : outro &&
-                          artCurrentTimeHoving >= outro.start &&
-                          artCurrentTimeHoving <= outro.end
-                        ? '\n ' + $t('ket-thuc')
-                        : '')
+                            artCurrentTimeHoving >= outro.start &&
+                            artCurrentTimeHoving <= outro.end
+                          ? '\n ' + $t('ket-thuc')
+                          : '')
                     "
                     :style="{
                       width: `${(artCurrentTimeHoving / artDuration) * 100}%`
@@ -1191,7 +1191,6 @@ import {
 import BottomBlurRelative from "components/BottomBlurRelative.vue"
 import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
-import type { PlaylistLoaderConstructor } from "hls.js"
 import Hls from "hls.js"
 import workerHls from "hls.js/dist/hls.worker?url"
 import {
@@ -1220,12 +1219,11 @@ import {
 } from "src/constants"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
-import { fetchJava } from "src/logic/fetchJava"
+import { getRedirect } from "src/logic/get-redirect"
 import { HlsPatched } from "src/logic/hls-patched"
 import { patcher } from "src/logic/hls-patcher"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
-import { getRedirect } from "src/logic/get-redirect"
 import { sleep } from "src/logic/sleep"
 import type { ProgressWatchStore } from "src/pages/phim/_season.interface"
 import type {
@@ -2015,18 +2013,8 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
         debug: import.meta.env.DEV,
         workerPath: workerHls,
         progressive: true,
-        async fetchSetup(context, initParams) {
+        fetchSetup(context, initParams) {
           context.url += "#animevsub-vsub" + offEnds
-          if (
-            networkSlow &&
-            context.url.indexOf("stream.googleapiscdn.com/chunks") > -1
-          ) {
-            const url = await getRedirect(context.url, initParams)
-
-            const { hostname, pathname } = new URL(url)
-
-            context.url = `${API_PROXY}/stream?url=${url}`
-          }
           return new Request(context.url, initParams)
         },
         onSlow() {
@@ -2037,10 +2025,15 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
               timeoutNetworkSlow = null
             }, 30 * 60_000)
           }
-          addNotice(`Kết nối đến máy chủ chậm, chuyển sang proxy`)
+          addNotice("Kết nối đến máy chủ chậm, chuyển sang proxy")
         }
       },
-      fetch
+      async (req: Request) => {
+        if (networkSlow && req.url.includes("stream.googleapiscdn.com/chunks"))
+          return fetch(`${API_PROXY}/stream?url=${await getRedirect(req)}`, req)
+
+        return fetch(req)
+      }
     )
     if (!offEnds) patcher(hls)
     currentHls = hls

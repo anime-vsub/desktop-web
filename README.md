@@ -49,10 +49,11 @@ If you find this project useful please support me through:
 ![9  2022-11-16 153321](https://user-images.githubusercontent.com/45375496/203582196-279f7864-f67b-4974-8003-af4fcce01320.jpeg)
 
 ## News
+
 ### 1.0.5
+
 - Support skip `opening` and `ending`
 - Fix bugs
   ![image](https://github.com/anime-vsub/desktop-web/assets/45375496/50e19b9f-71af-43b9-822c-880ad8bc540b)
-
 
 <!--/screenshot-->

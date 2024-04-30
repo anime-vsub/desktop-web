@@ -421,10 +421,10 @@
                         item.timestamp.isToday()
                           ? "Hôm nay"
                           : item.timestamp.isYesterday()
-                          ? "Hôm qua"
-                          : item.timestamp.get("date") +
-                            " thg " +
-                            (item.timestamp.get("month") + 1)
+                            ? "Hôm qua"
+                            : item.timestamp.get("date") +
+                              " thg " +
+                              (item.timestamp.get("month") + 1)
                       }}
                     </div>
                     <router-link

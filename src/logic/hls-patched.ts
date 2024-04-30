@@ -75,12 +75,12 @@ export class HlsPatched extends Hls {
     super(userConfig)
 
     this.config.loader = class extends this.config.loader {
-      async load(
+      load(
         this: any,
         context: LoaderContext,
         config: LoaderConfiguration,
         callbacks: LoaderCallbacks<LoaderContext>
-      ): Promise<void> {
+      ): void {
         const stats = this.stats
         if (stats.loading.start) {
           throw new Error("Loader can only be used once.")
@@ -97,7 +97,7 @@ export class HlsPatched extends Hls {
         this.context = context
         this.config = config
         this.callbacks = callbacks
-        this.request = await this.fetchSetup(context, initParams)
+        this.request = this.fetchSetup(context, initParams)
         self.clearTimeout(this.requestTimeout)
         config.timeout =
           maxTimeToFirstByteMs && Number.isFinite(maxTimeToFirstByteMs)
