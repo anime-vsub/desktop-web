@@ -227,10 +227,10 @@
                       artCurrentTimeHoving <= intro.end
                         ? '\n ' + $t('mo-dau')
                         : outro &&
-                            artCurrentTimeHoving >= outro.start &&
-                            artCurrentTimeHoving <= outro.end
-                          ? '\n ' + $t('ket-thuc')
-                          : '')
+                          artCurrentTimeHoving >= outro.start &&
+                          artCurrentTimeHoving <= outro.end
+                        ? '\n ' + $t('ket-thuc')
+                        : '')
                     "
                     :style="{
                       width: `${(artCurrentTimeHoving / artDuration) * 100}%`
@@ -1221,9 +1221,11 @@ import {
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
 import { fetchJava } from "src/logic/fetchJava"
+import { HlsPatched } from "src/logic/hls-patched"
 import { patcher } from "src/logic/hls-patcher"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
+import { getRedirect } from "src/logic/get-redirect"
 import { sleep } from "src/logic/sleep"
 import type { ProgressWatchStore } from "src/pages/phim/_season.interface"
 import type {
@@ -2005,41 +2007,41 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
     Hls.isSupported()
   ) {
     const offEnds = "_extra"
+
     let networkSlow = false
-    const hls = new HlsPatched({
-      debug: import.meta.env.DEV,
-      workerPath: workerHls,
-      progressive: true,
-      async fetchSetup(context, initParams) {
-        context.url += "#animevsub-vsub" + offEnds
+    let timeoutNetworkSlow: NodeJS.Timeout | number | null = null
+    const hls = new HlsPatched(
+      {
+        debug: import.meta.env.DEV,
+        workerPath: workerHls,
+        progressive: true,
+        async fetchSetup(context, initParams) {
+          context.url += "#animevsub-vsub" + offEnds
+          if (
+            networkSlow &&
+            context.url.indexOf("stream.googleapiscdn.com/chunks") > -1
+          ) {
+            const url = await getRedirect(context.url, initParams)
 
-        if (networkSlow) {
-          const { url } = await fetch(context.url, {
-            ...initParams,
-            redirect: "manual"
-          })
+            const { hostname, pathname } = new URL(url)
 
-          const { hostname, pathname } = new URL(url)
-          const indexGoogleUserContent = hostname.indexOf(
-            ".googleusercontent.com"
-          )
-          if (indexGoogleUserContent === -1) {
-            return new Request(context.url, initParams)
+            context.url = `${API_PROXY}/stream?url=${url}`
           }
-
-          const locate = hostname.slice(0, indexGoogleUserContent)
-
-          const url = `${API_PROXY}/stream/${locate + pathname}`
-
-          context.url = url
+          return new Request(context.url, initParams)
+        },
+        onSlow() {
+          networkSlow = true
+          if (!timeoutNetworkSlow) {
+            timeoutNetworkSlow = setTimeout(() => {
+              networkSlow = false
+              timeoutNetworkSlow = null
+            }, 30 * 60_000)
+          }
+          addNotice(`Kết nối đến máy chủ chậm, chuyển sang proxy`)
         }
-
-        return new Request(context.url, initParams)
       },
-      onSlow() {
-        networkSlow = true
-      }
-    })
+      fetch
+    )
     if (!offEnds) patcher(hls)
     currentHls = hls
     // customLoader(hls.config)
