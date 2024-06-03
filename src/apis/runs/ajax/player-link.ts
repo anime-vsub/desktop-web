@@ -1,4 +1,5 @@
 import { C_URL } from "src/constants"
+import { decryptM3u8, init } from "src/logic/decrypt-hls-animevsub"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
 // import { post } from "src/logic/http"
 
@@ -55,29 +56,43 @@ export function PlayerLink(config: {
     body: new URLSearchParams({ id, play, link, backuplinks: "1" })
   })
     .then((res) => res.json() as Promise<Writeable<PlayerLinkReturn>>)
-    .then((config) => {
+    .then(async (config) => {
       if (!config.link)
         throw Object.assign(new Error("This server not found."), {
           not_found: true
         })
 
-      config.link.forEach((item) => {
-        item.file = addProtocolUrl(item.file)
-        switch (
-          (item.label as typeof item.label | undefined)?.toUpperCase() as
-            | Uppercase<Exclude<typeof item.label, undefined>>
-            | undefined
-        ) {
-          case "HD":
-            if (item.preload) item.label = "FHD|HD"
-            break
-          case undefined:
+      await Promise.all(
+        config.link.map(async (item) => {
+          if (item.file.includes("://")) {
+            item.file = addProtocolUrl(item.file)
+          } else {
+            await init()
+            item.file = `data:application/vnd.apple.mpegurl;base64,${btoa((
+           ( await decryptM3u8(item.file) )
+            ))}`;
+
             item.label = "HD"
-            break
-        }
-        item.qualityCode = getQualityByLabel(item.label)
-        item.type ??= "mp4"
-      })
+            item.preload = "auto"
+            item.type = "hls"
+          }
+
+          switch (
+            (item.label as typeof item.label | undefined)?.toUpperCase() as
+              | Uppercase<Exclude<typeof item.label, undefined>>
+              | undefined
+          ) {
+            case "HD":
+              if (item.preload) item.label = "FHD|HD"
+              break
+            case undefined:
+              item.label = "HD"
+              break
+          }
+          item.qualityCode = getQualityByLabel(item.label)
+          item.type ??= "mp4"
+        })
+      )
 
       return config
     })
