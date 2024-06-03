@@ -1,2 +1,3 @@
 hls-module.js linguist-vendored
 src/logic/hls-module.js linguist-vendored
+dha-release.wasm linguist-language=assembly
