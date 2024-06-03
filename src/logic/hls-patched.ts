@@ -108,6 +108,7 @@ export class HlsPatched extends Hls {
           callbacks.onTimeout(stats, context, this.response)
         }, config.timeout)
 
+        const now = performance.now()
         fetch(this.request as Request)
           .then((response: Response): Promise<string | ArrayBuffer> => {
             this.response = this.loader = response
@@ -148,7 +149,6 @@ export class HlsPatched extends Hls {
 
             let data: any
 
-            const now = performance.now()
             if (isArrayBuffer) {
               data = response.arrayBuffer()
             }
@@ -156,15 +156,15 @@ export class HlsPatched extends Hls {
               data = response.json()
             }
             data = response.text()
-            const dur = performance.now() - now
-
-            if (dur > 7_000) {
-              this.config.onSlow?.()
-            }
 
             return data
           })
           .then((responseData: string | ArrayBuffer) => {
+            const dur = performance.now() - now
+            if (dur > 7_000) {
+              this.config.onSlow?.()
+            }
+
             const response = this.response
             if (!response) {
               throw new Error("loader destroyed")
