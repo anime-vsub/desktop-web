@@ -2016,16 +2016,6 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
         fetchSetup(context, initParams) {
           context.url += "#animevsub-vsub" + offEnds
           return new Request(context.url, initParams)
-        },
-        onSlow() {
-          networkSlow = true
-          if (!timeoutNetworkSlow) {
-            timeoutNetworkSlow = setTimeout(() => {
-              networkSlow = false
-              timeoutNetworkSlow = null
-            }, 30 * 60_000)
-          }
-          addNotice("Kết nối đến máy chủ chậm, chuyển sang proxy")
         }
       },
       async (req: Request) => {
@@ -2033,6 +2023,16 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
           return fetch(`${API_PROXY}/stream?url=${await getRedirect(req)}`, req)
 
         return fetch(req)
+      },
+      () => {
+        networkSlow = true
+        if (!timeoutNetworkSlow) {
+          timeoutNetworkSlow = setTimeout(() => {
+            networkSlow = false
+            timeoutNetworkSlow = null
+          }, 30 * 60_000)
+        }
+        addNotice("Kết nối đến máy chủ chậm, chuyển sang proxy")
       }
     )
     if (!offEnds) patcher(hls)

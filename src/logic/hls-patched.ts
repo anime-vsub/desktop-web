@@ -65,12 +65,9 @@ class FetchError extends Error {
 
 export class HlsPatched extends Hls {
   constructor(
-    userConfig: Partial<
-      HlsConfig & {
-        onSlow?: () => void
-      }
-    >,
-    fetch: (request: Request) => Promise<Response>
+    userConfig: Partial<HlsConfig>,
+    fetch: (request: Request) => Promise<Response>,
+    onSlow?: () => void
   ) {
     super(userConfig)
 
@@ -162,7 +159,7 @@ export class HlsPatched extends Hls {
           .then((responseData: string | ArrayBuffer) => {
             const dur = performance.now() - now
             if (dur > 7_000) {
-              this.config.onSlow?.()
+              onSlow?.()
             }
 
             const response = this.response
