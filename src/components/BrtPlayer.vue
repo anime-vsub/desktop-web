@@ -2025,6 +2025,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
         return fetch(req)
       },
       () => {
+        if (networkSlow) return
         networkSlow = true
         if (!timeoutNetworkSlow) {
           timeoutNetworkSlow = setTimeout(() => {

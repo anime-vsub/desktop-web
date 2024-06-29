@@ -158,7 +158,7 @@ export class HlsPatched extends Hls {
           })
           .then((responseData: string | ArrayBuffer) => {
             const dur = performance.now() - now
-            if (dur > 7_000) {
+            if (dur > 14_000) {
               onSlow?.()
             }
 
