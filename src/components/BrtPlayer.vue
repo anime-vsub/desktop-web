@@ -227,10 +227,10 @@
                       artCurrentTimeHoving <= intro.end
                         ? '\n ' + $t('mo-dau')
                         : outro &&
-                            artCurrentTimeHoving >= outro.start &&
-                            artCurrentTimeHoving <= outro.end
-                          ? '\n ' + $t('ket-thuc')
-                          : '')
+                          artCurrentTimeHoving >= outro.start &&
+                          artCurrentTimeHoving <= outro.end
+                        ? '\n ' + $t('ket-thuc')
+                        : '')
                     "
                     :style="{
                       width: `${(artCurrentTimeHoving / artDuration) * 100}%`
@@ -2025,6 +2025,8 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
         return fetch(req)
       },
       () => {
+		if (networkSlow) return
+
         networkSlow = true
         if (!timeoutNetworkSlow) {
           timeoutNetworkSlow = setTimeout(() => {
