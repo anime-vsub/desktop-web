@@ -114,6 +114,10 @@ module.exports = {
       {
         allowAsStatement: true
       }
-    ]
+    ],
+    "@typescript-eslint/no-non-null-assertion": ["error"],
+    "@typescript-eslint/no-empty-interface": ["error"],
+    "@typescript-eslint/no-explicit-any": ["warn"],
+    "@typescript-eslint/no-empty-function": ["error"]
   },
 }
