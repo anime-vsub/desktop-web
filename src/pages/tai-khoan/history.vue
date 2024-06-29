@@ -92,7 +92,7 @@
     </template>
     <ScreenError
       v-else
-      @click:retry="run(histories?.[histories.length - 1]?.$doc)"
+      @click:retry="run()"
       :error="error"
     />
   </div>
