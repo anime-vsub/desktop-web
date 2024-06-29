@@ -69,7 +69,7 @@
               paddingLeft: '0px'
             }"
             color="white"
-            :rules="[(val) => !!val || 'Bắt buộc']"
+            :rules="[(val: string) => !!val || 'Bắt buộc']"
             @keydown.stop
             @keypress.enter="createNewPlaylist"
           >

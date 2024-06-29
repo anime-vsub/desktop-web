@@ -90,7 +90,7 @@
         </template>
       </q-infinite-scroll>
     </template>
-    <ScreenError v-else @click:retry="run" :error="error" />
+    <ScreenError v-else @click:retry="run()" :error="error" />
   </div>
 </template>
 

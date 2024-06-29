@@ -69,7 +69,7 @@
                     paddingLeft: '0px'
                   }"
                   color="white"
-                  :rules="[(val) => !!val || 'Bắt buộc']"
+                  :rules="[(val: string) => !!val || 'Bắt buộc']"
                 />
                 <div
                   class="flex items-center justify-end mt-1 mr-[-16px] text-[16px]"
@@ -290,7 +290,7 @@
 
               <q-menu
                 class="rounded-xl bg-dark-menu"
-                @update:model-value="(value) => storeStateMenu.set(item, value)"
+                @update:model-value="(value: boolean) => storeStateMenu.set(item, value)"
               >
                 <q-card class="transparent">
                   <q-list class="transparent">

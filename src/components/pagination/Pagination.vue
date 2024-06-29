@@ -11,7 +11,7 @@
     rounded
     :max="max"
     :max-pages="5"
-    :to-fn="(page) => ({ query: { page } })"
+    :to-fn="(page: number) => ({ query: { page } })"
     direction-links
   />
 </template>
