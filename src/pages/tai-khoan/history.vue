@@ -21,10 +21,10 @@
               item.timestamp.isToday()
                 ? "Hôm nay"
                 : item.timestamp.isYesterday()
-                  ? "Hôm qua"
-                  : item.timestamp.get("date") +
-                    " thg " +
-                    (item.timestamp.get("month") + 1)
+                ? "Hôm qua"
+                : item.timestamp.get("date") +
+                  " thg " +
+                  (item.timestamp.get("month") + 1)
             }}
           </div>
           <router-link
@@ -90,7 +90,11 @@
         </template>
       </q-infinite-scroll>
     </template>
-    <ScreenError v-else @click:retry="run()" :error="error" />
+    <ScreenError
+      v-else
+      @click:retry="run(histories?.[histories.length - 1]?.$doc)"
+      :error="error"
+    />
   </div>
 </template>
 
@@ -142,7 +146,7 @@ const {
   error
 } = useRequest(
   (
-    lastDoc: typeof historyStore.loadMoreAfter extends (
+    lastDoc?: typeof historyStore.loadMoreAfter extends (
       LastDoc: infer R
     ) => void
       ? R

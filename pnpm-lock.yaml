@@ -238,7 +238,7 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       eslint:
-        specifier: ^8.33.0
+        specifier: ^8.47.0
         version: 8.47.0
       eslint-config-prettier:
         specifier: ^9.0.0
@@ -8368,7 +8368,7 @@ snapshots:
       '@babel/parser': 7.22.10
       '@vue/shared': 3.3.4
       estree-walker: 2.0.2
-      source-map-js: 1.2.0
+      source-map-js: 1.0.2
 
   '@vue/compiler-core@3.4.31':
     dependencies:
@@ -9249,7 +9249,7 @@ snapshots:
   css-tree@2.2.1:
     dependencies:
       mdn-data: 2.0.28
-      source-map-js: 1.2.0
+      source-map-js: 1.0.2
 
   css-tree@2.3.1:
     dependencies:
