@@ -13,6 +13,7 @@ import sha256 from "sha256"
 import { DangNhap } from "src/apis/runs/dang-nhap"
 import { GetUser } from "src/apis/runs/get-user"
 import { i18n } from "src/boot/i18n"
+import { supabase } from "src/boot/supabase"
 import { post } from "src/logic/http"
 import type { Ref } from "vue"
 import { computed, nextTick, ref, toRaw, watch } from "vue"
@@ -199,6 +200,22 @@ export const useAuthStore = defineStore("auth", () => {
     { immediate: true }
   )
   watch(uid, (uid) => setUserId(analytics, uid ?? null), { immediate: true })
+
+  watch(user_data, async (user_data) => {
+    if (!user_data) return
+
+    await supabase.from("users").upsert(
+      {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        uuid: uid.value!,
+        email: user_data.email,
+        name: user_data.name
+      },
+      {
+        onConflict: "uuid"
+      }
+    )
+  })
 
   return {
     user_data,

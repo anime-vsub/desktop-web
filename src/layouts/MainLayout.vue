@@ -405,7 +405,7 @@
                         timestamp: dayjs(item.timestamp.toDate())
                       }
                     })"
-                    :key="item.id"
+                    :key="item.season"
                   >
                     <div
                       v-if="
@@ -430,9 +430,9 @@
                     <router-link
                       class="bg-transparent flex mt-1 mb-4 flex-nowrap"
                       style="white-space: initial"
-                      :to="`/phim/${item.season ?? item.id}/${parseChapName(
-                        item.last.name
-                      )}-${item.last.chap}`"
+                      :to="`/phim/${item.season}/${parseChapName(
+                        item.watch_name
+                      )}-${item.watch_id}`"
                     >
                       <div class="w-[149px]">
                         <q-img-custom
@@ -447,7 +447,7 @@
                               class="absolute bottom-0 left-0 z-10 w-full min-h-0 !py-0 !px-0"
                             >
                               <q-linear-progress
-                                :value="item.last.cur / item.last.dur"
+                                :value="item.watch_cur / item.watch_dur"
                                 rounded
                                 color="main"
                                 class="!h-[3px]"
@@ -456,7 +456,7 @@
                           </BottomBlur>
                           <span
                             class="absolute text-white z-10 text-[12px] bottom-2 right-2"
-                            >{{ parseTime(item.last.cur) }}</span
+                            >{{ parseTime(item.watch_cur) }}</span
                           >
                         </q-img-custom>
                       </div>
@@ -464,11 +464,11 @@
                       <div class="pl-2 flex-1">
                         <span class="line-clamp-3 mt-1">{{ item.name }}</span>
                         <div class="text-grey mt-1">
-                          <template v-if="item.seasonName"
-                            >{{ t("_season-tap", [item.seasonName]) }}
+                          <template v-if="item.season_name"
+                            >{{ t("_season-tap", [item.season_name]) }}
                           </template>
                           <template v-else>{{ t("Tap") }}</template>
-                          {{ item.last.name }}
+                          {{ item.watch_name }}
                         </div>
                         <div class="text-grey mt-2">
                           {{
@@ -1033,8 +1033,8 @@
 
             <q-item
               v-for="item in playlistStore.playlists"
-              :key="item.id"
-              :to="`/playlist/${item.id}`"
+              :key="item.name"
+              :to="`/playlist/${btoa('animevsub-' + item.id)}`"
               clickable
               v-ripple
               class="min-h-0 my-2 rounded-xl"
@@ -1377,7 +1377,7 @@ const {
   data: histories,
   loading: loadingHistories,
   refreshAsync: refreshHistories
-} = useRequest(() => historyStore.loadMoreAfter(), {
+} = useRequest(() => historyStore.loadMoreAfter(1), {
   manual: true,
   cacheKey: "history",
   cacheTime: 5 * 60 * 1000 //
@@ -1490,9 +1490,13 @@ useEventListener(window, "keydown", (event) => {
     showPanelFixCSR.value = !showPanelFixCSR.value
   }
 })
+
+const btoa = (str: string) => self.btoa(str).replace(/={2}$/, "")
 </script>
 
 <style lang="scss">
+@use "sass:math";
+
 .input-search {
   .q-field__control {
     height: 40px !important;
@@ -1534,7 +1538,7 @@ useEventListener(window, "keydown", (event) => {
 .tabs-main .q-tabs__content {
   width: 100% !important;
   > .q-tab {
-    width: (100% / 5);
+    width: math.div(100%, 5);
   }
 }
 

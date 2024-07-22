@@ -1624,39 +1624,39 @@ function onVideoProgress(event: Event) {
 function onVideoCanPlay() {
   activeTime = Date.now()
 }
-const seasonMetaCreated = new Set<string>()
+// const seasonMetaCreated = new Set<string>()
 
-async function createSeason(
-  currentSeason: string,
-  seasonName: string,
-  poster: string,
-  name: string
-): Promise<boolean> {
-  // eslint-disable-next-line camelcase
-  const { user_data } = authStore
-  const visibility = documentVisibility.value === "visible"
+// async function createSeason(
+//   currentSeason: string,
+//   seasonName: string,
+//   poster: string,
+//   name: string
+// ): Promise<boolean> {
+//   // eslint-disable-next-line camelcase
+//   const { user_data } = authStore
+//   const visibility = documentVisibility.value === "visible"
 
-  if (seasonMetaCreated.has(currentSeason)) return true
+//   if (seasonMetaCreated.has(currentSeason)) return true
 
-  if (
-    // eslint-disable-next-line camelcase
-    !user_data ||
-    !visibility
-  )
-    return false
-  console.log("set new season poster %s", poster)
-  await Promise.race([
-    historyStore.createSeason(currentSeason, {
-      poster,
-      seasonName,
-      name
-    }),
-    sleep(1_000)
-  ])
+//   if (
+//     // eslint-disable-next-line camelcase
+//     !user_data ||
+//     !visibility
+//   )
+//     return false
+//   console.log("set new season poster %s", poster)
+//   await Promise.race([
+//     historyStore.createSeason(currentSeason, {
+//       poster,
+//       seasonName,
+//       name
+//     }),
+//     sleep(1_000)
+//   ])
 
-  seasonMetaCreated.add(currentSeason)
-  return true
-}
+//   seasonMetaCreated.add(currentSeason)
+//   return true
+// }
 
 const emit = defineEmits<{
   (
@@ -1740,7 +1740,7 @@ const saveCurTimeToPer = throttle(
         return
       }
 
-      if (!(await createSeason(currentSeason, nameSeason, poster, name))) return
+      // if (!(await createSeason(currentSeason, nameSeason, poster, name))) return
 
       // NOTE: if this uid (processingSaveCurTimeIn === uid) -> update cur and dur
       if (uidTask === uidChap.value) {
@@ -1772,15 +1772,16 @@ const saveCurTimeToPer = throttle(
             currentSeason,
             currentChap,
             {
+              name,
+              poster,
+              season: currentSeason,
+              season_name: nameSeason,
+            },
+            {
               cur,
               dur,
               name: nameCurrentChap
             },
-            {
-              poster,
-              seasonName: nameSeason,
-              name
-            }
           )
           .catch((err) => console.warn("save viewing progress failed: ", err)),
 

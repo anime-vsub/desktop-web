@@ -420,10 +420,10 @@
   <AddToPlaylist
     v-model="showDialogAddToPlaylist"
     :exists="
-      (id) =>
+      (ids) =>
         currentSeason
-          ? playlistStore.hasAnimeOfPlaylist(id, currentSeason)
-          : false
+          ? playlistStore.hasAnimeOfPlaylist(ids, currentSeason)
+          : []
     "
     @action:add="addAnimePlaylist"
     @action:del="removeAnimePlaylist"
@@ -1203,6 +1203,7 @@ interface SiblingChap {
   chap?: Exclude<typeof currentDataSeason.value, undefined>["chaps"][0]
 }
 
+// eslint-disable-next-line vue/return-in-computed-property
 const nextChap = computed((): SiblingChap | undefined => {
   if (!currentDataSeason.value) return
   // get index currentChap
@@ -1246,6 +1247,7 @@ const nextChap = computed((): SiblingChap | undefined => {
   console.info("[[===THE END===]]")
 })
 
+// eslint-disable-next-line vue/return-in-computed-property
 const prevChap = computed((): SiblingChap | undefined => {
   if (!currentDataSeason.value) return
   // get index currentChap
@@ -1402,9 +1404,9 @@ async function getProgressChaps(
 
   try {
     const docs = await historyStore.getProgressChaps(currentSeason)
-    docs.forEach((item) => {
-      const { cur, dur } = item.data()
-      progressChaps.set(item.id, {
+    // eslint-disable-next-line camelcase
+    docs.forEach(({ chap_id, cur, dur }) => {
+      progressChaps.set(chap_id, {
         cur,
         dur
       })
@@ -1499,7 +1501,7 @@ function share() {
 // =========== playlist ===========
 const showDialogAddToPlaylist = ref(false)
 
-async function addAnimePlaylist(idPlaylist: string) {
+async function addAnimePlaylist(idPlaylist: number) {
   const { value: metaSeason } = currentMetaSeason
 
   if (!metaSeason) return
@@ -1509,12 +1511,13 @@ async function addAnimePlaylist(idPlaylist: string) {
   if (!currentMetaChap.value) return
 
   try {
-    await playlistStore.addAnimeToPlaylist(idPlaylist, currentSeason.value, {
+    await playlistStore.addAnimeToPlaylist(idPlaylist, {
       name: data.value.name,
       poster: currentDataSeason.value?.poster ?? data.value.poster,
-      nameSeason: metaSeason.name,
+      name_season: metaSeason.name,
       chap: currentChap.value,
-      nameChap: currentMetaChap.value.name
+      name_chap: currentMetaChap.value.name,
+      season: currentSeason.value
     })
     $q.notify({
       position: "bottom-right",
@@ -1527,7 +1530,7 @@ async function addAnimePlaylist(idPlaylist: string) {
     })
   }
 }
-async function removeAnimePlaylist(idPlaylist: string) {
+async function removeAnimePlaylist(idPlaylist: number) {
   if (!currentSeason.value) return
 
   try {
