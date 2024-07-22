@@ -201,21 +201,22 @@ export const useAuthStore = defineStore("auth", () => {
   )
   watch(uid, (uid) => setUserId(analytics, uid ?? null), { immediate: true })
 
-  watch(user_data, async (user_data) => {
-    if (!user_data) return
+  watch(
+    user_data,
+    async (user_data) => {
+      if (!user_data) return
 
-    await supabase.from("users").upsert(
-      {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        uuid: uid.value!,
-        email: user_data.email,
-        name: user_data.name
-      },
-      {
-        onConflict: "uuid"
-      }
-    )
-  }, { immediate: true })
+      await supabase
+        .rpc("upsert_user", {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          p_uuid: uid.value!,
+          p_email: user_data.email,
+          p_name: user_data.name
+        })
+        .throwOnError()
+    },
+    { immediate: true }
+  )
 
   return {
     user_data,

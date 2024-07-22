@@ -429,6 +429,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      upsert_user: {
+        Args: {
+          p_uuid: string
+          p_email?: string
+          p_name?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
