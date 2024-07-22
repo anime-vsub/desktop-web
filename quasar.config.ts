@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-env node */
 
 /*
@@ -8,19 +9,24 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
-const fs = require("fs")
-const path = require("path")
+import fs from "fs"
+import path from "path"
 
-const ISO6391 = require("iso-639-1")
-const { extend } = require("quasar")
-const { configure } = require("quasar/wrappers")
-const AutoImport = require("unplugin-auto-import/vite").default
-const IconsResolver = require("unplugin-icons/resolver").default
-const Icons = require("unplugin-icons/vite").default
-const Components = require("unplugin-vue-components/vite").default
+import type { QuasarConf } from "@quasar/app-vite/types/configuration/conf"
+import { config } from "dotenv"
+import ISO6391 from "iso-639-1"
+import { extend } from "quasar"
+import { configure } from "quasar/wrappers"
+import AutoImport from "unplugin-auto-import/vite"
+import IconsResolver from "unplugin-icons/resolver"
+import Icons from "unplugin-icons/vite"
+import Components from "unplugin-vue-components/vite"
+import type { Plugin } from "vite"
+
+config()
 
 const reg = /[\w-]+(?=\.json$)/
-function vitePluginI18nLangs() {
+function vitePluginI18nLangs(): Plugin {
   const virtualModuleId = "virtual:i18n-langs"
   const resolvedVirtualModuleId = "\0" + "virtual:i18n-langs"
 
@@ -52,15 +58,15 @@ function vitePluginI18nLangs() {
   }
 }
 
-module.exports = configure(function (/* ctx */) {
-  return {
-    eslint: {
+export default configure(function (/* ctx */) {
+  const conf: QuasarConf = {
+    ["eslint" as unknown as any]: {
       // fix: true,
       // include = [],
       // exclude = [],
       // rawOptions = {},
       warnings: false,
-      errors: false,
+      errors: false
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
@@ -69,7 +75,7 @@ module.exports = configure(function (/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ["windi", "firebase", "head", "i18n", "task-manager"],
+    boot: ["windi", "firebase", "supabase", "head", "i18n", "task-manager"],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ["app.scss"],
@@ -85,14 +91,14 @@ module.exports = configure(function (/* ctx */) {
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
       "roboto-font", // optional, you are not bound to it
-      "material-icons", // optional, you are not bound to it
+      "material-icons" // optional, you are not bound to it
     ],
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#build
     build: {
       target: {
         browser: ["es2019", "edge88", "firefox78", "chrome87", "safari13.1"],
-        node: "node16",
+        node: "node16"
       },
 
       vueRouterMode: "history", // available values: 'hash', 'history'
@@ -100,11 +106,13 @@ module.exports = configure(function (/* ctx */) {
       // vueDevtools,
       // vueOptionsAPI: false,
 
-      rebuildCache: false, // rebuilds Vite/linter/etc cache on startup
+      ["rebuildCache" as unknown as any]: false, // rebuilds Vite/linter/etc cache on startup
 
       // publicPath: '/',
       // analyze: true,
-      // env: {},
+      env: {
+        ...process.env
+      },
       // rawDefine: {}
       // ignorePublicFolder: true,
       // minify: false,
@@ -115,29 +123,29 @@ module.exports = configure(function (/* ctx */) {
         extend(true, viteConf, {
           resolve: {
             alias: {
-              path: "path-browserify",
-            },
+              path: "path-browserify"
+            }
           },
           server: {
             // configure vite for HMR with Gitpod
-            hmr: process.env.GITPOD_WORKSPACE_URL
-              ? {
-                  // removes the protocol and replaces it with the port we're connecting to
-                  host: process.env.GITPOD_WORKSPACE_URL.replace(
-                    "https://",
-                    "9000-"
-                  ),
-                  protocol: "wss",
-                  clientPort: 443,
-                }
-              : process.env.CODESPACE_NAME
-              ? {
-                  host: `${process.env.CODESPACE_NAME}-9000.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`,
-                  protocol: "wss",
-                  clientPort: 443,
-                }
-              : true,
-          },
+            // hmr: process.env.GITPOD_WORKSPACE_URL
+            //   ? {
+            //       // removes the protocol and replaces it with the port we're connecting to
+            //       host: process.env.GITPOD_WORKSPACE_URL.replace(
+            //         "https://",
+            //         "9000-"
+            //       ),
+            //       protocol: "wss",
+            //       clientPort: 443,
+            //     }
+            //   : process.env.CODESPACE_NAME
+            //   ? {
+            //       host: `${process.env.CODESPACE_NAME}-9000.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`,
+            //       protocol: "wss",
+            //       clientPort: 443,
+            //     }
+            //   : true,
+          }
         })
       },
       // viteVuePluginOptions: {},
@@ -151,34 +159,49 @@ module.exports = configure(function (/* ctx */) {
             // compositionOnly: false,
 
             // you need to set i18n resource including paths !
-            include: path.resolve(__dirname, "./src/i18n/**"),
-          },
+            include: path.resolve(__dirname, "./src/i18n/**")
+          }
         ],
         [Icons, {}],
-        [Components, {
-          globs: [],
-          resolvers: [IconsResolver({
-            prefix: "i"
-          })]
-        }],
-        [AutoImport, {
-          imports: ["vue", "vue-router", {"quasar": ["useQuasar"], "vue-i18n": ["useI18n"]}],
-          dirs: ["./src/*.ts"],
-          dts: "./auto-imports.d.ts",
-          eslintrc: {
-            enabled: true
+        [
+          Components,
+          {
+            globs: [],
+            resolvers: [
+              IconsResolver({
+                prefix: "i"
+              })
+            ]
           }
-        }],
-        ["vite-plugin-rewrite-all", {}],
+        ],
+        [
+          AutoImport,
+          {
+            imports: [
+              "vue",
+              "vue-router",
+              {
+                quasar: ["useQuasar"],
+                "vue-i18n": ["useI18n"],
+                "@vueuse/core": ["computedAsync"]
+              }
+            ],
+            dirs: ["./src/*.ts"],
+            dts: "./auto-imports.d.ts",
+            eslintrc: {
+              enabled: true
+            }
+          }
+        ],
+        // ["vite-plugin-rewrite-all", {}],
         ["vite-plugin-remove-console", {}],
         [vitePluginI18nLangs, {}]
-      ],
+      ] as unknown as any
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
     devServer: {
-      https: false,
-      open: false, // opens browser window automatically
+      open: false // opens browser window automatically
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
@@ -186,8 +209,8 @@ module.exports = configure(function (/* ctx */) {
       config: {
         dark: true,
         loadingBar: {
-          color: "main",
-        },
+          color: "main"
+        }
       },
 
       // iconSet: 'material-icons', // Quasar icon set
@@ -201,7 +224,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: ["AppFullscreen", "Notify", "Dialog", "Loading", "LoadingBar"],
+      plugins: ["AppFullscreen", "Notify", "Dialog", "Loading", "LoadingBar"]
     },
 
     // animations: 'all', // --- includes all animations
@@ -237,19 +260,19 @@ module.exports = configure(function (/* ctx */) {
       // (gets superseded if process.env.PORT is specified at runtime)
 
       middlewares: [
-        "render", // keep this as last one
-      ],
+        "render" // keep this as last one
+      ]
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
-      workboxMode: "injectManifest", // or 'generateSW'
+      ["workboxMode" as unknown as any]: "injectManifest", // or 'generateSW'
       injectPwaMetaTags: true,
       swFilename: "sw.js",
       manifestFilename: "manifest.json",
       useCredentialsForManifestTag: false,
       // extendGenerateSWOptions (cfg) {}
-      extendInjectManifestOptions (cfg) {
+      extendInjectManifestOptions(cfg) {
         cfg.globIgnores ??= []
         cfg.globIgnores.push("_redirects", "google7b3e7893e059da35.html")
       }
@@ -264,11 +287,11 @@ module.exports = configure(function (/* ctx */) {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-capacitor-apps/configuring-capacitor
     capacitor: {
-      hideSplashscreen: true,
+      hideSplashscreen: true
     },
 
     bin: {
-      linuxAndroidStudio: "./noop.sh",
+      linuxAndroidStudio: "./noop.sh"
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/configuring-electron
@@ -291,19 +314,21 @@ module.exports = configure(function (/* ctx */) {
         // win32metadata: { ... }
       },
 
-      builder: {
+      ["builder" as unknown as any]: {
         // https://www.electron.build/configuration/configuration
 
-        appId: "git.shin.animevsub",
-      },
+        appId: "git.shin.animevsub"
+      }
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-browser-extensions/configuring-bex
     bex: {
-      contentScripts: ["my-content-script"],
+      contentScripts: ["my-content-script"]
 
       // extendBexScriptsConf (esbuildConf) {}
       // extendBexManifestJson (json) {}
-    },
+    }
   }
+
+  return conf
 })
