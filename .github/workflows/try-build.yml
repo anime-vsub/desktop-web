@@ -17,23 +17,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-
-      - uses: pnpm/action-setup@v2.0.1
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 8.6.11
-          run_install: false
+          bun-version: latest
 
       - name: Install depends
-        run: pnpm i
+        run: bun i
 
       - name: Build
-        run: pnpm build
+        run: bun run build
 
       - name: Build PWA
-        run: pnpm build:pwa
+        run: bun run build:pwa
