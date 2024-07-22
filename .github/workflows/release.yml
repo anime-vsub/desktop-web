@@ -14,6 +14,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -35,6 +39,10 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
 
       - uses: oven-sh/setup-bun@v2
         with:
