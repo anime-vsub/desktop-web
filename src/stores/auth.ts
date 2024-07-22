@@ -215,7 +215,7 @@ export const useAuthStore = defineStore("auth", () => {
         onConflict: "uuid"
       }
     )
-  })
+  }, { immediate: true })
 
   return {
     user_data,
