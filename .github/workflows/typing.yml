@@ -30,7 +30,7 @@ jobs:
         run: bun i
 
       - name: Emit auto import
-        run: bun run test src/logic/noop.spec.ts
+        run: bun run test
 
       - name: Typing
         run: bun run typing

@@ -6,3 +6,4 @@
 .eslintrc.js
 /src-ssr
 /src/logic/hls-module.js
+/database.d.ts
