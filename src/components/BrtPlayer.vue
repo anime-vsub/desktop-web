@@ -1001,6 +1001,18 @@
                             color="blue"
                           />
                         </div>
+
+                        
+                        <div
+                          class="flex items-center justify-between mt-4 mb-2"
+                        >
+                          Proxy
+                          <q-toggle
+                            v-model="useProxy"
+                            size="sm"
+                            color="blue"
+                          />
+                        </div>
                       </div>
                     </q-menu>
 
@@ -1961,6 +1973,9 @@ function runRemount() {
   }).onOk(remount)
 }
 
+
+const useProxy = ref(false)
+
 let currentHls: Hls
 onBeforeUnmount(() => currentHls?.destroy())
 function remount(resetCurrentTime?: boolean, noDestroy = false) {
@@ -2007,7 +2022,6 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
   ) {
     const offEnds = "_extra"
 
-    let networkSlow = false
     let timeoutNetworkSlow: NodeJS.Timeout | number | null = null
     const hls = new HlsPatched(
       {
@@ -2020,17 +2034,17 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
         }
       },
       async (req: Request) => {
-        if (networkSlow && req.url.includes("stream.googleapiscdn.com/chunks"))
+        if (useProxy.value && req.url.includes("googleapiscdn"))
           return fetch(`${API_PROXY}/stream?url=${await getRedirect(req)}`, req)
 
         return fetch(req)
       },
       () => {
-        if (networkSlow) return
-        networkSlow = true
+        if (useProxy.value) return
+        useProxy.value = true
         if (!timeoutNetworkSlow) {
           timeoutNetworkSlow = setTimeout(() => {
-            networkSlow = false
+            useProxy.value = false
             timeoutNetworkSlow = null
           }, 30 * 60_000)
         }
