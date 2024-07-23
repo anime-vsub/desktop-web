@@ -1001,18 +1001,6 @@
                             color="blue"
                           />
                         </div>
-
-                        
-                        <div
-                          class="flex items-center justify-between mt-4 mb-2"
-                        >
-                          Proxy
-                          <q-toggle
-                            v-model="useProxy"
-                            size="sm"
-                            color="blue"
-                          />
-                        </div>
                       </div>
                     </q-menu>
 
@@ -1223,7 +1211,6 @@ import {
 import type { PlayerLink } from "src/apis/runs/ajax/player-link"
 import { useMemoControl } from "src/composibles/memo-control"
 import {
-  API_PROXY,
   DELAY_SAVE_HISTORY,
   DELAY_SAVE_VIEWING_PROGRESS,
   playbackRates,
@@ -1231,7 +1218,6 @@ import {
 } from "src/constants"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
-import { getRedirect } from "src/logic/get-redirect"
 import { HlsPatched } from "src/logic/hls-patched"
 import { patcher } from "src/logic/hls-patcher"
 import { parseChapName } from "src/logic/parseChapName"
@@ -1550,7 +1536,7 @@ const setArtVolume = (value: number) => {
 
 let lastVolumeBeforeMute: number
 const toggleMuted = () => {
-  const newValue = artVolume.value === 0 ? lastVolumeBeforeMute ?? 0.05 : 0
+  const newValue = artVolume.value === 0 ? (lastVolumeBeforeMute ?? 0.05) : 0
 
   if (artVolume.value > 0) {
     lastVolumeBeforeMute = artVolume.value
@@ -1787,13 +1773,13 @@ const saveCurTimeToPer = throttle(
               name,
               poster,
               season: currentSeason,
-              season_name: nameSeason,
+              season_name: nameSeason
             },
             {
               cur,
               dur,
               name: nameCurrentChap
-            },
+            }
           )
           .catch((err) => console.warn("save viewing progress failed: ", err)),
 
@@ -1973,9 +1959,6 @@ function runRemount() {
   }).onOk(remount)
 }
 
-
-const useProxy = ref(false)
-
 let currentHls: Hls
 onBeforeUnmount(() => currentHls?.destroy())
 function remount(resetCurrentTime?: boolean, noDestroy = false) {
@@ -2022,7 +2005,6 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
   ) {
     const offEnds = "_extra"
 
-    let timeoutNetworkSlow: NodeJS.Timeout | number | null = null
     const hls = new HlsPatched(
       {
         debug: import.meta.env.DEV,
@@ -2033,23 +2015,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
           return new Request(context.url, initParams)
         }
       },
-      async (req: Request) => {
-        if (useProxy.value && req.url.includes("googleapiscdn"))
-          return fetch(`${API_PROXY}/stream?url=${await getRedirect(req)}`, req)
-
-        return fetch(req)
-      },
-      () => {
-        if (useProxy.value) return
-        useProxy.value = true
-        if (!timeoutNetworkSlow) {
-          timeoutNetworkSlow = setTimeout(() => {
-            useProxy.value = false
-            timeoutNetworkSlow = null
-          }, 30 * 60_000)
-        }
-        addNotice("Kết nối đến máy chủ chậm, chuyển sang proxy")
-      }
+      fetch
     )
     if (!offEnds) patcher(hls)
     currentHls = hls
