@@ -735,6 +735,8 @@ let isTodayF = false
 </style>
 
 <style lang="scss" scoped>
+@use "sass:math";
+
 .wpa-grid {
   //  display: flex;
   overflow-x: scroll;
@@ -762,16 +764,16 @@ let isTodayF = false
   //   max-width: calc((100%-48px) / #{6 + $offset});
   //   padding-right: 24px;
   // }
-  max-width: (100% / 3);
+  max-width: math.div(100%, 3);
   padding: 0 4px;
 
   @media (min-width: $breakpoint-sm-min) {
-    max-width: (100% / 4);
+    max-width: math.div(100%, 4);
     padding: 0 14px;
   }
 
   @media (min-width: $breakpoint-md-min) {
-    max-width: (100% / 6);
+    max-width: math.div(100%, 6);
   }
 }
 
