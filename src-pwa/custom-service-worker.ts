@@ -89,9 +89,9 @@ if (process.env.MODE !== "ssr" || process.env.PROD) {
             const $listEpisodes = list?.chaps
 
             const currentEpisode = $listEpisodes
-              ? $listEpisodes.find((ep) => {
+              ? ($listEpisodes.find((ep) => {
                   return ep.id === episodeId
-                }) ?? $listEpisodes[0]
+                }) ?? $listEpisodes[0])
               : undefined
 
             const data = JSON.parse(rawData) as Awaited<
@@ -111,21 +111,21 @@ if (process.env.MODE !== "ssr" || process.env.PROD) {
                 `<title>${title}</title>`
               )
               .replace(
-                /<meta property="?og:title"? content="?[^"]+"?/,
+                /<meta property="?og:title"? content="?[^">]+"?/,
                 `<meta property=og:title content="${title}"`
               )
 
               .replace(
-                /<meta name="?description"? content="?[^"]+"?/,
-                `<meta name=description content="${description}"`
+                /<meta name="?description"? content="?[^">]+"?/,
+                `<meta name=description content="${description.replace(/"/g, "'")}"`
               )
               .replace(
-                /<meta property="?og:description"? content="?[^"]+"?/,
+                /<meta property="?og:description"? content="?[^">]+"?/,
                 `<meta property=og:description content="${description}"`
               )
 
               .replace(
-                /<meta property="?og:image"? content="?[^"]+"?/,
+                /<meta property="?og:image"? content="?[^">]+"?/,
                 `<meta property=og:image content="${
                   image ?? poster ?? data.poster
                 }"`
