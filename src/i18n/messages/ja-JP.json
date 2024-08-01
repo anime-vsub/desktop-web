@@ -292,5 +292,16 @@
   "msg-err-reply": "返信中にエラーが発生しました",
   "msg-err-update-cmt": "コメント編集中にエラーが発生しました",
   "msg-error-cmt": "コメント中にエラーが発生しました",
-  "sap-xep-theo": "並べ替え順"
+  "sap-xep-theo": "並べ替え順",
+  "errors.__i18n_ally_root__.danh-sach-phat-khong-ton-tai": "",
+  "errors.__i18n_ally_root__.loi-khong-xac-dinh-khi": "",
+  "errors.__i18n_ally_root__.require_login_to": "",
+  "errors.__i18n_ally_root__.xoa-thong-bao-that-bai": "",
+  "msg-err-load-cmt": "コメントの読み込み中にエラーが発生しました",
+  "tang-toc-mang": "ネットワークの高速化",
+  "giai-quyet-truoc-yeu-cau-mang": "ネットワークリクエストを事前に解決する",
+  "msg-pre-resolve": "ネットワーク要求解決モード (要求要求が高くなるほど、より多くのハードウェア リソースが消費されます)",
+  "nong": "熱い",
+  "tat": "消す",
+  "val-yeu-cau": "{0} リクエスト"
 }

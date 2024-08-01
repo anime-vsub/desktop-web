@@ -90,6 +90,33 @@
               </div>
             </div>
             <div class="flex items-center pr-2">
+              <q-btn dense flat round @click.stop="openPopupFlashNetwork">
+                <i-ri-water-flash-line
+                  v-if="settingsStore.player.preResolve === 0"
+                  width="25"
+                  height="25"
+                />
+                <i-ri-water-flash-fill
+                  v-else
+                  width="25"
+                  height="25"
+                  :class="`text-${
+                    optionsPreResolve.find(
+                      (item) => item.value === settingsStore.player.preResolve
+                    )?.color
+                  }`"
+                />
+
+                <q-tooltip
+                  anchor="bottom middle"
+                  self="top middle"
+                  class="bg-dark text-[14px] text-weight-medium"
+                  transition-show="jump-up"
+                  transition-hide="jump-down"
+                >
+                  {{ $t("tang-toc-mang") }}
+                </q-tooltip>
+              </q-btn>
               <q-btn
                 dense
                 flat
@@ -1218,10 +1245,13 @@ import {
 } from "src/constants"
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
+import { findInRangeSet } from "src/logic/find-in-range-set"
 import { HlsPatched } from "src/logic/hls-patched"
 import { patcher } from "src/logic/hls-patcher"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
+import { getSegments } from "src/logic/resolve-master-manifest"
+import { resolveMasterManifestWorker } from "src/logic/resolve-master-manifest.thread"
 import { sleep } from "src/logic/sleep"
 import type { ProgressWatchStore } from "src/pages/phim/_season.interface"
 import type {
@@ -1233,6 +1263,7 @@ import { useAuthStore } from "stores/auth"
 import { useHistoryStore } from "stores/history"
 import { useSettingsStore } from "stores/settings"
 import { useStateStorageStore } from "stores/state-storage"
+import { retryAsync } from "ts-retry"
 import {
   computed,
   onBeforeUnmount,
@@ -2004,10 +2035,13 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
     Hls.isSupported()
   ) {
     const offEnds = "_extra"
+    let セグメントｓ: string[] | null = null
+    const セグメント解決済み = new Map<string, readonly [string, number]>()
+    const resolvingTask = new Set<number>()
 
     const hls = new HlsPatched(
       {
-        debug: import.meta.env.DEV,
+        debug: false && import.meta.env.DEV,
         workerPath: workerHls,
         progressive: true,
         fetchSetup(context, initParams) {
@@ -2015,10 +2049,78 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
           return new Request(context.url, initParams)
         }
       },
-      fetch
+      settingsStore.player.preResolve !== 0 &&
+      Number.MAX_SAFE_INTEGER !== settingsStore.player.preResolve
+        ? (request) => {
+            /// pre setup
+            // transforming
+
+            if (!セグメントｓ)
+              void getSegments(file).then((arr) => (セグメントｓ = arr))
+
+            if (セグメントｓ) {
+              // セグメントｓ ready
+              // preload if in セグメントｓ
+              const realUrl = request.url.split("#")[0]
+              const インデントセグメント = セグメントｓ.indexOf(realUrl)
+              const 解決済み = セグメント解決済み.get(realUrl)
+
+              if (
+                インデントセグメント > -1 &&
+                (!解決済み ||
+                  settingsStore.player.preResolve - 解決済み[1] <
+                    settingsStore.player.checkEndPreList) &&
+                !findInRangeSet(
+                  resolvingTask,
+                  インデントセグメント,
+                  settingsStore.player.preResolve
+                )
+              ) {
+                console.log(
+                  "Starting pre resolve segment",
+                  インデントセグメント,
+                  resolvingTask
+                )
+                resolvingTask.add(インデントセグメント)
+                // あとで５セメント
+                void retryAsync(
+                  () =>
+                    resolveMasterManifestWorker(
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      セグメントｓ!,
+                      セグメント解決済み,
+                      インデントセグメント,
+                      settingsStore.player.preResolve +
+                        settingsStore.player.checkEndPreList
+                    ),
+                  { maxTry: 10, delay: 3_000 }
+                ).catch(() => resolvingTask.add(インデントセグメント))
+                // load balance 20
+                // check fn セグメントｓ in ２０。workerせとじゃない。メモリー？
+              }
+
+              if (import.meta.env.DEV && 解決済み)
+                console.info("[Segment]: using url resolved")
+              if (解決済み) return fetch(解決済み[0], request)
+            }
+
+            return fetch(request)
+          }
+        : Number.MAX_SAFE_INTEGER === settingsStore.player.preResolve
+          ? (request) => {
+              const realUrl = request.url.split("#")[0]
+              const 解決済み = セグメント解決済み.get(realUrl)
+
+              if (import.meta.env.DEV && 解決済み)
+                console.info("[Segment]: using url resolved")
+              if (解決済み) return fetch(解決済み[0], request)
+              return fetch(request)
+            }
+          : fetch
     )
     if (!offEnds) patcher(hls)
     currentHls = hls
+
     // customLoader(hls.config)
     hls.loadSource(file)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -2026,6 +2128,20 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (playing) void video.value!.play()
+
+      // !NOTIFY resolve redirect urls
+      if (Number.MAX_SAFE_INTEGER === settingsStore.player.preResolve)
+        void retryAsync(
+          async () =>
+            resolveMasterManifestWorker(
+              await getSegments(file),
+              セグメント解決済み
+            ),
+          {
+            maxTry: 10,
+            delay: 3_000
+          }
+        )
     })
 
     let needSwapCodec = false
@@ -2661,6 +2777,56 @@ watch(skiping, (skiping) => {
   if (!settingsStore.player.autoSkipIEnd) return
   skipOpEnd()
 })
+
+const optionsPreResolve = computed(() => [
+  {
+    label: t("tat"),
+    value: 0,
+    color: "secondary",
+    keepColor: true,
+    checkedIcon: "task_alt",
+    uncheckedIcon: "panorama_fish_eye"
+  },
+  ...[20, 30, 40, 50, 60, 70, 80, 100].map((val, i) => ({
+    label: t("val-yeu-cau", [val]),
+    value: val,
+    keepColor: true,
+    checkedIcon: "task_alt",
+    uncheckedIcon: "panorama_fish_eye",
+    color: `light-green-${4 + i}`
+  })),
+  {
+    label: t("nong"),
+    value: Number.MAX_SAFE_INTEGER,
+    color: "red",
+    keepColor: true,
+    checkedIcon: "task_alt",
+    uncheckedIcon: "panorama_fish_eye"
+  }
+])
+function openPopupFlashNetwork() {
+  $q.dialog({
+    title: t("giai-quyet-truoc-yeu-cau-mang"),
+    message: t("msg-pre-resolve"),
+    options: {
+      type: "radio",
+      model: settingsStore.player.preResolve as unknown as string,
+      // inline: true
+      items: optionsPreResolve.value
+    },
+    cancel: {
+      label: t("huy"),
+      noCaps: true,
+      color: "grey",
+      text: true,
+      flat: true,
+      rounded: true
+    },
+    ok: { color: "green", text: true, flat: true, rounded: true }
+  }).onOk((data) => {
+    settingsStore.player.preResolve = data
+  })
+}
 </script>
 
 <style lang="scss" scoped>

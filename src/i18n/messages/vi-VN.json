@@ -293,5 +293,11 @@
   "sap-xep-theo": "Sắp xếp theo",
   "moi-nhat": "Mới nhất",
   "cu-nhat": "Cũ nhất",
-  "msg-err-load-cmt": "Đã có lỗi xảy ra khi tải bình luận"
+  "msg-err-load-cmt": "Đã có lỗi xảy ra khi tải bình luận",
+  "tang-toc-mang": "Tăng tốc mạng",
+  "giai-quyet-truoc-yeu-cau-mang": "Giải quyết trước yêu cầu mạng",
+  "msg-pre-resolve": "Chế độ giải quyết yêu cầu mạng (yêu cầu giải quyết càng cao thì càng tốn tài nguyên phần cứng)",
+  "tat": "Tắt",
+  "val-yeu-cau": "{0} yêu cầu",
+  "nong": "Nóng"
 }

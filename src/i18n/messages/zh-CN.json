@@ -293,5 +293,15 @@
   "i-binh-luan": "{0} 条评论",
   "moi-nhat": "最新的",
   "sap-xep-theo": "排序",
-  "msg-err-load-cmt": "加载评论时发生错误"
+  "msg-err-load-cmt": "加载评论时发生错误",
+  "errors.__i18n_ally_root__.danh-sach-phat-khong-ton-tai": "",
+  "errors.__i18n_ally_root__.loi-khong-xac-dinh-khi": "",
+  "errors.__i18n_ally_root__.require_login_to": "",
+  "errors.__i18n_ally_root__.xoa-thong-bao-that-bai": "",
+  "tang-toc-mang": "网络加速",
+  "giai-quyet-truoc-yeu-cau-mang": "提前解决网络请求",
+  "msg-pre-resolve": "网络请求解析方式（请求请求越高，消耗硬件资源越多）",
+  "nong": "热的",
+  "tat": "关",
+  "val-yeu-cau": "{0}请求"
 }

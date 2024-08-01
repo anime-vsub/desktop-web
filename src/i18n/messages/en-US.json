@@ -299,5 +299,15 @@
   "i-binh-luan": "{0} comments",
   "moi-nhat": "Latest",
   "sap-xep-theo": "Sorted by",
-  "msg-err-load-cmt": "An error occurred while loading comments"
+  "msg-err-load-cmt": "An error occurred while loading comments",
+  "errors.__i18n_ally_root__.danh-sach-phat-khong-ton-tai": "",
+  "errors.__i18n_ally_root__.loi-khong-xac-dinh-khi": "",
+  "errors.__i18n_ally_root__.require_login_to": "",
+  "errors.__i18n_ally_root__.xoa-thong-bao-that-bai": "",
+  "tang-toc-mang": "Network acceleration",
+  "giai-quyet-truoc-yeu-cau-mang": "Resolve network requests in advance",
+  "msg-pre-resolve": "Network request resolution mode (the higher the request request, the more hardware resources are consumed)",
+  "nong": "Hot",
+  "tat": "Turn off",
+  "val-yeu-cau": "{0} request"
 }
