@@ -435,7 +435,6 @@
 <script lang="ts" setup>
 import { getAnalytics, logEvent } from "@firebase/analytics"
 import { Icon } from "@iconify/vue"
-import { computedAsync } from "@vueuse/core"
 import { useHead } from "@vueuse/head"
 import { Http } from "client-ext-animevsub-helper"
 import AddToPlaylist from "components/AddToPlaylist.vue"
@@ -1681,12 +1680,8 @@ interface ListEpisodes {
     title?: string
   }[]
 }
-let episodesOpEndInited = false
 const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
   async (onCleanup) => {
-    if (episodesOpEndInited) episodesOpEnd.value = null
-    else episodesOpEndInited = true
-
     const name = data.value?.name
     const othername = data.value?.othername
 
@@ -1750,8 +1745,8 @@ const episodeOpEnd = computed(() => {
   // find episode on episodesOpEnd
   if (!episodesOpEnd.value) return
 
-  const epName = currentMetaChap.value?.name.trim().replace(/^\w+0+/, "")
-
+  const rawName = currentMetaChap.value?.name.trim()
+  const epName = rawName?.replace(/^[^0-9.+_-]+/, "")
   if (!epName) return
 
   const { list } = episodesOpEnd.value
@@ -1759,7 +1754,7 @@ const episodeOpEnd = computed(() => {
   const epFloat = parseFloat(epName)
   const episode =
     list.find((item) => {
-      if (item.name === epName) return true
+      if (item.name === epName || item.name === rawName) return true
 
       return parseFloat(item.name) === epFloat
     }) ??
@@ -1789,13 +1784,9 @@ interface InOutroEpisode {
   }
   server: number
 }
-let inoutroEpisodeInited = false
 const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
   async () => {
     if (!episodeOpEnd.value) return null
-
-    if (inoutroEpisodeInited) inoutroEpisode.value = null
-    else inoutroEpisodeInited = true
 
     const { id } = episodeOpEnd.value
 
@@ -1837,13 +1828,9 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
 interface SkEpisode extends InOutroEpisode {
   thumbs: string | null
 }
-let skEpisodeInited = false
 const skEpisode = computedAsync<ShallowReactive<SkEpisode> | null>(
   async () => {
     if (!episodeOpEnd.value) return null
-
-    if (skEpisodeInited) skEpisode.value = null
-    else skEpisodeInited = true
 
     const { id } = episodeOpEnd.value
 

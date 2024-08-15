@@ -50,6 +50,9 @@ If you find this project useful please support me through:
 
 ## News
 
+### 1.1.47
+- Fix regexp `/^\w+0+/` to `/^[^0-9.+_-]+/`
+
 ### 1.1.46
 
 - Support seek thumbnails

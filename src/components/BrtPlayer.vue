@@ -2841,12 +2841,8 @@ function openPopupFlashNetwork() {
 }
 
 // sk thumb
-let vttMetaInited = false
 const vttMeta = computedAsync(
   async () => {
-    if (vttMetaInited) vttMeta.value = undefined
-    else vttMetaInited = true
-
     if (!props.skUrl) return
 
     const meta = await loadVttSk(props.skUrl)

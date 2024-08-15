@@ -183,10 +183,10 @@ export default configure(function (/* ctx */) {
               {
                 quasar: ["useQuasar"],
                 "vue-i18n": ["useI18n"],
-                "@vueuse/core": ["computedAsync"]
+                // "@vueuse/core": ["computedAsync"]
               }
             ],
-            dirs: ["./src/*.ts"],
+            dirs: ["./src/*.ts", "./src/composibles"],
             dts: "./auto-imports.d.ts",
             eslintrc: {
               enabled: true
