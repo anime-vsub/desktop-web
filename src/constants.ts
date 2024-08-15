@@ -51,6 +51,7 @@ export const C_URL =
     .join("") + HOST_CURL
 
 export const API_OPEND = "https://opend-9animetv.animevsub.eu.org"
+export const API_SK = process.env.API_SK
 export const WARN = console.warn.bind(console)
 
 export const NAME_GET_MEMORY = "get memory"

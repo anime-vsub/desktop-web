@@ -247,21 +247,30 @@
                   <div
                     v-if="artControlProgressHoving && !currentingTime"
                     class="art-progress-hoved"
+                    :style="{
+                      width: `${(artCurrentTimeHoving / artDuration) * 100}%`
+                    }"
+                  />
+                  <div
+                    v-if="artControlProgressHoving && !currentingTime"
+                    class="art-sk-hoved"
+                    :class="{
+                      'art-sk-hoved--thumbs': sktStyle.thumbs
+                    }"
                     :data-title="
                       parseTime(artCurrentTimeHoving) +
                       (intro &&
                       artCurrentTimeHoving >= intro.start &&
                       artCurrentTimeHoving <= intro.end
-                        ? '\n ' + $t('mo-dau')
+                        ? ' ' + $t('mo-dau')
                         : outro &&
                             artCurrentTimeHoving >= outro.start &&
                             artCurrentTimeHoving <= outro.end
-                          ? '\n ' + $t('ket-thuc')
+                          ? ' ' + $t('ket-thuc')
                           : '')
                     "
-                    :style="{
-                      width: `${(artCurrentTimeHoving / artDuration) * 100}%`
-                    }"
+                    :style="{ left: leftSkt + 'px' }"
+                    ref="skRef"
                   />
                   <!-- /end -->
                   <div
@@ -1246,8 +1255,10 @@ import {
 import { checkContentEditable } from "src/helpers/checkContentEditable"
 import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
 import { findInRangeSet } from "src/logic/find-in-range-set"
+import { getSktAt } from "src/logic/get-skt-at"
 import { HlsPatched } from "src/logic/hls-patched"
 import { patcher } from "src/logic/hls-patcher"
+import { loadVttSk } from "src/logic/load-vtt-sk"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
 import { getSegments } from "src/logic/resolve-master-manifest"
@@ -1331,6 +1342,7 @@ const props = defineProps<{
     start: number
     end: number
   }
+  skUrl?: string | null
 }>()
 const uidChap = computed(() => {
   const uid = `${props.currentSeason}/${props.currentChap ?? ""}` // 255 byte
@@ -2827,6 +2839,77 @@ function openPopupFlashNetwork() {
     settingsStore.player.preResolve = data
   })
 }
+
+// sk thumb
+let vttMetaInited = false
+const vttMeta = computedAsync(
+  async () => {
+    if (vttMetaInited) vttMeta.value = undefined
+    else vttMetaInited = true
+
+    if (!props.skUrl) return
+
+    const meta = await loadVttSk(props.skUrl)
+    const aspect = (meta[0].h / meta[0].w) * 100
+
+    return { meta, aspect }
+  },
+  undefined,
+  {
+    onError: WARN,
+    lazy: true,
+    shallow: true
+  }
+)
+const currentSkt = computed(() => {
+  if (!vttMeta.value) return
+  const { meta, aspect } = vttMeta.value
+
+  const current = getSktAt(artCurrentTimeHoving.value, meta)
+  if (!current) return
+
+  return [current, aspect] as const
+})
+const sktStyle = computed(() => {
+  const val = currentSkt.value
+  if (!val) return {}
+
+  const [current, aspect] = val
+
+  // max width = 220px
+  const scale = current.w > 220 ? 220 / current.w : 1
+
+  return {
+    thumbs: true,
+    aspect: `${aspect}%`,
+    image: `url(${new URL(current.text, props.skUrl ?? "")})`,
+    scale,
+    x: current.x + "px",
+    y: current.y + "px",
+    w: current.w + "px",
+    h: current.h + "px"
+  }
+})
+const skRef = ref<HTMLDivElement>()
+const leftSkt = computed(() => {
+  if (!skRef.value || !playerWrapRef.value || !progressInnerRef.value)
+    return null
+
+  const minWidth = (skRef.value.offsetWidth / 2) * (sktStyle.value.scale ?? 1)
+  const maxWidth = playerWrapRef.value.offsetWidth - minWidth
+  const padding =
+    (playerWrapRef.value.offsetWidth - progressInnerRef.value.offsetWidth) / 2
+  const offset = Math.max(
+    minWidth - padding + 3,
+    Math.min(
+      maxWidth - padding - 3,
+      (artCurrentTimeHoving.value / artDuration.value) *
+        (playerWrapRef.value.offsetWidth - padding * 2)
+    )
+  )
+
+  return offset
+})
 </script>
 
 <style lang="scss" scoped>
@@ -2958,12 +3041,57 @@ function openPopupFlashNetwork() {
 
         .art-progress-hoved {
           background: rgba($color: #fff, $alpha: 0.5);
+        }
+
+        .art-sk-hoved {
+          @apply absolute z-10 left-0 top-0 bottom-0 h-full inline-block;
+          pointer-events: none;
+
           &:after {
             content: attr(data-title);
-            @apply absolute right-0 bottom-[100%] transform translate-x--1/2 translate-y-[-16px];
+            @apply relative transform translate-x-[-50%] translate-y-[calc(-100%-16px)] left-0 inline-block;
             background: rgba(0, 0, 0, 0.7);
             @apply py-2 px-3 font-weight-medium rounded-lg;
-            white-space: pre-wrap;
+            white-space: nowrap;
+          }
+
+          &.art-sk-hoved--thumbs {
+            &:after {
+              padding: 3px 5px;
+              font-size: 12px;
+              background-color: #000000b3;
+              border-radius: 3px;
+              @apply absolute right-0 bottom-[100%] bottom-unset right-auto translate-x-[-50%] translate-y-[calc(-10%-16px)];
+              // @apply relative translate-y-[calc(-100%-16px)] translate-x-[-50%] bottom-auto right-auto;
+            }
+            &:before {
+              content: "";
+              display: block;
+
+              @apply rounded-[3px] relative left-0; // transform translate-y-[calc(-100%-10px)] translate-x-[-50%] left-0 scale-[v-bind("sktStyle.scale")];
+
+              box-shadow:
+                0 1px 3px #0003,
+                0 1px 2px -1px #0003;
+              pointer-events: none;
+
+              width: v-bind("sktStyle.w");
+              // height: v-bind("sktStyle.h");
+              transform: translateY(calc(-100% - 10px)) translateX(-50%)
+                scale(v-bind("sktStyle.scale"));
+
+              padding-top: v-bind("sktStyle.aspect");
+              background: {
+                color: #000000d9;
+                repeat: no-repeat;
+                image: v-bind("sktStyle.image");
+                position: v-bind("sktStyle.x") v-bind("sktStyle.y");
+              }
+            }
+          }
+
+          &:before {
+            display: none;
           }
         }
 

@@ -36,8 +36,9 @@
         :_cache-data-seasons="_cacheDataSeasons"
         :fetch-season="fetchSeason"
         :progressWatchStore="progressWatchStore"
-        :intro="inoutroEpisode?.intro"
-        :outro="inoutroEpisode?.outro"
+        :intro="inoutroEpisode?.intro ?? skEpisode?.intro"
+        :outro="inoutroEpisode?.outro ?? skEpisode?.outro"
+        :sk-url="skEpisode?.thumbs"
         @cur-update="
           currentProgresWatch?.set($event.id, {
             cur: $event.cur,
@@ -1740,7 +1741,9 @@ const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
   },
   null,
   {
-    onError: WARN
+    onError: WARN,
+    shallow: true,
+    lazy: true
   }
 )
 const episodeOpEnd = computed(() => {
@@ -1826,7 +1829,55 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
     return results!
   },
   null,
-  { onError: WARN }
+  { onError: WARN, shallow: true, lazy: true }
+)
+
+// ============== thumbnail =============
+// reuse episodeRK
+interface SkEpisode extends InOutroEpisode {
+  thumbs: string | null
+}
+let skEpisodeInited = false
+const skEpisode = computedAsync<ShallowReactive<SkEpisode> | null>(
+  async () => {
+    if (!episodeOpEnd.value) return null
+
+    if (skEpisodeInited) skEpisode.value = null
+    else skEpisodeInited = true
+
+    const { id } = episodeOpEnd.value
+
+    let results: ShallowReactive<SkEpisode>
+    await Promise.any([
+      fetch(`${API_SK}/episode-skip/${id}`)
+        .then((res) => res.json() as Promise<SkEpisode>)
+        .then((data) => {
+          void set(`sk:${id}`, JSON.stringify(data))
+
+          // eslint-disable-next-line promise/always-return
+          if (results) {
+            if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
+              Object.assign(results, data)
+          } else results = shallowReactive(data)
+        }),
+      getDataIDB<string>(`sk:${id}`).then((text) => {
+        if (!text) throw new Error("not_found_on_idb")
+
+        const data = JSON.parse(text)
+
+        // eslint-disable-next-line promise/always-return
+        if (results) {
+          if (JSON.stringify(toRaw(results)) !== text)
+            Object.assign(results, data)
+        } else results = shallowReactive(data)
+      })
+    ])
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return results!
+  },
+  null,
+  { onError: WARN, shallow: true, lazy: true }
 )
 </script>
 

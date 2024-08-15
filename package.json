@@ -27,6 +27,7 @@
     "@firebase/firestore": "^3.13.0",
     "@fontsource/caveat": "^4.5.10",
     "@iconify/vue": "^4.1.1",
+    "@plussub/srt-vtt-parser": "^2.0.5",
     "@quasar/extras": "^1.16.12",
     "@supabase/supabase-js": "^2.44.4",
     "@vueuse/components": "^10.9.0",
