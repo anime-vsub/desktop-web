@@ -9,6 +9,10 @@ import { ref } from "vue"
 
 import { useAuthStore } from "./auth"
 
+const GMT =
+  self.Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone ??
+  Math.round(new Date().getTimezoneOffset() / 60)
+
 export const useHistoryStore = defineStore("history", () => {
   const authStore = useAuthStore()
 
@@ -28,10 +32,12 @@ export const useHistoryStore = defineStore("history", () => {
         })
         .throwOnError()
 
-      return data?.map((item) => {
-        item.poster = addHostUrlImage(item.poster)
-        return item
-      })??EMPTY_ARRAY
+      return (
+        data?.map((item) => {
+          item.poster = addHostUrlImage(item.poster)
+          return item
+        }) ?? EMPTY_ARRAY
+      )
     },
     undefined,
     {
@@ -61,13 +67,15 @@ export const useHistoryStore = defineStore("history", () => {
       })
       .throwOnError()
 
-    return data?.map((item) => {
-      item.poster = addHostUrlImage(item.poster)
-      return {
-        ...item,
-        timestamp: dayjs(item.created_at)
-      }
-    }) ?? []
+    return (
+      data?.map((item) => {
+        item.poster = addHostUrlImage(item.poster)
+        return {
+          ...item,
+          timestamp: dayjs(item.created_at)
+        }
+      }) ?? []
+    )
   }
 
   // async function createSeason(
@@ -118,9 +126,7 @@ export const useHistoryStore = defineStore("history", () => {
         ])
       )
 
-    const {
-      data
-    } = await supabase
+    const { data } = await supabase
       .rpc("get_single_progress", {
         user_uid: authStore.uid,
         season_id: getRealSeasonId(season),
@@ -159,7 +165,8 @@ export const useHistoryStore = defineStore("history", () => {
         e_cur: watchProgress.cur,
         e_dur: watchProgress.dur,
         e_name: watchProgress.name,
-        e_chap: chap
+        e_chap: chap,
+        gmt: GMT
       })
       .throwOnError()
   }
@@ -180,7 +187,7 @@ export const useHistoryStore = defineStore("history", () => {
       .single()
       .throwOnError()
 
-    return data?.chap_id??null
+    return data?.chap_id ?? null
   }
 
   return {
