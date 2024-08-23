@@ -269,49 +269,25 @@
               !realIdCurrentSeason ||
               !data ||
               !currentDataCache?.response! ||
-              !currentChap ||
-              stateOffline === undefined
+              !currentChap
             "
             class="bg-[rgba(113,113,113,0.3)] mr-4 text-weight-normal"
-            @click="(stateOffline ? remove : download)()"
+            @click="download"
           >
-            <template v-if="!stateOffline">
-              <template v-if="stateProgress && Array.isArray(stateProgress)">
-                <q-circular-progress
-                  show-value
-                  class="text-white"
-                  :value="(stateProgress[2] / stateProgress[3]) * 100"
-                  size="28px"
-                  color="main"
+            <template v-if="stateProgress && Array.isArray(stateProgress)">
+              <q-circular-progress
+                show-value
+                class="text-white"
+                :value="(stateProgress[2] / stateProgress[3]) * 100"
+                size="28px"
+                color="main"
+              >
+                <span class="text-10px"
+                  >{{
+                    Math.round((stateProgress[2] / stateProgress[3]) * 100)
+                  }}%</span
                 >
-                  <span class="text-10px"
-                    >{{
-                      Math.round((stateProgress[2] / stateProgress[3]) * 100)
-                    }}%</span
-                  >
-                </q-circular-progress>
-
-                <q-tooltip
-                  anchor="bottom middle"
-                  self="top middle"
-                  class="bg-dark text-[14px] text-weight-medium"
-                  transition-show="jump-up"
-                  transition-hide="jump-down"
-                >
-                  Còn lại {{ parseTime(stateProgress[3] - stateProgress[2]) }}
-                </q-tooltip>
-              </template>
-              <i-fluent-arrow-download-16-regular
-                v-else
-                width="28"
-                height="28"
-              />
-            </template>
-            <template v-else>
-              <i-fluent-checkmark-underline-circle-16-regular
-                width="28"
-                height="28"
-              />
+              </q-circular-progress>
 
               <q-tooltip
                 anchor="bottom middle"
@@ -320,18 +296,16 @@
                 transition-show="jump-up"
                 transition-hide="jump-down"
               >
-                {{ filesize(stateOffline.size, { standard: "jedec" }) }} -
-                {{ dayjs(stateOffline.saved_at).fromNow() }}
+                Còn lại {{ parseTime(stateProgress[3] - stateProgress[2]) }}
               </q-tooltip>
             </template>
+            <i-fluent-arrow-download-16-regular v-else width="28" height="28" />
             <span class="text-[14px] font-weight-normal ml-1">{{
-              stateOffline
-                ? "Xóa tập"
-                : stateProgress
-                  ? Array.isArray(stateProgress)
-                    ? "Đang tải"
-                    : "Lỗi"
-                  : "Tải xuống"
+              stateProgress
+                ? Array.isArray(stateProgress)
+                  ? "Đang tải"
+                  : "Lỗi"
+                : "Tải"
             }}</span>
           </q-btn>
         </div>
@@ -523,7 +497,6 @@ import Star from "components/Star.vue"
 import FbComments from "components/fb-comments/index.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { EmbedFbCmt } from "embed-fbcmt-client/vue"
-import { filesize } from "filesize"
 import { set } from "idb-keyval"
 import {
   QBtn,
@@ -552,14 +525,12 @@ import {
   TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE,
   WARN
 } from "src/constants"
-import dayjs from "src/logic/dayjs"
 import { forceHttp2 } from "src/logic/forceHttp2"
 import { formatView } from "src/logic/formatView"
 import { getDataIDB } from "src/logic/get-data-IDB"
 import { getDataJson } from "src/logic/get-data-json"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { getRealSeasonId } from "src/logic/getRealSeasonId"
-import { hasVideoOffline } from "src/logic/has-video-offline"
 import { parseChapName } from "src/logic/parseChapName"
 import { parseTime } from "src/logic/parseTime"
 import { unflat } from "src/logic/unflat"
@@ -1945,20 +1916,6 @@ const skEpisode = computedAsync<ShallowReactive<SkEpisode> | null>(
 )
 
 // ============== download video ===============
-const refreshStateOffline = shallowRef(0)
-const stateOffline = computedAsync(
-  () => {
-    /** @track */
-    // eslint-disable-next-line no-unused-expressions
-    refreshStateOffline.value
-
-    if (!realIdCurrentSeason.value || !currentChap.value) return null
-    return hasVideoOffline(realIdCurrentSeason.value, currentChap.value)
-  },
-  undefined,
-  { onError: WARN, lazy: true, shallow: true }
-)
-
 const vdmStoreRef = shallowRef<ReturnType<
   typeof import("stores/vdm").useVDMStore
 > | null>(null)
@@ -1990,33 +1947,18 @@ async function download() {
       currentChap.value!
     )
 
-    refreshStateOffline.value++
-
     $q.notify({
-      message: "Đã tải xong video",
-      caption: "Bạn có thể yên tâm đóng cửa sổ này",
+      message: t("da-tai-xong-video"),
+      caption: t("msg-close-tab"),
       position: "bottom-left"
     })
   } catch (err) {
     $q.notify({
-      message: "Tải video thất bại",
+      message: t("tai-video-that-bai"),
       caption: err + "",
       position: "bottom-left"
     })
   }
-}
-async function remove() {
-  const { useVDMStore } = await import("stores/vdm")
-
-  vdmStoreRef.value ??= useVDMStore()
-
-  if (!realIdCurrentSeason.value || !currentChap.value) return
-  await vdmStoreRef.value.confirmRemove(
-    realIdCurrentSeason.value,
-    currentChap.value
-  )
-
-  refreshStateOffline.value++
 }
 </script>
 

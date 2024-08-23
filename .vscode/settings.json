@@ -3,5 +3,11 @@
     "src/i18n",
     "src/i18n/messages"
   ],
-  "css.customData": [".vscode/tailwind.json"]
+  "css.customData": [
+    ".vscode/tailwind.json"
+  ],
+  "i18n-ally.keystyle": "flat",
+  "i18n-ally.extract.ignored": [
+    "${currentChapId}@${realSeasonId}"
+  ]
 }

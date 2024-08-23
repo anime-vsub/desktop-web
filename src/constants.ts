@@ -59,10 +59,3 @@ export const NAME_GET_MEMORY = "get memory"
 export const API_PROXY = "http://localhost:8787"
 
 export const EMPTY_ARRAY = Object.freeze([])
-
-export const PREFIX_VIDEO = "video_"
-export const PREFIX_SEASON = "season_"
-export const PREFIX_CHAPS = "chaps_"
-export const PREFIX_POSTER = "poster_"
-export const PREFIX_IMAGE = "image_"
-export const REGISTRY_OFFLINE = "$registry_offline$"

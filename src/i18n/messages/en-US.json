@@ -309,5 +309,14 @@
   "msg-pre-resolve": "Network request resolution mode (the higher the request request, the more hardware resources are consumed)",
   "nong": "Hot",
   "tat": "Turn off",
-  "val-yeu-cau": "{0} request"
+  "val-yeu-cau": "{0} request",
+  "cancel-by-user": "Cancel by user",
+  "chap-not-found": "Chap {0} not found",
+  "chat-luong-tai-xuong": "Download quality",
+  "da-tai-xong-video": "The video has been downloaded",
+  "dlg": "Downloading...",
+  "msg-close-tab": "You can safely close this window",
+  "msg-keep-tab": "Keep this window open to continue",
+  "msg-ques-quality": "The higher the quality, the more memory it takes up and the longer it takes to load",
+  "tai-video-that-bai": "Video download failed"
 }

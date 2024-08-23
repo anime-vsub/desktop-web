@@ -303,5 +303,14 @@
   "msg-pre-resolve": "网络请求解析方式（请求请求越高，消耗硬件资源越多）",
   "nong": "热的",
   "tat": "关",
-  "val-yeu-cau": "{0}请求"
+  "val-yeu-cau": "{0}请求",
+  "cancel-by-user": "由用户取消",
+  "chap-not-found": "未找到第 {0} 章",
+  "chat-luong-tai-xuong": "下载质量",
+  "da-tai-xong-video": "视频已下载",
+  "dlg": "正在下载...",
+  "msg-close-tab": "您可以安全地关闭此窗口",
+  "msg-keep-tab": "保持此窗口打开以继续",
+  "msg-ques-quality": "质量越高，占用内存越大，加载时间越长",
+  "tai-video-that-bai": "视频下载失败"
 }
