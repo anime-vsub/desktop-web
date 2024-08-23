@@ -635,6 +635,7 @@
                                 <ChapsGridQBtn
                                   grid
                                   :chaps="_tmp.response.chaps"
+                                  :off="_tmp.response.off"
                                   :season="value"
                                   :find="
                                     (item) =>
@@ -1289,6 +1290,7 @@ import { useI18n } from "vue-i18n"
 import { onBeforeRouteLeave, useRouter } from "vue-router"
 
 const { t } = useI18n()
+const online = useOnline()
 // fix toolip fullscreen not hide if change fullscreen
 
 // keyboard binding
@@ -1861,6 +1863,8 @@ function onVideoTimeUpdate() {
     return
   if (typeof props.nameCurrentChap !== "string") return
 
+  if (!online.value) return
+
   console.log("call throw emit")
   void saveCurTimeToPer(
     props.currentSeason,
@@ -2300,6 +2304,7 @@ const watcherVideoTagReady = watch(video, (video) => {
     (url) => {
       if (!url) return currentHls?.destroy()
 
+      if (import.meta.env.DEV && url.length < 500)
       console.log("set url art %s", url)
 
       // // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,0 +1,8 @@
+- [x] delete video offline
+- [ ] page view list anime offline
+- [ ] popover list anime offline
+- [ ] view memory in menu
+- [x] add mode offline
+- [x] add cancel download
+- [ ] show memory usage and time download episode
+- [x] add badge episode ready offline - only in offline mode because performance

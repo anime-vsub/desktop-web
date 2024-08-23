@@ -8,6 +8,7 @@
       :key="item.id"
       outline
       class="px-4 py-[10px] mx-2 rounded-md before:text-[#3a3a3a] overflow-hidden item"
+      :disable="online ? false : !off || !(item.id in off)"
       :class="[
         classItem,
         {
@@ -36,11 +37,15 @@ import { QBtn } from "quasar"
 import type { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
 import { scrollYIntoView } from "src/helpers/scrollIntoView"
 import { parseChapName } from "src/logic/parseChapName"
+import type { VideoOfflineMeta } from "src/stores/vdm"
 import { ref, watchEffect } from "vue"
+
+const online = useOnline()
 
 const props = defineProps<{
   find: (value: Awaited<ReturnType<typeof PhimIdChap>>["chaps"][0]) => boolean
   chaps?: Awaited<ReturnType<typeof PhimIdChap>>["chaps"]
+  off?: Record<string, VideoOfflineMeta>
   season: string
   classItem?: string
   classActive?: string

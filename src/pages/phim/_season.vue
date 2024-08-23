@@ -28,9 +28,10 @@
         :prev-chap="prevChap"
         :name="data?.name"
         :poster="
-          currentDataSeason?.poster
+          (currentDataSeason?.poster &&
+          !currentDataSeason.poster.startsWith('file:')
             ? forceHttp2(currentDataSeason.poster)
-            : undefined
+            : undefined) ?? seasonPoster
         "
         :seasons="seasons"
         :_cache-data-seasons="_cacheDataSeasons"
@@ -38,7 +39,7 @@
         :progressWatchStore="progressWatchStore"
         :intro="inoutroEpisode?.intro ?? skEpisode?.intro"
         :outro="inoutroEpisode?.outro ?? skEpisode?.outro"
-        :sk-url="skEpisode?.thumbs"
+        :sk-url="online ? skEpisode?.thumbs : undefined"
         @cur-update="
           currentProgresWatch?.set($event.id, {
             cur: $event.cur,
@@ -403,7 +404,7 @@
             v-if="data?.image"
             width="152px"
             class="rounded-xl"
-            :src="forceHttp2(data.image)"
+            :src="seasonImage"
             referrerpolicy="no-referrer"
           />
         </div>
@@ -416,29 +417,34 @@
       </div>
 
       <!-- comment embed -->
-      <FbComments
-        v-if="semverGt(Http.version, '1.0.29')"
-        :href="`http://animevietsub.tv/phim/-${seasonId}/`"
-        :lang="locale?.replace('-', '_')"
-      />
-      <template v-else>
-        <div class="mt-5 flex items-center justify-between flex-nowrap">
-          <span class="text-subtitle1 text-[#eee]">{{ t("binh-luan") }}</span>
-          <q-toggle
-            v-model="settingsStore.ui.commentAnime"
-            color="main"
-            size="sm"
-          />
-        </div>
-        <EmbedFbCmt
-          v-if="settingsStore.ui.commentAnime"
-          :key="seasonId"
+      <template v-if="online">
+        <FbComments
+          v-if="semverGt(Http.version, '1.0.29')"
           :href="`http://animevietsub.tv/phim/-${seasonId}/`"
           :lang="locale?.replace('-', '_')"
-          no_socket
-          class="bg-gray-300 rounded-xl mt-3 overflow-hidden"
         />
+        <template v-else>
+          <div class="mt-5 flex items-center justify-between flex-nowrap">
+            <span class="text-subtitle1 text-[#eee]">{{ t("binh-luan") }}</span>
+            <q-toggle
+              v-model="settingsStore.ui.commentAnime"
+              color="main"
+              size="sm"
+            />
+          </div>
+          <EmbedFbCmt
+            v-if="settingsStore.ui.commentAnime"
+            :key="seasonId"
+            :href="`http://animevietsub.tv/phim/-${seasonId}/`"
+            :lang="locale?.replace('-', '_')"
+            no_socket
+            class="bg-gray-300 rounded-xl mt-3 overflow-hidden"
+          />
+        </template>
       </template>
+      <div v-else class="py-6 text-center text-gray-400">
+        Bình luận không khả dụng khi ngoại tuyến
+      </div>
     </div>
     <div class="col-3">
       <q-responsive
@@ -461,6 +467,7 @@
       <div class="text-h6 mt-3 text-subtitle1">{{ t("de-xuat") }}</div>
 
       <CardVertical
+        v-if="online"
         v-for="item in data?.toPut"
         :key="item.name"
         :data="item"
@@ -486,6 +493,9 @@
           }}</Quality>
         </template>
       </CardVertical>
+      <div v-else class="py-4 text-gray-400 text-center">
+        Đề xuất không khả dụng khi ngoại tuyến
+      </div>
     </div>
   </div>
 
@@ -558,6 +568,7 @@ import { formatView } from "src/logic/formatView"
 import { getDataIDB } from "src/logic/get-data-IDB"
 import { getDataJson } from "src/logic/get-data-json"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
+import { getVdmStore, getVdmStoreCache } from "src/logic/get-vdm-store"
 import { getRealSeasonId } from "src/logic/getRealSeasonId"
 import { hasVideoOffline } from "src/logic/has-video-offline"
 import { parseChapName } from "src/logic/parseChapName"
@@ -593,6 +604,7 @@ const authStore = useAuthStore()
 const playlistStore = usePlaylistStore()
 const historyStore = useHistoryStore()
 const settingsStore = useSettingsStore()
+const online = useOnline()
 
 const currentSeason = computed(() => route.params.season as string)
 const currentMetaSeason = computed(() => {
@@ -612,71 +624,79 @@ const { data, run, error, loading } = useRequest(
 
     const result = shallowRef<Awaited<ReturnType<typeof PhimId>>>()
 
-    let promiseLoadIndexedb: Promise<Awaited<ReturnType<typeof PhimId>>>
-    await Promise.any([
-      (promiseLoadIndexedb = new Promise<Awaited<ReturnType<typeof PhimId>>>(
-        (resolve, reject) => {
-          const data = getDataJson<Awaited<ReturnType<typeof PhimId>>>(
-            "anime_info",
-            id
-          )
-          if (data) {
-            resolve(data)
-            return
-          }
-
-          getDataIDB<string>(`data-${id}`)
-            .then((json) => JSON.parse(json))
-            .then(resolve)
-            .catch(reject)
-        }
-      ).then((data) => {
-        if (!data) throw new Error("not_found_on_idb")
-        console.log("[fs]: use cache from fs %s", id)
-        if (!result.value) result.value = data
-
-        return data
-      })),
-      PhimId(id)
-        .then(async (data) => {
-          const json = JSON.stringify(data)
-
-          let changed = false
-          if (!result.value || JSON.stringify(toRaw(result.value)) !== json) {
-            // changed
-            if (result.value) changed = true
-            result.value = data
-          }
-          Object.assign(result.value, { [__ONLINE__]: true })
-
-          // eslint-disable-next-line promise/always-return
-          if (changed) updateIndexedDB()
-          else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
-
-          function updateIndexedDB(data2?: Awaited<ReturnType<typeof PhimId>>) {
-            if (!data2 || JSON.stringify(data2) !== json) {
-              // update indexeddb
-              set(`data-${id}`, json)
-                // eslint-disable-next-line promise/no-nesting
-                .then(() => {
-                  return console.log("[fs]: save cache to fs %s", id)
-                })
-                // eslint-disable-next-line promise/no-nesting, @typescript-eslint/no-empty-function
-                .catch(() => {})
-            } else if (import.meta.env.DEV) {
-              console.log("[data main]: No update data in IndexedDB")
+    if (online.value) {
+      let promiseLoadIndexedb: Promise<Awaited<ReturnType<typeof PhimId>>>
+      await Promise.any([
+        (promiseLoadIndexedb = new Promise<Awaited<ReturnType<typeof PhimId>>>(
+          (resolve, reject) => {
+            const data = getDataJson<Awaited<ReturnType<typeof PhimId>>>(
+              "anime_info",
+              id
+            )
+            if (data) {
+              resolve(data)
+              return
             }
+
+            getDataIDB<string>(`data-${id}`)
+              .then((json) => JSON.parse(json))
+              .then(resolve)
+              .catch(reject)
           }
-        })
-        .catch((err) => {
-          if (result.value) return
+        ).then((data) => {
+          if (!data) throw new Error("not_found_on_idb")
+          console.log("[fs]: use cache from fs %s", id)
+          if (!result.value) result.value = data
 
-          error.value = err as Error
-          console.error(err)
+          return data
+        })),
+        PhimId(id)
+          .then(async (data) => {
+            const json = JSON.stringify(data)
 
-          throw err
-        })
-    ])
+            let changed = false
+            if (!result.value || JSON.stringify(toRaw(result.value)) !== json) {
+              // changed
+              if (result.value) changed = true
+              result.value = data
+            }
+            Object.assign(result.value, { [__ONLINE__]: true })
+
+            // eslint-disable-next-line promise/always-return
+            if (changed) updateIndexedDB()
+            else
+              promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
+
+            function updateIndexedDB(
+              data2?: Awaited<ReturnType<typeof PhimId>>
+            ) {
+              if (!data2 || JSON.stringify(data2) !== json) {
+                // update indexeddb
+                set(`data-${id}`, json)
+                  // eslint-disable-next-line promise/no-nesting
+                  .then(() => {
+                    return console.log("[fs]: save cache to fs %s", id)
+                  })
+                  // eslint-disable-next-line promise/no-nesting, @typescript-eslint/no-empty-function
+                  .catch(() => {})
+              } else if (import.meta.env.DEV) {
+                console.log("[data main]: No update data in IndexedDB")
+              }
+            }
+          })
+          .catch((err) => {
+            if (result.value) return
+
+            error.value = err as Error
+            console.error(err)
+
+            throw err
+          })
+      ])
+    } else {
+      const vdmStore = await getVdmStore()
+      result.value = await vdmStore.getMetaSeason(id)
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return result!.value
@@ -819,82 +839,87 @@ async function fetchSeason(season: string) {
 
     const response = shallowRef<Awaited<ReturnType<typeof PhimIdChap>>>()
 
-    let promiseLoadIndexedb: Promise<
-      Awaited<ReturnType<typeof PhimIdChap>> | undefined
-    > = Promise.resolve(undefined)
-    await Promise.any([
-      PhimIdChap(realIdSeason).then((data) => {
-        // mergeListEp(response.value, data)
-        const json = JSON.stringify(data)
-        let changed = false
-        if (
-          !response.value ||
-          response.value.chaps.length !== data.chaps.length ||
-          json !== JSON.stringify(toRaw(response.value))
-        ) {
-          if (response.value) changed = true
-          console.info("cache wrong")
+    if (online.value) {
+      let promiseLoadIndexedb: Promise<
+        Awaited<ReturnType<typeof PhimIdChap>> | undefined
+      > = Promise.resolve(undefined)
+      await Promise.any([
+        PhimIdChap(realIdSeason).then((data) => {
+          // mergeListEp(response.value, data)
+          const json = JSON.stringify(data)
+          let changed = false
+          if (
+            !response.value ||
+            response.value.chaps.length !== data.chaps.length ||
+            json !== JSON.stringify(toRaw(response.value))
+          ) {
+            if (response.value) changed = true
+            console.info("cache wrong")
 
-          console.log("[online]: use data from internet")
-          response.value = data
-          console.log("data from internet is ", data)
-        }
-        Object.assign(response.value, { [__ONLINE__]: true })
-
-        // eslint-disable-next-line promise/always-return
-        if (changed) updateIndexedDB()
-        else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
-
-        function updateIndexedDB(
-          jsonCache?: Awaited<ReturnType<typeof PhimIdChap>>
-        ) {
-          if (!jsonCache || json !== JSON.stringify(jsonCache)) {
-            const task = set(`season_data ${realIdSeason}`, json)
-
-            if (import.meta.env.DEV)
-              task
-                // eslint-disable-next-line promise/no-nesting, promise/always-return
-                .then(() => {
-                  console.log("[fs]: save cache season %s", realIdSeason)
-                })
-                // eslint-disable-next-line promise/no-nesting
-                .catch((err) =>
-                  console.warn(
-                    "[fs]: failure save cache season %s",
-                    realIdSeason,
-                    err
-                  )
-                )
-          } else if (import.meta.env.DEV) {
-            console.log("[data season]: No update response in IndexedDB")
+            console.log("[online]: use data from internet")
+            response.value = data
+            console.log("data from internet is ", data)
           }
-        }
-        responseOnlineStore.add(response)
-      }),
-      (promiseLoadIndexedb = new Promise<
-        Awaited<ReturnType<typeof PhimIdChap>>
-      >((resolve, reject) => {
-        const data = getDataJson<Awaited<ReturnType<typeof PhimIdChap>>>(
-          "anime_list",
-          realIdSeason
-        )
-        if (data) {
-          resolve(data)
-          return
-        }
+          Object.assign(response.value, { [__ONLINE__]: true })
 
-        getDataIDB<string>(`season_data ${realIdSeason}`)
-          .then((json) => JSON.parse(json))
-          .then(resolve)
-          .catch(reject)
-      }).then((json) => {
-        if (!json) throw new Error("not_found")
-        console.log("[fs]: use cache %s", realIdSeason)
-        if (!response.value) response.value = json
+          // eslint-disable-next-line promise/always-return
+          if (changed) updateIndexedDB()
+          else promiseLoadIndexedb.then(updateIndexedDB).catch(updateIndexedDB)
 
-        return json
-      }))
-    ])
+          function updateIndexedDB(
+            jsonCache?: Awaited<ReturnType<typeof PhimIdChap>>
+          ) {
+            if (!jsonCache || json !== JSON.stringify(jsonCache)) {
+              const task = set(`season_data ${realIdSeason}`, json)
+
+              if (import.meta.env.DEV)
+                task
+                  // eslint-disable-next-line promise/no-nesting, promise/always-return
+                  .then(() => {
+                    console.log("[fs]: save cache season %s", realIdSeason)
+                  })
+                  // eslint-disable-next-line promise/no-nesting
+                  .catch((err) =>
+                    console.warn(
+                      "[fs]: failure save cache season %s",
+                      realIdSeason,
+                      err
+                    )
+                  )
+            } else if (import.meta.env.DEV) {
+              console.log("[data season]: No update response in IndexedDB")
+            }
+          }
+          responseOnlineStore.add(response)
+        }),
+        (promiseLoadIndexedb = new Promise<
+          Awaited<ReturnType<typeof PhimIdChap>>
+        >((resolve, reject) => {
+          const data = getDataJson<Awaited<ReturnType<typeof PhimIdChap>>>(
+            "anime_list",
+            realIdSeason
+          )
+          if (data) {
+            resolve(data)
+            return
+          }
+
+          getDataIDB<string>(`season_data ${realIdSeason}`)
+            .then((json) => JSON.parse(json))
+            .then(resolve)
+            .catch(reject)
+        }).then((json) => {
+          if (!json) throw new Error("not_found")
+          console.log("[fs]: use cache %s", realIdSeason)
+          if (!response.value) response.value = json
+
+          return json
+        }))
+      ])
+    } else {
+      const vdmStore = await getVdmStore()
+      response.value = await vdmStore.getMetaChaps(realIdSeason)
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (response.value!.chaps.length === 0) {
@@ -1258,6 +1283,7 @@ useHead(
           content:
             currentDataSeason.value?.image ??
             currentDataSeason.value?.poster ??
+            seasonPoster.value ??
             data.value.poster
         },
         {
@@ -1370,14 +1396,14 @@ const prevChap = computed((): SiblingChap | undefined => {
 const configPlayer = shallowRef<Awaited<ReturnType<typeof PlayerLink>>>()
 watch(
   currentMetaChap,
-  (currentMetaChap, _, onCleanup) => {
-    if (!currentMetaChap) return
+  (currentMetaChap$, _, onCleanup) => {
+    if (!currentMetaChap$) return
 
-    if (currentMetaChap.id === "0") {
+    if (currentMetaChap$.id === "0") {
       configPlayer.value = {
         link: [
           {
-            file: currentMetaChap.hash,
+            file: currentMetaChap$.hash,
             label: "HD",
             qualityCode: getQualityByLabel("HD"),
             preload: "auto",
@@ -1392,24 +1418,63 @@ watch(
 
     configPlayer.value = undefined
 
-    let typeCurrentConfig: keyof typeof servers | null = null
+    if (online.value) {
+      let typeCurrentConfig: keyof typeof servers | null = null
 
-    let loadedServerFB = false
-    // setup watcher it
-    const watcher = watch(
-      () => settingsStore.player.server,
-      async (server) => {
-        loadedServerFB = false
-        try {
-          if (server === "DU") {
-            if (typeCurrentConfig !== "DU")
-              PlayerLink(currentMetaChap)
+      let loadedServerFB = false
+      // setup watcher it
+      const watcher = watch(
+        () => settingsStore.player.server,
+        async (server) => {
+          loadedServerFB = false
+          try {
+            if (server === "DU") {
+              if (typeCurrentConfig !== "DU")
+                PlayerLink(currentMetaChap$)
+                  .then((conf) => {
+                    // eslint-disable-next-line promise/always-return
+                    if (settingsStore.player.server === "DU") {
+                      configPlayer.value = conf
+                      typeCurrentConfig = "DU"
+                    }
+                  })
+                  .catch((err) => {
+                    void $q.notify({
+                      message: `Play load error: ${err}`,
+                      position: "bottom-right",
+                      timeout: 0
+                    })
+                  })
+            }
+            if (server === "FB") {
+              // PlayerFB は常に PlayerLink よりも遅いため、DU を使用して高速プリロード戦術を使用する必要があります。
+              if (typeCurrentConfig !== "DU")
+                PlayerLink(currentMetaChap$)
+                  .then((conf) => {
+                    // eslint-disable-next-line promise/always-return
+                    if (
+                      !loadedServerFB &&
+                      settingsStore.player.server === "DU"
+                    ) {
+                      configPlayer.value = conf
+                      typeCurrentConfig = "DU"
+                    }
+                  })
+                  .catch((err) => {
+                    void $q.notify({
+                      message: `Play load error: ${err}`,
+                      position: "bottom-right",
+                      timeout: 0
+                    })
+                  })
+              PlayerFB(currentMetaChap$.id)
                 .then((conf) => {
                   // eslint-disable-next-line promise/always-return
-                  if (settingsStore.player.server === "DU") {
+                  if (settingsStore.player.server === "FB") {
                     configPlayer.value = conf
-                    typeCurrentConfig = "DU"
+                    typeCurrentConfig = "FB"
                   }
+                  loadedServerFB = true
                 })
                 .catch((err) => {
                   void $q.notify({
@@ -1418,53 +1483,45 @@ watch(
                     timeout: 0
                   })
                 })
+            }
+          } catch (err) {
+            $q.notify({
+              position: "bottom-right",
+              message: (err as Error).message
+            })
+            console.error(err)
           }
-          if (server === "FB") {
-            // PlayerFB は常に PlayerLink よりも遅いため、DU を使用して高速プリロード戦術を使用する必要があります。
-            if (typeCurrentConfig !== "DU")
-              PlayerLink(currentMetaChap)
-                .then((conf) => {
-                  // eslint-disable-next-line promise/always-return
-                  if (!loadedServerFB && settingsStore.player.server === "DU") {
-                    configPlayer.value = conf
-                    typeCurrentConfig = "DU"
-                  }
-                })
-                .catch((err) => {
-                  void $q.notify({
-                    message: `Play load error: ${err}`,
-                    position: "bottom-right",
-                    timeout: 0
-                  })
-                })
-            PlayerFB(currentMetaChap.id)
-              .then((conf) => {
-                // eslint-disable-next-line promise/always-return
-                if (settingsStore.player.server === "FB") {
-                  configPlayer.value = conf
-                  typeCurrentConfig = "FB"
-                }
-                loadedServerFB = true
-              })
-              .catch((err) => {
-                void $q.notify({
-                  message: `Play load error: ${err}`,
-                  position: "bottom-right",
-                  timeout: 0
-                })
-              })
+        },
+        { immediate: true }
+      )
+      onCleanup(watcher)
+    } else {
+      const oldId = `${currentMetaChap$.id}@${realIdCurrentSeason.value}`
+      void getVdmStore().then(async (vdmStore) => {
+        const file = await vdmStore.getFile(
+          `${PREFIX_VIDEO}${currentMetaChap$.id}@${realIdCurrentSeason.value}`
+        )
+
+        const url = URL.createObjectURL(new Blob([file], { type: "video/mp4" }))
+
+        // eslint-disable-next-line promise/always-return
+        if (
+          oldId === `${currentMetaChap.value?.id}@${realIdCurrentSeason.value}`
+        )
+          configPlayer.value = {
+            link: [
+              {
+                file: url,
+                label: "FHD|HD",
+                qualityCode: getQualityByLabel("FHD|HD"),
+                preload: "auto",
+                type: "mp4"
+              }
+            ],
+            playTech: "api"
           }
-        } catch (err) {
-          $q.notify({
-            position: "bottom-right",
-            message: (err as Error).message
-          })
-          console.error(err)
-        }
-      },
-      { immediate: true }
-    )
-    onCleanup(watcher)
+      })
+    }
   },
   {
     immediate: true
@@ -1586,6 +1643,7 @@ async function addAnimePlaylist(idPlaylist: number) {
   if (!currentSeason.value) return
   if (!currentChap.value) return
   if (!currentMetaChap.value) return
+  if (!online.value) return
 
   try {
     await playlistStore.addAnimeToPlaylist(idPlaylist, {
@@ -1771,30 +1829,32 @@ const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
 
     let results: ShallowReactive<ListEpisodes>
     await Promise.any([
-      fetch(
-        `${API_OPEND}/list-episodes?${[
-          name,
-          ...(othername?.split(",").map((name) => name.trim()) ?? [])
-        ]
-          .map((item) => `name=${item}`)
-          .join("&")}`,
-        {
-          signal: controller.signal
-        }
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.progress.current === data.progress.total) {
-            // ok backup data now
-            void set(`episodes_opend:${realId}`, JSON.stringify(data))
-          }
+      online.value
+        ? fetch(
+            `${API_OPEND}/list-episodes?${[
+              name,
+              ...(othername?.split(",").map((name) => name.trim()) ?? [])
+            ]
+              .map((item) => `name=${item}`)
+              .join("&")}`,
+            {
+              signal: controller.signal
+            }
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.progress.current === data.progress.total) {
+                // ok backup data now
+                void set(`episodes_opend:${realId}`, JSON.stringify(data))
+              }
 
-          // eslint-disable-next-line promise/always-return
-          if (results) {
-            if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
-              Object.assign(results, data)
-          } else results = shallowReactive(data)
-        }),
+              // eslint-disable-next-line promise/always-return
+              if (results) {
+                if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
+                  Object.assign(results, data)
+              } else results = shallowReactive(data)
+            })
+        : Promise.reject(),
       getDataIDB<string>(`episodes_opend:${realId}`).then((text) => {
         if (!text) throw new Error("not_found_on_idb")
 
@@ -1869,17 +1929,19 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
 
     let results: ShallowReactive<InOutroEpisode>
     await Promise.any([
-      fetch(`${API_OPEND}/episode-skip/${id}`)
-        .then((res) => res.json() as Promise<InOutroEpisode>)
-        .then((data) => {
-          void set(`inoutro:${id}`, JSON.stringify(data))
+      online.value
+        ? fetch(`${API_OPEND}/episode-skip/${id}`)
+            .then((res) => res.json() as Promise<InOutroEpisode>)
+            .then((data) => {
+              void set(`inoutro:${id}`, JSON.stringify(data))
 
-          // eslint-disable-next-line promise/always-return
-          if (results) {
-            if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
-              Object.assign(results, data)
-          } else results = shallowReactive(data)
-        }),
+              // eslint-disable-next-line promise/always-return
+              if (results) {
+                if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
+                  Object.assign(results, data)
+              } else results = shallowReactive(data)
+            })
+        : Promise.reject(),
       getDataIDB<string>(`inoutro:${id}`).then((text) => {
         if (!text) throw new Error("not_found_on_idb")
 
@@ -1913,17 +1975,19 @@ const skEpisode = computedAsync<ShallowReactive<SkEpisode> | null>(
 
     let results: ShallowReactive<SkEpisode>
     await Promise.any([
-      fetch(`${API_SK}/episode-skip/${id}`)
-        .then((res) => res.json() as Promise<SkEpisode>)
-        .then((data) => {
-          void set(`sk:${id}`, JSON.stringify(data))
+      online.value
+        ? fetch(`${API_SK}/episode-skip/${id}`)
+            .then((res) => res.json() as Promise<SkEpisode>)
+            .then((data) => {
+              void set(`sk:${id}`, JSON.stringify(data))
 
-          // eslint-disable-next-line promise/always-return
-          if (results) {
-            if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
-              Object.assign(results, data)
-          } else results = shallowReactive(data)
-        }),
+              // eslint-disable-next-line promise/always-return
+              if (results) {
+                if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
+                  Object.assign(results, data)
+              } else results = shallowReactive(data)
+            })
+        : Promise.reject(),
       getDataIDB<string>(`sk:${id}`).then((text) => {
         if (!text) throw new Error("not_found_on_idb")
 
@@ -1959,27 +2023,21 @@ const stateOffline = computedAsync(
   { onError: WARN, lazy: true, shallow: true }
 )
 
-const vdmStoreRef = shallowRef<ReturnType<
-  typeof import("stores/vdm").useVDMStore
-> | null>(null)
-
 const stateProgress = computed(() => {
-  if (!vdmStoreRef.value || !realIdCurrentSeason.value || !currentChap.value)
+  if (!getVdmStoreCache() || !realIdCurrentSeason.value || !currentChap.value)
     return null
 
-  return vdmStoreRef.value?.getProgress(
+  return getVdmStoreCache()?.getProgress(
     realIdCurrentSeason.value,
     currentChap.value
   )
 })
 
 async function download() {
-  const { useVDMStore } = await import("stores/vdm")
-
-  vdmStoreRef.value ??= useVDMStore()
+  const vdmStore = await getVdmStore()
 
   try {
-    await vdmStoreRef.value.download(
+    await vdmStore.download(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       realIdCurrentSeason.value!,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -2006,18 +2064,48 @@ async function download() {
   }
 }
 async function remove() {
-  const { useVDMStore } = await import("stores/vdm")
-
-  vdmStoreRef.value ??= useVDMStore()
+  const vdmStore = await getVdmStore()
 
   if (!realIdCurrentSeason.value || !currentChap.value) return
-  await vdmStoreRef.value.confirmRemove(
-    realIdCurrentSeason.value,
-    currentChap.value
-  )
+  await vdmStore.confirmRemove(realIdCurrentSeason.value, currentChap.value)
 
   refreshStateOffline.value++
 }
+
+const seasonImage = computedAsync(
+  () => {
+    if (!data.value?.image) return data.value?.image
+
+    if (data.value.image.startsWith("file:")) {
+      // load file
+      return getVdmStore().then((vdmStore) => {
+        if (!data.value) return undefined
+        return vdmStore.getURL(data.value.image.slice(6))
+      })
+    }
+
+    return forceHttp2(data.value.image)
+  },
+  undefined,
+  { lazy: true, shallow: true, onError: WARN }
+)
+const seasonPoster = computedAsync(
+  () => {
+    if (!data.value?.poster) return data.value?.poster
+
+    if (data.value.poster.startsWith("file:")) {
+      // load file
+      return getVdmStore().then((vdmStore) => {
+        if (!data.value?.poster) return undefined
+        return vdmStore.getURL(data.value.poster.slice(6))
+      })
+    }
+
+    return forceHttp2(data.value.poster)
+  },
+  undefined,
+  { lazy: true, shallow: true, onError: WARN }
+)
 </script>
 
 <style lang="scss" scoped>

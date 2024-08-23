@@ -133,6 +133,7 @@
           <ChapsGridQBtn
             grid
             :chaps="_tmp.response.chaps"
+            :off="_tmp.response.off"
             :season="value"
             :find="(item) => value === currentSeason && item.id === currentChap"
             :progress-chaps="
