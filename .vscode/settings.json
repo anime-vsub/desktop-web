@@ -1,58 +1,7 @@
 {
-  "editor.bracketPairColorization.enabled": true,
-  "editor.guides.bracketPairs": true,
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": ["source.fixAll.eslint"],
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "vue"],
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "cSpell.words": ["phút", "supabase"],
-  "ionic.previewInEditor": true,
-  "vue-i18n.i18nPaths": "src/i18n",
-  "i18n-ally.keystyle": "flat",
-  "i18n-ally.localesPaths": ["src/i18n", "src/i18n/messages"],
-  "i18n-ally.extract.ignoredByFiles": {
-    "src/components/BrtPlayer.vue": ["Space", "Space"],
-    "src/pages/[_type-normal]/[value].vue": [" • "],
-    "src/pages/phim/_season.vue": [
-      "${nameSeason} (${chaps[0].name} - ${\n            chaps[chaps.length - 1].name\n          })",
-      "${name} - ${currentMetaSeason.name} Tập ${currentMetaChap.name}(${seasonId}/${currentMetaChap.id})"
-    ],
-    "src/pages/tai-khoan/index.vue": ["bg-dark text-light-9"],
-    "src/pages/lich-chieu-phim.vue": [
-      "\n          T{{ dayTextToNum(item.day) }}\n          ",
-      "/{{ item.month }}"
-    ],
-    "src/pages/news.vue": [
-      "&bull;\n            {{ dayjs(item.time).locale(\"vi\").fromNow() }}\n          "
-    ],
-    "src/pages/tai-khoan/edit-profile.vue": ["bg-dark text-light-9"],
-    "src/layouts/MainLayout.vue": [
-      "mailto:ogmo2r3q@duck.com?subject=Phản hồi ứng dụng web AnimeVsub",
-      "bg-dark text-light-9",
-      "Slash",
-      ".\n            {{ t('du-lieu-cua-ban-se-duoc-dong-bo-ca-o-do-va-day') }}\n          ",
-      "\n                        ({{\n                          t(\"da-co-ban-cap-nhat-moi-_newVersion\", [\n                            newVersionAble,\n                          ])\n                        }}\n                        ",
-      ")\n                      ",
-      ".\n            {{ t(\"du-lieu-cua-ban-se-duoc-dong-bo-ca-o-do-va-day\") }}\n          "
-    ],
-    "src/pages/tim-kiem/[keyword]-.vue": [
-      "&bull; {{ t('_maxPage-trang', [data?.maxPage]) }}\n      ",
-      "&bull; {{ t('_maxPage-trang', [data?.maxPage]) }}\n      "
-    ],
-    "src/apis/runs/ajax/rate.ts": ["${token_name}=${token_value}"],
-    "src/components/errors/cloudflare.vue": [")\n      "],
-    "src/components/errors/domain-strange.vue": [
-      "\n        {{ extensionVersion ?? \""
-    ]
-  },
-  "scss.lint.unknownAtRules": "ignore",
-  "i18n-ally.sourceLanguage": "vi-VN",
-  "i18n-ally.extract.ignored": [
-    "&bull;\n              {{\n                t(\"tap-moi-chieu-vao-_time-_day\", [\n                  dayjs(\n                    new Date(\n                      `${currentDataSeason.update[1]}:${currentDataSeason.update[2]} 1/1/0`\n                    )\n                  ).format(\"HH:MM\"),\n                  currentDataSeason.update[0] === 0\n                    ? \"chủ nhật\"\n                    : `thứ ${currentDataSeason.update[0]}`,\n                  currentDataSeason.update[0] > new Date().getDay() + 1\n                    ? \"tuần sau\"\n                    : \"tuần này\",\n                ])\n              }}\n            ",
-    "Urban VPN"
+  "i18n-ally.localesPaths": [
+    "src/i18n",
+    "src/i18n/messages"
   ],
-  "editor.tabCompletion": "on",
-  "diffEditor.codeLens": true,
-  "bun.runtime": "/home/gitpod/.bun/bin/bun"
+  "css.customData": [".vscode/tailwind.json"]
 }
