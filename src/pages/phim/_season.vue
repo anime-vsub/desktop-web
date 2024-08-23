@@ -261,6 +261,53 @@
               t("luu")
             }}</span>
           </q-btn>
+          <q-btn
+            no-caps
+            rounded
+            unelevated
+            :disable="
+              !realIdCurrentSeason ||
+              !data ||
+              !currentDataCache?.response! ||
+              !currentChap
+            "
+            class="bg-[rgba(113,113,113,0.3)] mr-4 text-weight-normal"
+            @click="download"
+          >
+            <template v-if="stateProgress && Array.isArray(stateProgress)">
+              <q-circular-progress
+                show-value
+                class="text-white"
+                :value="(stateProgress[2] / stateProgress[3]) * 100"
+                size="28px"
+                color="main"
+              >
+                <span class="text-10px"
+                  >{{
+                    Math.round((stateProgress[2] / stateProgress[3]) * 100)
+                  }}%</span
+                >
+              </q-circular-progress>
+
+              <q-tooltip
+                anchor="bottom middle"
+                self="top middle"
+                class="bg-dark text-[14px] text-weight-medium"
+                transition-show="jump-up"
+                transition-hide="jump-down"
+              >
+                Còn lại {{ parseTime(stateProgress[3] - stateProgress[2]) }}
+              </q-tooltip>
+            </template>
+            <i-fluent-arrow-download-16-regular v-else width="28" height="28" />
+            <span class="text-[14px] font-weight-normal ml-1">{{
+              stateProgress
+                ? Array.isArray(stateProgress)
+                  ? "Đang tải"
+                  : "Lỗi"
+                : "Tải"
+            }}</span>
+          </q-btn>
         </div>
       </div>
 
@@ -485,6 +532,7 @@ import { getDataJson } from "src/logic/get-data-json"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { getRealSeasonId } from "src/logic/getRealSeasonId"
 import { parseChapName } from "src/logic/parseChapName"
+import { parseTime } from "src/logic/parseTime"
 import { unflat } from "src/logic/unflat"
 import { useAuthStore } from "stores/auth"
 import { useHistoryStore } from "stores/history"
@@ -1866,6 +1914,52 @@ const skEpisode = computedAsync<ShallowReactive<SkEpisode> | null>(
   null,
   { onError: WARN, shallow: true, lazy: true }
 )
+
+// ============== download video ===============
+const vdmStoreRef = shallowRef<ReturnType<
+  typeof import("stores/vdm").useVDMStore
+> | null>(null)
+
+const stateProgress = computed(() => {
+  if (!vdmStoreRef.value || !realIdCurrentSeason.value || !currentChap.value)
+    return null
+
+  return vdmStoreRef.value?.getProgress(
+    realIdCurrentSeason.value,
+    currentChap.value
+  )
+})
+
+async function download() {
+  const { useVDMStore } = await import("stores/vdm")
+
+  vdmStoreRef.value ??= useVDMStore()
+
+  try {
+    await vdmStoreRef.value.download(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      realIdCurrentSeason.value!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      data.value!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      currentDataCache.value!.response!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      currentChap.value!
+    )
+
+    $q.notify({
+      message: t("da-tai-xong-video"),
+      caption: t("msg-close-tab"),
+      position: "bottom-left"
+    })
+  } catch (err) {
+    $q.notify({
+      message: t("tai-video-that-bai"),
+      caption: err + "",
+      position: "bottom-left"
+    })
+  }
+}
 </script>
 
 <style lang="scss" scoped>

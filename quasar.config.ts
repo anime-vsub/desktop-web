@@ -121,6 +121,10 @@ export default configure(function (/* ctx */) {
 
       extendViteConf(viteConf) {
         extend(true, viteConf, {
+          optimizeDeps: {
+            exclude: ["@ffmpeg/ffmpeg"]
+          },
+
           resolve: {
             alias: {
               path: "path-browserify"
@@ -182,7 +186,7 @@ export default configure(function (/* ctx */) {
               "vue-router",
               {
                 quasar: ["useQuasar"],
-                "vue-i18n": ["useI18n"],
+                "vue-i18n": ["useI18n"]
                 // "@vueuse/core": ["computedAsync"]
               }
             ],

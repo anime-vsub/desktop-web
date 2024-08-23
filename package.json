@@ -22,6 +22,8 @@
     "release": "bumpp package.json --commit --tag --push"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.6",
+    "@ffmpeg/ffmpeg": "^0.12.10",
     "@firebase/analytics": "^0.9.5",
     "@firebase/app": "^0.9.15",
     "@firebase/firestore": "^3.13.0",
@@ -42,6 +44,8 @@
     "fb-comments-web": "^0.0.13",
     "filesize": "^10.1.0",
     "group-array": "^1.0.0",
+    "hls-parser": "^0.13.3",
+    "hls-to-mp4-browser": "git+https://github.com/anime-vsub/hls-to-mp4-browser.git",
     "htmlparser2": "^8.0.2",
     "idb-keyval": "^6.2.1",
     "iso-639-1": "^2.1.15",

@@ -54,5 +54,9 @@
   ],
   "editor.tabCompletion": "on",
   "diffEditor.codeLens": true,
-  "bun.runtime": "/home/gitpod/.bun/bin/bun"
+  "bun.runtime": "/home/gitpod/.bun/bin/bun",
+  
+  "css.customData": [
+    ".vscode/tailwind.json"
+  ]
 }
