@@ -2115,26 +2115,33 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
               if (import.meta.env.DEV && 解決済み)
                 console.info("[Segment]: using url resolved")
               if (解決済み)
-                return fetch(解決済み[0], request).catch(async (err) => {
-                  if (
-                    err instanceof TypeError &&
-                    err.message === "Failed to fetch" &&
-                    await isConnectedToNetwork()
-                  ) {
-                    // url expired
-                    セグメント解決済み.clear()
-                    resolvingTask.clear()
-                    console.log("[Segment]: url expired. Clear all cache")
+                return fetch(解決済み[0], request)
+                  .then((res) => {
+                    // eslint-disable-next-line no-throw-literal
+                    if (res.status === 403) throw true
+                    return res
+                  })
+                  .catch(async (err) => {
                     if (
-                      Number.MAX_SAFE_INTEGER ===
-                      settingsStore.player.preResolve
-                    )
-                      preResolveHot()
-                    return fetch(request)
-                  }
+                      typeof err === "boolean" ||
+                      (err instanceof TypeError &&
+                        err.message === "Failed to fetch" &&
+                        (await isConnectedToNetwork()))
+                    ) {
+                      // url expired
+                      セグメント解決済み.clear()
+                      resolvingTask.clear()
+                      console.log("[Segment]: url expired. Clear all cache")
+                      if (
+                        Number.MAX_SAFE_INTEGER ===
+                        settingsStore.player.preResolve
+                      )
+                        preResolveHot()
+                      return fetch(request)
+                    }
 
-                  throw err
-                })
+                    throw err
+                  })
             }
 
             return fetch(request)
