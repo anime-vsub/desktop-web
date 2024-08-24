@@ -60,6 +60,7 @@ export type Database = {
           season: string
           season_name: string
           user_id: number
+          v_chap: number | null
         }
         Insert: {
           created_at?: string
@@ -70,6 +71,7 @@ export type Database = {
           season: string
           season_name: string
           user_id: number
+          v_chap?: number | null
         }
         Update: {
           created_at?: string
@@ -80,6 +82,7 @@ export type Database = {
           season?: string
           season_name?: string
           user_id?: number
+          v_chap?: number | null
         }
         Relationships: [
           {
@@ -94,6 +97,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "history_v_chap_fkey"
+            columns: ["v_chap"]
+            isOneToOne: false
+            referencedRelation: "chaps"
             referencedColumns: ["id"]
           },
         ]
@@ -138,6 +148,47 @@ export type Database = {
             columns: ["playlist_id"]
             isOneToOne: false
             referencedRelation: "playlist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          episodes: Json[]
+          id: number
+          name: string
+          path: string
+          poster: string
+          updated_at: string
+          user_id: number
+        }
+        Insert: {
+          created_at?: string
+          episodes: Json[]
+          id?: number
+          name: string
+          path: string
+          poster: string
+          updated_at: string
+          user_id: number
+        }
+        Update: {
+          created_at?: string
+          episodes?: Json[]
+          id?: number
+          name?: string
+          path?: string
+          poster?: string
+          updated_at?: string
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
