@@ -13,7 +13,7 @@ export default function AjaxNotification(html: string) {
         .find(".notification-text")
         .find("strong")
         .map((_i, item) => $(item).text())
-      const time = $item.find(".notification-time").text()
+      const time = $item.find(".notification-time").text().trim()
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const path = getPathName($item.find("a").attr("href")!)
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
