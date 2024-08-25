@@ -1,3 +1,5 @@
+import { join } from "path"
+
 import AutoImport from "unplugin-auto-import/vite"
 import IconsResolver from "unplugin-icons/resolver"
 import Icons from "unplugin-icons/vite"
@@ -9,6 +11,11 @@ export default defineConfig({
     setupFiles: ["@vitest/web-worker"],
     environment: "jsdom",
     globals: true
+  },
+  resolve: {
+    alias: {
+      "src/": join(__dirname, "src/")
+    }
   },
   plugins: [
     Icons(),
@@ -25,7 +32,7 @@ export default defineConfig({
         "vue-router",
         {
           quasar: ["useQuasar"],
-          "vue-i18n": ["useI18n"],
+          "vue-i18n": ["useI18n"]
           // "@vueuse/core": ["computedAsync"]
         }
       ],
