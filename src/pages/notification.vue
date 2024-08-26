@@ -40,7 +40,7 @@
                 <q-item-label class="text-subtitle1 text-weight-normal"
                   >{{ item.name }}
                   <span class="text-grey"> {{ t("da-cap-nhat") }} </span>
-                  {{ item.chap }}</q-item-label
+                  {{ $t("Tap") }} {{ item.chap }}</q-item-label
                 >
                 <q-item-label class="text-grey">{{ item.time }}</q-item-label>
               </q-item-section>

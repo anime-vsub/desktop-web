@@ -77,55 +77,67 @@ describe("notification", () => {
         image:
           "http://cdn.animevietsub.cc/data/banner/2021/08/31/animevsub-4WKr3mgTnu.jpg",
         name: "Hôn Thê Cúc Cu",
-        chap: "Tập 24_END",
+        chap: "24_END",
         time: "5 ngày trước",
         path: "/phim/kakkou-no-iinazuke-a4260/tap-24end-86965.html",
-        id: "5606932"
+        id: "5606932",
+        season: "kakkou-no-iinazuke-a4260",
+        chapId: "86965"
       },
       {
         image:
           "http://cdn.animevietsub.cc/data/banner/2022/04/15/animevsub-wo4DTBXCyd.png",
         name: "Summertime Render",
-        chap: "Tập 25_END",
+        chap: "25_END",
         time: "6 ngày trước",
         path: "/phim/summertime-render-a4504/tap-25end-86906.html",
-        id: "5589667"
+        id: "5589667",
+        season: "summertime-render-a4504",
+        chapId: "86906"
       },
       {
         image:
           "http://cdn.animevietsub.cc/data/banner/2022/07/08/animevsub-gvZ0OWMdaI.jpg",
         name: "Yofukashi no Uta",
-        chap: "Tập 13_END",
+        chap: "13_END",
         time: "1 tuần trước",
         path: "/phim/call-of-the-night-a4536/tap-13end-86895.html",
-        id: "5581144"
+        id: "5581144",
+        season: "call-of-the-night-a4536",
+        chapId: "86895"
       },
       {
         image:
           "http://cdn.animevietsub.cc/data/banner/2022/09/08/animevsub-MThn4jJ9eT.jpg",
         name: "DanMachi IV",
-        chap: "Tập 11_END",
+        chap: "11_END",
         time: "1 tuần trước",
         path: "/phim/danmachi-iv-a4289/tap-11end-86893.html",
-        id: "5577127"
+        id: "5577127",
+        season: "danmachi-iv-a4289",
+        chapId: "86893"
       },
       {
         image:
           "http://cdn.animevietsub.cc/data/banner/2022/06/03/animevsub-ixE7rWSfjK.jpg",
         name: "Ma Vương Đi Làm Mùa 2",
-        chap: "Tập 12_END",
+        chap: "12_END",
         time: "1 tuần trước",
         path: "/phim/hataraku-maou-sama-2nd-season-a4257/tap-12end-86892.html",
-        id: "5573509"
+        id: "5573509",
+        season: "hataraku-maou-sama-2nd-season-a4257",
+        chapId: "86892"
       },
       {
         image:
           "http://cdn.animevietsub.cc/data/banner/2022/06/16/animevsub-WTbLjxxodb.jpg",
         name: "Overlord IV",
-        chap: "Tập 13_END",
+        chap: "13_END",
         time: "1 tuần trước",
         path: "/phim/overlord-iv-a4263/tap-13end-86859.html",
-        id: "5559895"
+        id: "5559895",
+        season: "overlord-iv-a4263",
+        chapId: "86859"
       }
     ])
   })

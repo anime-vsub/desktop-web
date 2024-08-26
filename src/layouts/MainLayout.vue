@@ -509,115 +509,7 @@
           </q-menu>
         </q-btn>
 
-        <q-btn v-if="authStore.isLogged" round unelevated class="mr-2">
-          <Icon
-            :icon="
-              showMenuNotify
-                ? 'clarity:notification-solid'
-                : 'clarity:notification-line'
-            "
-            width="24"
-            height="24"
-          />
-
-          <q-badge
-            floating
-            rounded
-            transparent
-            class="top-0"
-            :label="notificationStore.max"
-          />
-
-          <q-menu
-            v-model="showMenuNotify"
-            class="bg-dark-page scrollbar-custom shadow-xl"
-          >
-            <q-card class="bg-transparent max-w-[435px]">
-              <q-card-section>
-                <q-list v-if="notificationStore.loading" class="bg-transparent">
-                  <q-item v-for="item in 12" :key="item" class="rounded-xl">
-                    <q-item-section>
-                      <q-item-label class="text-subtitle1 text-weight-normal">
-                        <q-skeleton type="text" width="40%" />
-                        <q-skeleton type="text" width="60%" />
-                      </q-item-label>
-                      <q-item-label>
-                        <q-skeleton type="text" width="100" height="15px" />
-                      </q-item-label>
-                    </q-item-section>
-                    <q-item-section side>
-                      <q-responsive
-                        :ratio="120 / 81"
-                        class="w-[120px] rounded-sm"
-                      >
-                        <q-skeleton
-                          type="rect"
-                          class="absolute w-full h-full"
-                        />
-                      </q-responsive>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-
-                <q-list v-else class="bg-transparent">
-                  <transition-group name="notify">
-                    <q-item
-                      v-for="item in notificationStore.items"
-                      :key="item.id"
-                      :to="item.path"
-                      class="hidden-focus-helper"
-                    >
-                      <q-item-section>
-                        <q-item-label class="text-subtitle1 text-weight-normal"
-                          >{{ item.name }}
-                          <span class="text-grey">
-                            {{ t("da-cap-nhat") }}
-                          </span>
-                          {{ item.chap }}</q-item-label
-                        >
-                        <q-item-label class="text-grey">{{
-                          item.time
-                        }}</q-item-label>
-                      </q-item-section>
-                      <q-item-section side>
-                        <div class="flex flex-nowrap">
-                          <q-img-custom
-                            no-spinner
-                            :src="forceHttp2(item.image!)"
-                            referrerpolicy="no-referrer"
-                            width="128px"
-                            :ratio="120 / 81"
-                            class="rounded-sm"
-                          />
-                          <div class="mr-[-32px]">
-                            <q-btn
-                              round
-                              dense
-                              unelevated
-                              icon="close"
-                              @click.prevent="notificationStore.remove(item.id)"
-                            />
-                          </div>
-                        </div>
-                      </q-item-section>
-                    </q-item>
-                  </transition-group>
-                </q-list>
-
-                <div
-                  v-if="notificationStore.items.length < notificationStore.max"
-                  class="text-grey text-center mt-3 mx-2 mb-3"
-                >
-                  {{
-                    t(
-                      "do-api-server-khong-day-du-ban-phai-xoa-nhung-thong-bao-moi-de-xem-nhung-thong-bao-cu"
-                    )
-                  }}
-                </div>
-              </q-card-section>
-            </q-card>
-          </q-menu>
-        </q-btn>
+        <button-notify v-if="authStore.isLogged" />
 
         <q-btn flat round unelevated>
           <q-avatar v-if="authStore.isLogged" size="35px">
@@ -643,7 +535,7 @@
 
           <q-menu
             v-model="showMenuAccount"
-            class="rounded-xl bg-dark-page shadow-xl"
+            class="rounded-xl bg-dark-page shadow-xl scrollbar-custom overflow-y-auto overflow-x-hidden"
           >
             <q-card class="transparent w-[280px] px-2 pb-3">
               <q-list v-if="tabMenuAccountActive === 'normal'">
@@ -798,6 +690,26 @@
                   <q-item-section side>
                     <q-toggle
                       v-model="settingsStore.enablePersistent"
+                      dense
+                      color="main"
+                    />
+                  </q-item-section>
+                </q-item>
+
+                <q-item clickable v-ripple class="rounded-xl">
+                  <q-item-section avatar class="min-w-0">
+                    <Icon
+                      icon="fluent:phone-vertical-scroll-24-regular"
+                      width="20"
+                      height="20"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Hiện số anime thông báo</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-toggle
+                      v-model="settingsStore.showCountNotify"
                       dense
                       color="main"
                     />
@@ -1179,6 +1091,7 @@ import CardVertical from "components/CardVertical.vue"
 import PanelFixCSR from "components/PanelFixCSR.vue"
 import QImgCustom from "components/QImgCustom"
 import SkeletonCardVertical from "components/SkeletonCardVertical.vue"
+import ButtonNotify from "components/app/button-notify.vue"
 import { debounce, QInput, useQuasar } from "quasar"
 import semverGt from "semver/functions/gt"
 import { version } from "src/../package.json"
@@ -1193,7 +1106,6 @@ import { parseTime } from "src/logic/parseTime"
 import { installedSW, updatingCache } from "src/logic/state-sw"
 import { useAuthStore } from "stores/auth"
 import { useHistoryStore } from "stores/history"
-import { useNotificationStore } from "stores/notification"
 import { usePlaylistStore } from "stores/playlist"
 import { useSettingsStore } from "stores/settings"
 import langs from "virtual:i18n-langs"
@@ -1277,7 +1189,6 @@ const drawersBottom = computed(() => [
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const notificationStore = useNotificationStore()
 const settingsStore = useSettingsStore()
 const playlistStore = usePlaylistStore()
 const historyStore = useHistoryStore()
@@ -1369,7 +1280,6 @@ async function logout() {
 // ============= states ===============
 const showMenuHistory = ref(false)
 const showMenuFollow = ref(false)
-const showMenuNotify = ref(false)
 const showMenuAccount = ref(false)
 
 // history
@@ -1544,26 +1454,6 @@ const btoa = (str: string) => self.btoa(str).replace(/={2}$/, "")
 
 .only-router-active {
   display: none;
-}
-</style>
-
-<style lang="scss" scoped>
-.notify {
-  &-move,
-  &-enter-active,
-  &-leave-active {
-    transition: all 0.22s ease;
-  }
-
-  &-enter-from,
-  &-leave-to {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-
-  &-leave-active {
-    position: absolute;
-  }
 }
 </style>
 

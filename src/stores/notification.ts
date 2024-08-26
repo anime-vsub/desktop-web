@@ -1,16 +1,21 @@
+import { noop } from "@vueuse/shared"
 import { i18n } from "boot/i18n"
 import { defineStore } from "pinia"
 import { useQuasar } from "quasar"
 import { AjaxNotification } from "src/apis/runs/ajax/notification"
+import { supabase } from "src/boot/supabase"
 import { post } from "src/logic/http"
-import { ref, shallowRef, watch } from "vue"
+import { syncNotifyToDb } from "src/schedule/sync-notify-to-db"
+import { shallowRef, watch } from "vue"
 
 import { useAuthStore } from "./auth"
+import { useSettingsStore } from "./settings"
 
 export const useNotificationStore = defineStore(
   "notification",
   () => {
     const authStore = useAuthStore()
+    const settingsStore = useSettingsStore()
 
     const items = shallowRef<
       Awaited<ReturnType<typeof AjaxNotification>>["items"]
@@ -29,10 +34,16 @@ export const useNotificationStore = defineStore(
 
       try {
         loading.value = true
-        const result = await AjaxNotification()
+        await Promise.all([
+          // eslint-disable-next-line promise/always-return
+          AjaxNotification().then((result) => {
+            items.value = result.items
+            max.value = result.max
+          }),
+          updateCountInDb()
+        ])
 
-        items.value = result.items
-        max.value = result.max
+        if (settingsStore.autoSyncNotify) void startSync()
       } catch (err) {
         if ((err as Error)?.message === "NOT_LOGIN") {
           // cookie not sync
@@ -78,12 +89,34 @@ export const useNotificationStore = defineStore(
           clearTimeout(timeout)
           items.value = []
           max.value = 0
+          stopSync()
+          maxInDB.value = undefined
         }
       },
       { immediate: true }
     )
 
-    async function remove(id: string) {
+    async function remove(id: string): Promise<void>
+    async function remove(
+      season: string,
+      inDb: true,
+      chapId?: string
+    ): Promise<void>
+    async function remove(id: string, inDb: boolean = false, chapId?: string) {
+      if (!authStore.uid) return
+
+      if (inDb) {
+        await supabase
+          .rpc("delete_notify", {
+            user_uid: authStore.uid,
+            p_season: id,
+            p_chapid: chapId
+          })
+          .throwOnError()
+
+        return
+      }
+
       const { data } = await post("/ajax/notification", {
         Delete: "true",
         id
@@ -91,8 +124,8 @@ export const useNotificationStore = defineStore(
 
       if (JSON.parse(data).status !== 1)
         throw new Error(i18n.global.t("errors.xoa-thong-bao-that-bai"))
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      refresh(() => {})
+
+      refresh(noop)
     }
 
     async function refresh(done: () => void) {
@@ -106,9 +139,78 @@ export const useNotificationStore = defineStore(
       done()
     }
 
-    return { items, max, remove, loading, refresh }
+    let controllerSync: AbortController | null = null
+    const syncing = shallowRef(false)
+    function stopSync() {
+      controllerSync?.abort()
+      controllerSync = null
+      syncing.value = false
+
+      refresh(noop)
+    }
+    async function startSync() {
+      if (controllerSync || syncing.value) return
+
+      syncing.value = true
+      controllerSync = new AbortController()
+
+      await syncNotifyToDb(controllerSync.signal, useNotificationStore())
+
+      stopSync()
+    }
+
+    const maxInDB = shallowRef<{
+      notify_count: number
+      notify_chap_count: number
+    }>()
+    async function updateCountInDb() {
+      if (!authStore.uid) return
+
+      const { data } = await supabase
+        .rpc("get_count_notify", {
+          p_user_uid: authStore.uid
+        })
+        .single()
+        .throwOnError()
+
+      maxInDB.value = data ?? undefined
+    }
+
+    async function queryDb(page: number) {
+      if (!authStore.uid) throw new Error("Not login")
+
+      const { data } = await supabase
+        .rpc("query_notify", {
+          p_page: page,
+          p_page_size: 30,
+          p_user_uid: authStore.uid
+        })
+        .throwOnError()
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return data!
+    }
+
+    return {
+      items,
+      max,
+      remove,
+      loading,
+      refresh,
+
+      syncing,
+
+      maxInDB,
+      updateCountInDb,
+      queryDb,
+
+      stopSync,
+      startSync
+    }
   },
   {
-    persist: true
+    persist: {
+      paths: ["items", "max", "maxInDB"]
+    }
   }
 )

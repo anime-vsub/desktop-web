@@ -6,7 +6,7 @@
   "editor.codeActionsOnSave": ["source.fixAll.eslint"],
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "vue"],
   "typescript.tsdk": "node_modules/typescript/lib",
-  "cSpell.words": ["phút", "supabase"],
+  "cSpell.words": ["chapid", "phút", "supabase"],
   "ionic.previewInEditor": true,
   "vue-i18n.i18nPaths": "src/i18n",
   "i18n-ally.keystyle": "flat",
@@ -55,8 +55,6 @@
   "editor.tabCompletion": "on",
   "diffEditor.codeLens": true,
   "bun.runtime": "/home/gitpod/.bun/bin/bun",
-  
-  "css.customData": [
-    ".vscode/tailwind.json"
-  ]
+
+  "css.customData": [".vscode/tailwind.json"]
 }

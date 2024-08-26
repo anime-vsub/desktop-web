@@ -152,35 +152,29 @@ export type Database = {
           },
         ]
       }
-      notifications: {
+      notify: {
         Row: {
           created_at: string
-          episodes: Json[]
           id: number
+          image: string
           name: string
-          path: string
-          poster: string
-          updated_at: string
+          season: string
           user_id: number
         }
         Insert: {
           created_at?: string
-          episodes: Json[]
           id?: number
+          image: string
           name: string
-          path: string
-          poster: string
-          updated_at: string
+          season: string
           user_id: number
         }
         Update: {
           created_at?: string
-          episodes?: Json[]
           id?: number
+          image?: string
           name?: string
-          path?: string
-          poster?: string
-          updated_at?: string
+          season?: string
           user_id?: number
         }
         Relationships: [
@@ -189,6 +183,41 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notify_chap: {
+        Row: {
+          chap_id: string
+          created_at: string
+          id: number
+          name: string
+          notify_id: number
+          time: string
+        }
+        Insert: {
+          chap_id: string
+          created_at?: string
+          id?: number
+          name: string
+          notify_id: number
+          time: string
+        }
+        Update: {
+          chap_id?: string
+          created_at?: string
+          id?: number
+          name?: string
+          notify_id?: number
+          time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notify_chap_notify_id_fkey"
+            columns: ["notify_id"]
+            isOneToOne: false
+            referencedRelation: "notify"
             referencedColumns: ["id"]
           },
         ]
@@ -315,12 +344,37 @@ export type Database = {
           movies_count: number
         }[]
       }
+      delete_notify:
+        | {
+            Args: {
+              user_uid: string
+              p_season: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              user_uid: string
+              p_season: string
+              p_chapid: string
+            }
+            Returns: undefined
+          }
       delete_playlist: {
         Args: {
           user_uid: string
           playlist_id: number
         }
         Returns: undefined
+      }
+      get_count_notify: {
+        Args: {
+          p_user_uid: string
+        }
+        Returns: {
+          notify_count: number
+          notify_chap_count: number
+        }[]
       }
       get_last_chap: {
         Args: {
@@ -445,6 +499,21 @@ export type Database = {
           watch_dur: number
         }[]
       }
+      query_notify: {
+        Args: {
+          p_user_uid: string
+          p_page: number
+          p_page_size: number
+        }
+        Returns: {
+          created_at: string
+          name: string
+          image: string
+          season: string
+          latest_chap_time: string
+          episodes: Json
+        }[]
+      }
       rename_playlist: {
         Args: {
           user_uid: string
@@ -499,6 +568,28 @@ export type Database = {
             }
             Returns: undefined
           }
+      upsert_notify: {
+        Args: {
+          p_image: string
+          p_name: string
+          p_chap: string
+          p_time: string
+          p_season: string
+          p_chapid: string
+          user_uid: string
+        }
+        Returns: {
+          notify_count: number
+          notify_chap_count: number
+        }[]
+      }
+      upsert_notifys: {
+        Args: {
+          p_data: Json
+          user_uid: string
+        }
+        Returns: undefined
+      }
       upsert_user: {
         Args: {
           p_uuid: string

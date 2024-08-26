@@ -8,7 +8,8 @@ export default function AjaxNotification(html: string) {
     .map((_i, item) => {
       const $item = $(item)
 
-      const image = $item.find("img").attr("src")
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const image = $item.find("img").attr("src")!
       const [name, chap] = $item
         .find(".notification-text")
         .find("strong")
@@ -19,7 +20,22 @@ export default function AjaxNotification(html: string) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const id = $item.find(".notification-delete").attr("data-id")!
 
-      return { image, name, chap, time, path, id }
+      const paths$ = path.split("/")
+
+      const season = paths$[2]
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const chapId = path.match(/(\d+)(?:\.html?)?$/)![1]
+
+      return {
+        image,
+        name,
+        chap: chap.replace(/Tập\s+/i, "").trim(),
+        time,
+        path,
+        id,
+        season,
+        chapId
+      }
     })
     .toArray()
 }
