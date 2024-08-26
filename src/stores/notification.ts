@@ -106,13 +106,16 @@ export const useNotificationStore = defineStore(
       if (!authStore.uid) return
 
       if (inDb) {
-        await supabase
+        const { data } = await supabase
           .rpc("delete_notify", {
             user_uid: authStore.uid,
             p_season: id,
             p_chapid: chapId
           })
+          .single()
           .throwOnError()
+
+        maxInDB.value = data ?? maxInDB.value
 
         return
       }
@@ -140,21 +143,20 @@ export const useNotificationStore = defineStore(
     }
 
     let controllerSync: AbortController | null = null
-    const syncing = shallowRef(false)
+    const syncing$ = shallowRef(false)
+    let syncing = syncing$
     if (typeof self.BroadcastChannel !== "undefined") {
       const broadcastSync = new BroadcastChannel("syncing-notify")
       broadcastSync.onmessage = (event: MessageEvent<boolean>) => {
-        syncing.value = event.data
-        if (!event.data) stopSync()
+        syncing$.value = event.data
       }
-
-      watch(
-        syncing,
-        (syncing) => {
-          broadcastSync.postMessage(syncing)
-        },
-        { immediate: true }
-      )
+      syncing = computed<boolean>({
+        get: () => syncing$.value,
+        set: (val) => {
+          syncing$.value = val
+          broadcastSync.postMessage(val)
+        }
+      })
     }
 
     function stopSync() {
