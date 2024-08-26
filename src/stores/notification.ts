@@ -141,6 +141,22 @@ export const useNotificationStore = defineStore(
 
     let controllerSync: AbortController | null = null
     const syncing = shallowRef(false)
+    if (typeof self.BroadcastChannel !== "undefined") {
+      const broadcastSync = new BroadcastChannel("syncing-notify")
+      broadcastSync.onmessage = (event: MessageEvent<boolean>) => {
+        syncing.value = event.data
+        if (!event.data) stopSync()
+      }
+
+      watch(
+        syncing,
+        (syncing) => {
+          broadcastSync.postMessage(syncing)
+        },
+        { immediate: true }
+      )
+    }
+
     function stopSync() {
       controllerSync?.abort()
       controllerSync = null
