@@ -308,5 +308,8 @@
   "cancel-by-user": "Cancel by user",
   "dlg": "Đang tải xuống...",
   "msg-keep-tab": "Giữ cửa sổ này mở để tiếp tục",
-  "chap-not-found": "Chap {0} not found"
+  "chap-not-found": "Chap {0} not found",
+  "matte": "Chờ đã!",
+  "msg-warn": "Nếu có ai đó yêu cầu bạn sao/chép thứ gì đó ở đây, bảo đảm 11/10 lần là bạn đang bị lừa.",
+  "msg-warn2": "Sao chép bất cứ thứ gì vào đây có thể khiến tài khoản Google/Facebook/Discord và nhiều tài khoản khác của bạn bị tấn công."
 }

@@ -318,5 +318,8 @@
   "msg-close-tab": "You can safely close this window",
   "msg-keep-tab": "Keep this window open to continue",
   "msg-ques-quality": "The higher the quality, the more memory it takes up and the longer it takes to load",
-  "tai-video-that-bai": "Video download failed"
+  "tai-video-that-bai": "Video download failed",
+  "matte": "Wait!",
+  "msg-warn": "If someone asks you to copy something here, 11/10 times you are being scammed.",
+  "msg-warn2": "Copying anything here can get your Google/Facebook/Discord and many other accounts hacked."
 }
