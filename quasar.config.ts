@@ -198,7 +198,9 @@ export default configure(function (/* ctx */) {
           }
         ],
         // ["vite-plugin-rewrite-all", {}],
-        ["vite-plugin-remove-console", {}],
+        ["vite-plugin-remove-console", {
+		  external: ["src/boot/console.ts"]
+		}],
         [vitePluginI18nLangs, {}]
       ] as unknown as any
     },
