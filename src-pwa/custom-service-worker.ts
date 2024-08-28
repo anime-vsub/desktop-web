@@ -152,7 +152,7 @@ if (process.env.MODE !== "ssr" || process.env.PROD) {
                       }</script>`
                     : "") +
                   `<link rel="canonical" href="${
-                    event.url.protocol + event.url.host
+                    event.url.protocol + "//" + event.url.host
                   }/phim/${id || anime}" />` +
                   "</head>"
               )
