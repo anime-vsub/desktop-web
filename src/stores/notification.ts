@@ -143,18 +143,41 @@ export const useNotificationStore = defineStore(
     }
 
     let controllerSync: AbortController | null = null
+
     const syncing$ = shallowRef(false)
     let syncing = syncing$
+
+    const maxInDB$ = shallowRef<{
+      notify_count: number
+      notify_chap_count: number
+    }>()
+    let maxInDB = maxInDB$
+
     if (typeof self.BroadcastChannel !== "undefined") {
       const broadcastSync = new BroadcastChannel("syncing-notify")
-      broadcastSync.onmessage = (event: MessageEvent<boolean>) => {
-        syncing$.value = event.data
+      broadcastSync.onmessage = (
+        event: MessageEvent<
+          | { type: "sync"; value: boolean }
+          | { type: "max"; value: typeof maxInDB$.value }
+        >
+      ) => {
+        if (event.data.type === "sync") syncing$.value = event.data.value
+        else if (event.data.type === "max") maxInDB$.value = event.data.value
       }
+
       syncing = computed<boolean>({
         get: () => syncing$.value,
         set: (val) => {
           syncing$.value = val
-          broadcastSync.postMessage(val)
+          broadcastSync.postMessage({ type: "sync", value: val })
+        }
+      })
+
+      maxInDB = computed<typeof maxInDB$.value>({
+        get: () => maxInDB$.value,
+        set: (val) => {
+          maxInDB$.value = val
+          broadcastSync.postMessage({ type: "max", value: val })
         }
       })
     }
@@ -177,10 +200,6 @@ export const useNotificationStore = defineStore(
       stopSync()
     }
 
-    const maxInDB = shallowRef<{
-      notify_count: number
-      notify_chap_count: number
-    }>()
     async function updateCountInDb() {
       if (!authStore.uid) return
 
