@@ -43,7 +43,6 @@ while (true) {
           console.log("Done %i / %i (%s)", i, rows?.length, row.season)
           allFailure = false
         } catch (err) {
-           
           if (
             (err as unknown as any)?.message === "Can't find chap" &&
             REMOVE_ROW_LOSS

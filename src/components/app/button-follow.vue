@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { Icon } from "@iconify/vue"
+import { QCard } from "quasar"
 import { useAuthStore } from "stores/auth"
 
 const { t } = useI18n()
