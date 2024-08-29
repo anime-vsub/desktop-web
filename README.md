@@ -51,6 +51,7 @@ If you find this project useful please support me through:
 ## News
 
 ### 1.1.47
+
 - Fix regexp `/^\w+0+/` to `/^[^0-9.+_-]+/`
 
 ### 1.1.46
@@ -59,7 +60,6 @@ If you find this project useful please support me through:
 - Lazy load data
 - shallow reactive
   ![image](https://github.com/user-attachments/assets/e1c3bbb9-2add-4e26-af8a-22f1b2dee4c9)
-
 
 ### 1.0.5
 

@@ -43,8 +43,11 @@ while (true) {
           console.log("Done %i / %i (%s)", i, rows?.length, row.season)
           allFailure = false
         } catch (err) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if ((err as unknown as any)?.message === "Can't find chap" && REMOVE_ROW_LOSS) {
+           
+          if (
+            (err as unknown as any)?.message === "Can't find chap" &&
+            REMOVE_ROW_LOSS
+          ) {
             await supabase
               .from("history")
               .delete()

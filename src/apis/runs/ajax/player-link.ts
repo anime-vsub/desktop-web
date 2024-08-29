@@ -68,9 +68,9 @@ export function PlayerLink(config: {
             item.file = addProtocolUrl(item.file)
           } else {
             await init()
-            item.file = `data:application/vnd.apple.mpegurl;base64,${btoa((
-           ( await decryptM3u8(item.file) )
-            ))}`;
+            item.file = `data:application/vnd.apple.mpegurl;base64,${btoa(
+              await decryptM3u8(item.file)
+            )}`
 
             item.label = "HD"
             item.preload = "auto"
