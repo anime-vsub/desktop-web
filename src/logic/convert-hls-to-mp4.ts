@@ -4,7 +4,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg"
 import { parse, stringify } from "hls-parser"
 import pLimit from "p-limit"
 import sha256 from "sha256"
-import type { RetryOptions } from "ts-retry";
+import type { RetryOptions } from "ts-retry"
 import { retryAsync } from "ts-retry"
 
 /**
@@ -24,10 +24,10 @@ export async function convertHlsToMP4(
     current: number,
     total: number,
     timeCurrent: number,
-    timeDuration: number,
+    timeDuration: number
   ) => void,
   concurrency = 20,
-  retryOptions?: RetryOptions,
+  retryOptions?: RetryOptions
 ) {
   const ffmpeg = new FFmpeg()
 
@@ -49,14 +49,14 @@ export async function convertHlsToMP4(
 
   await ffmpeg.load({
     coreURL,
-    wasmURL,
+    wasmURL
   })
 
   const limit = pLimit(concurrency)
 
   const timeDuration = manifest.segments.reduce(
     (prev, cur) => cur.duration + prev,
-    0,
+    0
   )
   // Download all the TS segments
   let downloaded = 0
@@ -74,11 +74,11 @@ export async function convertHlsToMP4(
             downloaded,
             manifest.segments.length,
             timeCurrent,
-            timeDuration,
+            timeDuration
           )
-        }, retryOptions),
-      ),
-    ),
+        }, retryOptions)
+      )
+    )
   )
   await ffmpeg.writeFile(`${hash}-media.m3u8`, stringify(manifest))
 
@@ -86,7 +86,7 @@ export async function convertHlsToMP4(
     "-i",
     `${hash}-media.m3u8`,
     ..."-acodec copy -vcodec copy".split(" "),
-    `${hash}-output.mp4`,
+    `${hash}-output.mp4`
   ])
 
   // Retrieve the output file

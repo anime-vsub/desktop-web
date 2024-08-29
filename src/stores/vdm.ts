@@ -119,7 +119,8 @@ async function download(
 ) {
   // get episode
   const currentChap = chaps.chaps.find((chap) => chap.id === currentChapId)
-  if (!currentChap) throw new Error(i18n.global.t("chap-not-found", [currentChapId]))
+  if (!currentChap)
+    throw new Error(i18n.global.t("chap-not-found", [currentChapId]))
 
   const player = await PlayerLink(currentChap)
 

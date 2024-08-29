@@ -27,7 +27,7 @@ export const useSettingsStore = defineStore("settings", {
     enablePersistent: true,
 
     autoSyncNotify: false,
-    showCountNotify: false,
+    showCountNotify: false
   }),
   persist: true
 })
