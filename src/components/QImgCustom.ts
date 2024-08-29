@@ -1,8 +1,6 @@
 /* eslint-disable no-void */
 
 import { QSpinner } from "quasar"
-import { base64ToArrayBuffer } from "src/logic/base64ToArrayBuffer"
-import { get } from "src/logic/http"
 import type { Ref } from "vue"
 import {
   computed,
@@ -45,38 +43,7 @@ function hSlot(slot: (() => any) | undefined, otherwise?: any) {
  * (Boolean) condition - should change ONLY when adding/removing directive
  */
 
-const storeHostnameXHR = new Set<string>()
-function addSrcNeedXHR(src: string) {
-  const { hostname } = new URL(src)
-
-  storeHostnameXHR.add(hostname)
-}
-function checkSrcNeedXHR(src: string) {
-  if (src.startsWith("blob:")) return false
-
-  const { hostname } = new URL(src)
-
-  return storeHostnameXHR.has(hostname)
-}
-
 const defaultRatio = 16 / 9
-
-async function getImageWithXHR(url: string) {
-  const res = await get({
-    url,
-    responseType: "arraybuffer"
-  })
-
-  if (res.status > 299) throw res
-
-  const src = URL.createObjectURL(
-    new Blob([
-      typeof res.data === "object" ? res.data : base64ToArrayBuffer(res.data)
-    ])
-  )
-
-  return { src }
-}
 
 export default defineComponent({
   name: "QImg",
@@ -210,9 +177,9 @@ export default defineComponent({
         isLoading.value = true
       }
 
-      if (imgProps && checkSrcNeedXHR(imgProps.src))
-        images[position.value].value = await getImageWithXHR(imgProps.src)
-      else images[position.value].value = imgProps
+      if (imgProps && !imgProps.src.endsWith("_extra"))
+        imgProps.src += "#animevsub-vsub_extra"
+      images[position.value].value = imgProps
     }
 
     function onLoad(event: Event) {
@@ -259,36 +226,33 @@ export default defineComponent({
       images[position.value].value = null
       isLoading.value = false
       hasError.value = false
-      if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src)
+      // if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src)
       emit("load", img.currentSrc || img.src)
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async function onError(err: any) {
-      try {
-        const img = err.target as HTMLImageElement
+    function onError(err: any) {
+      // try {
+      //   const img = err.target as HTMLImageElement
 
-        const source = img.currentSrc || img.src
-        if (source.startsWith("blob:")) {
-          URL.revokeObjectURL(source)
+      //   const source = img.currentSrc || img.src
+      //   // if (source.startsWith("blob:")) {
+      //   //   URL.revokeObjectURL(source)
 
-          throw new Error("blob: url not re-try fetch")
-        }
-
-        addSrcNeedXHR(source)
-        addImage(await getImageWithXHR(source))
-      } catch {
-        if (loadTimer !== null) {
-          clearTimeout(loadTimer)
-          loadTimer = null
-        }
-
-        isLoading.value = false
-        hasError.value = true
-        images[position.value].value = null
-        images[position.value ^ 1].value = getPlaceholderSrc()
-        emit("error", err)
+      //   //   throw new Error("blob: url not re-try fetch")
+      //   // }
+      // } catch {
+      if (loadTimer !== null) {
+        clearTimeout(loadTimer)
+        loadTimer = null
       }
+
+      isLoading.value = false
+      hasError.value = true
+      images[position.value].value = null
+      images[position.value ^ 1].value = getPlaceholderSrc()
+      emit("error", err)
+      // }
     }
 
     function getImage(index: number) {

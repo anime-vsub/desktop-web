@@ -88,6 +88,7 @@
       </q-card-section>
       <q-card
         class="bg-transparent w-[435px] max-w-100% flex flex-col scrollbar-custom overflow-y-auto"
+        ref="cardRef"
       >
         <q-card-section class="pt-0 pr-0">
           <q-tab-panels
@@ -175,7 +176,10 @@
               </div>
             </q-tab-panel>
             <q-tab-panel name="db" class="px-0 py-0 overflow-visible">
-              <notify-database @update="menuRef?.updatePosition()" />
+              <notify-database
+                @update="menuRef?.updatePosition()"
+                :scroll-target="cardRef?.$el"
+              />
             </q-tab-panel>
           </q-tab-panels>
         </q-card-section>
@@ -186,7 +190,7 @@
 
 <script lang="ts" setup>
 import { Icon } from "@iconify/vue"
-import { QMenu } from "quasar"
+import { QCard, QMenu } from "quasar"
 import { forceHttp2 } from "src/logic/forceHttp2"
 import { useNotificationStore } from "stores/notification"
 import { useSettingsStore } from "stores/settings"
@@ -208,6 +212,8 @@ watch(tab, async () => {
   await nextTick()
   menuRef.value?.updatePosition()
 })
+
+const cardRef = ref<QCard>()
 </script>
 
 <style lang="scss" scoped>
@@ -227,5 +233,11 @@ watch(tab, async () => {
   &-leave-active {
     position: absolute;
   }
+}
+</style>
+
+<style lang="scss" scoped>
+.hidden-focus-helper :deep(.q-focus-helper) {
+  display: none !important;
 }
 </style>

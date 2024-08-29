@@ -75,7 +75,15 @@ export default configure(function (/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ["console", "windi", "firebase", "supabase", "head", "i18n", "task-manager"],
+    boot: [
+      "console",
+      "windi",
+      "firebase",
+      "supabase",
+      "head",
+      "i18n",
+      "task-manager"
+    ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ["app.scss"],
@@ -170,7 +178,6 @@ export default configure(function (/* ctx */) {
         [
           Components,
           {
-            globs: [],
             resolvers: [
               IconsResolver({
                 prefix: "i"
@@ -198,9 +205,12 @@ export default configure(function (/* ctx */) {
           }
         ],
         // ["vite-plugin-rewrite-all", {}],
-        ["vite-plugin-remove-console", {
-		  external: ["src/boot/console.ts"]
-		}],
+        [
+          "vite-plugin-remove-console",
+          {
+            external: ["src/boot/console.ts"]
+          }
+        ],
         [vitePluginI18nLangs, {}]
       ] as unknown as any
     },
