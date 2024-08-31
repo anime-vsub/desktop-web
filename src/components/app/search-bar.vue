@@ -148,21 +148,19 @@ useEventListener(window, "keypress", (event) => {
 </script>
 
 <style lang="scss" scoped>
-.input-search {
-  .q-field__control {
-    height: 40px !important;
-    input,
-    input:focus {
-      border: none;
-      outline: none;
-      box-shadow: none;
-    }
+.input-search :deep(.q-field__control) {
+  height: 40px !important;
+  input,
+  input:focus {
+    border: none;
+    outline: none;
+    box-shadow: none;
   }
 
-  .q-field__control:before {
+  &:before {
     border-color: rgba(153, 153, 153, 0.3) !important;
   }
-  .q-field__control:after {
+  &:after {
     border-width: 1px !important;
   }
 }
