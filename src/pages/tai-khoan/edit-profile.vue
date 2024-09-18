@@ -98,7 +98,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 name="new_password"
                 class="input"
-                placeholder="{{ t('mat-khau-moi') }}"
+                :placeholder="t('mat-khau-moi')"
               />
               <q-btn
                 dense
@@ -117,7 +117,7 @@
             </div>
 
             <div class="text-grey py-1">
-              t('quan-trong-hay-nho-mat-khau-ban-thay-doi-vi-no-kho-co-the-khoi-phuc-lai-duoc-neu-bi-mat')
+              {{ t("quan-trong-hay-nho-mat-khau-ban-thay-doi-vi-no-kho-co-the-khoi-phuc-lai-duoc-neu-bi-mat") }}
             </div>
 
             <q-btn
