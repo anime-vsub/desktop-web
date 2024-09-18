@@ -6,6 +6,8 @@
     :width="250"
     :breakpoint="500"
     :overlay="hideDrawer"
+    :behavior="hideDrawer ? 'mobile' : undefined"
+    :key="hideDrawer + ''"
     class="bg-dark-page overflow-visible column flex-nowrap"
   >
     <q-toolbar v-if="hideDrawer">
