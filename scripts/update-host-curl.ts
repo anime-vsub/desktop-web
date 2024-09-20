@@ -15,6 +15,7 @@ const charCodes =
   "[\n  " +
   url
     .replace(/https?:\/{2}/, "")
+    .replace(/\/$/, "")
     .split("")
     .map((char) => char.charCodeAt(0))
     .join(", ") +
