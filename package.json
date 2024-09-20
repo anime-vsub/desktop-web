@@ -19,6 +19,7 @@
     "quasar": "quasar",
     "gen-md-screenshot": "tsx ./scripts/gen-md-screenshot.ts",
     "ci": "pnpm format && pnpm lint --fix && pnpm typing",
+    "update:host-curl": "bun run scripts/update-host-curl.ts",
     "release": "bumpp package.json --commit --tag --push"
   },
   "dependencies": {
@@ -87,6 +88,7 @@
     "@quasar/cli": "^2.4.1",
     "@quasar/icongenie": "^3.1.1",
     "@tachibana-shin/eslint-config": "1.0.7",
+    "@types/bun": "^1.1.9",
     "@types/group-array": "^1.0.1",
     "@types/js-cookie": "^3.0.3",
     "@types/lz-string": "^1.5.0",
