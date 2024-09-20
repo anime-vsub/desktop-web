@@ -105,7 +105,8 @@ export default defineComponent({
     const naturalRatio = ref(props.initialRatio)
     const ratioStyle = useRatio(props, naturalRatio)
 
-    let loadTimer: string | number | NodeJS.Timeout | null | undefined = null
+    let loadTimer: string | number | NodeJS.Timeout | Timer | null | undefined =
+      null
     let isDestroyed = false
 
     const images: Ref<{ src: string } | null>[] = [
@@ -164,7 +165,7 @@ export default defineComponent({
 
     async function addImage(imgProps: { src: string } | null) {
       if (loadTimer !== null) {
-        clearTimeout(loadTimer)
+        if (typeof loadTimer === "number") clearTimeout(loadTimer)
         loadTimer = null
       }
 
@@ -189,7 +190,7 @@ export default defineComponent({
       }
 
       if (loadTimer !== null) {
-        clearTimeout(loadTimer)
+        if (typeof loadTimer === "number") clearTimeout(loadTimer)
         loadTimer = null
       }
 
@@ -243,7 +244,7 @@ export default defineComponent({
       //   // }
       // } catch {
       if (loadTimer !== null) {
-        clearTimeout(loadTimer)
+        if (typeof loadTimer === "number") clearTimeout(loadTimer)
         loadTimer = null
       }
 
@@ -332,7 +333,7 @@ export default defineComponent({
         isDestroyed = true
 
         if (loadTimer !== null) {
-          clearTimeout(loadTimer)
+          if (typeof loadTimer === "number") clearTimeout(loadTimer)
           loadTimer = null
         }
       })

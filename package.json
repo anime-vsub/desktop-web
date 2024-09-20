@@ -98,7 +98,7 @@
     "@types/prompts": "^2.4.4",
     "@types/qrcode": "^1.5.1",
     "@types/semver": "^7.5.0",
-    "@types/serviceworker": "^0.0.67",
+    "@types/serviceworker": "^0.0.95",
     "@types/set-cookie-parser": "^2.4.3",
     "@types/sha256": "^0.2.0",
     "@types/sort-array": "^4.1.0",

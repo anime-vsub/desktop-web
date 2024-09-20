@@ -1720,7 +1720,7 @@ function throttle<T extends (...args: any[]) => Promise<void>>(
 } {
   let wait = false
 
-  let timeout: NodeJS.Timeout | number | undefined
+  let timeout: NodeJS.Timeout | Timer | number | undefined
   // eslint-disable-next-line functional/functional-parameters, @typescript-eslint/no-explicit-any
   const cb = function (...args: any[]) {
     if (wait === false) {
@@ -2191,7 +2191,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
 
     let needSwapCodec = false
 
-    let timeoutUnneedSwapCodec: NodeJS.Timeout | number | null = null
+    let timeoutUnneedSwapCodec: NodeJS.Timeout | Timer | number | null = null
     hls.on(Hls.Events.ERROR, (event, data) => {
       if (data.fatal) {
         console.warn("Player fatal: ", data)
@@ -2420,7 +2420,7 @@ useEventListener(window, "mouseup", () => {
 
 // ==== addons swipe backdrop ====
 
-let timeoutHoldBD: number | NodeJS.Timeout | null = null
+let timeoutHoldBD: number | NodeJS.Timeout | Timer | null = null
 
 const holdedBD = ref(false)
 
@@ -2494,13 +2494,13 @@ function skipForward() {
 
 const doubleClicking = ref<"left" | "right" | false>(false)
 
-let timeoutResetDoubleClicking: number | NodeJS.Timeout | null = null
+let timeoutResetDoubleClicking: number | NodeJS.Timeout | Timer | null = null
 
 let lastTimeClick: number
 
 let lastPositionClickIsLeft: boolean | null = null
 
-let timeoutDbClick: number | NodeJS.Timeout | null = null
+let timeoutDbClick: number | NodeJS.Timeout | Timer | null = null
 const countSkip = ref(0)
 function onClickSkip(event: MouseEvent) {
   if (document.querySelector(".q-menu")) return // prevent if menu showing

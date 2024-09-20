@@ -8,5 +8,5 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i)
   }
-  return bytes.buffer
+  return bytes.buffer as ArrayBuffer
 }

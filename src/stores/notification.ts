@@ -26,7 +26,7 @@ export const useNotificationStore = defineStore(
 
     const loading = ref(false)
 
-    let timeout: NodeJS.Timeout | number
+    let timeout: NodeJS.Timeout | Timer | number
 
     let countFail = 0
     async function updateNotification() {
