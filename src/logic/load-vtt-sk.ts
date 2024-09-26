@@ -1,7 +1,7 @@
 import { parse } from "@plussub/srt-vtt-parser"
 
 export async function loadVttSk(url: string) {
-  const text = await fetch(url).then((res) =>
+  const text = await fetch(`${url}#rm-origin`).then((res) =>
     res.ok ? res.text() : Promise.reject(res)
   )
 
