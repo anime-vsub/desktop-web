@@ -244,7 +244,7 @@ export const useNotificationStore = defineStore(
           lun: number
         }>
       ) => {
-        if (event.data.lun < lastUpdateNotify.value) return
+        if (event.data.lun <= lastUpdateNotify.value) return
 
         items.value = event.data.items
         max.value = event.data.max
