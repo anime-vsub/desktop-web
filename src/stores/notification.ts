@@ -244,6 +244,8 @@ export const useNotificationStore = defineStore(
           lun: number
         }>
       ) => {
+        if (event.data.lun < lastUpdateNotify.value) return
+
         items.value = event.data.items
         max.value = event.data.max
         maxInDB$.value = event.data.maxInDB
@@ -255,7 +257,7 @@ export const useNotificationStore = defineStore(
         }
       }
 
-      watchEffect(() => {
+      watch([items, max, maxInDB, lastUpdateNotify], () => {
         cast.postMessage({
           items: items.value,
           max: max.value,
