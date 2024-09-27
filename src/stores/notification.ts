@@ -11,12 +11,14 @@ import { shallowRef, watch } from "vue"
 import { useAuthStore } from "./auth"
 import { useSettingsStore } from "./settings"
 
+const TIMEOUT_AUTO_UPDATE_NOTIFY = 10 * 60_000
 export const useNotificationStore = defineStore(
   "notification",
   () => {
     const authStore = useAuthStore()
     const settingsStore = useSettingsStore()
 
+    const lastUpdateNotify = ref(0)
     const items = shallowRef<
       Awaited<ReturnType<typeof AjaxNotification>>["items"]
     >([])
@@ -31,6 +33,8 @@ export const useNotificationStore = defineStore(
     let countFail = 0
     async function updateNotification() {
       if (timeout) clearTimeout(timeout)
+      if (Date.now() - lastUpdateNotify.value < TIMEOUT_AUTO_UPDATE_NOTIFY)
+        return
 
       try {
         loading.value = true
@@ -44,6 +48,8 @@ export const useNotificationStore = defineStore(
         ])
 
         if (settingsStore.autoSyncNotify) void startSync()
+
+        lastUpdateNotify.value = Date.now()
       } catch (err) {
         if ((err as Error)?.message === "NOT_LOGIN") {
           // cookie not sync
@@ -75,7 +81,7 @@ export const useNotificationStore = defineStore(
           })
         else countFail++
 
-        timeout = setTimeout(updateNotification, 10 * 60_000)
+        timeout = setTimeout(updateNotification, TIMEOUT_AUTO_UPDATE_NOTIFY)
       } finally {
         loading.value = false
       }
@@ -228,7 +234,39 @@ export const useNotificationStore = defineStore(
       return data!
     }
 
+    if (typeof self.BroadcastChannel !== "undefined") {
+      const cast = new BroadcastChannel("sync-notify")
+      cast.onmessage = (
+        event: MessageEvent<{
+          items: typeof items.value
+          max: number
+          maxInDB: typeof maxInDB.value
+          lun: number
+        }>
+      ) => {
+        items.value = event.data.items
+        max.value = event.data.max
+        maxInDB$.value = event.data.maxInDB
+        lastUpdateNotify.value = event.data.lun
+
+        if (timeout) {
+          clearTimeout(timeout)
+          timeout = setTimeout(updateNotification, TIMEOUT_AUTO_UPDATE_NOTIFY)
+        }
+      }
+
+      watchEffect(() => {
+        cast.postMessage({
+          items: items.value,
+          max: max.value,
+          maxInDB: maxInDB.value,
+          lun: lastUpdateNotify.value
+        })
+      })
+    }
+
     return {
+      lun: lastUpdateNotify,
       items,
       max,
       remove,
@@ -247,7 +285,7 @@ export const useNotificationStore = defineStore(
   },
   {
     persist: {
-      paths: ["items", "max", "maxInDB"]
+      paths: ["lun", "items", "max", "maxInDB"]
     }
   }
 )
