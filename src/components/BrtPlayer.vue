@@ -2087,7 +2087,9 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
                   resolvingTask,
                   インデントセグメント,
                   settingsStore.player.preResolve
-                )
+                ) &&
+                !video.value?.paused &&
+                documentVisibility.value === "visible"
               ) {
                 console.log(
                   "Starting pre resolve segment",
@@ -2107,7 +2109,7 @@ function remount(resetCurrentTime?: boolean, noDestroy = false) {
                         settingsStore.player.checkEndPreList
                     ),
                   { maxTry: 10, delay: 3_000 }
-                ).catch(() => resolvingTask.add(インデントセグメント))
+                ).catch(() => resolvingTask.delete(インデントセグメント))
                 // load balance 20
                 // check fn セグメントｓ in ２０。workerせとじゃない。メモリー？
               }
