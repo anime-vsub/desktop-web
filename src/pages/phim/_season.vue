@@ -36,8 +36,8 @@
         :_cache-data-seasons="_cacheDataSeasons"
         :fetch-season="fetchSeason"
         :progressWatchStore="progressWatchStore"
-        :intro="inoutroEpisode?.intro ?? skEpisode?.intro"
-        :outro="inoutroEpisode?.outro ?? skEpisode?.outro"
+        :intro="skEpisode?.intro"
+        :outro="skEpisode?.outro"
         :sk-url="skEpisode?.thumbs"
         @cur-update="
           currentProgresWatch?.set($event.id, {
@@ -520,7 +520,6 @@ import { PhimIdChap } from "src/apis/runs/phim/[id]/[chap]"
 // import BottomSheet from "src/components/BottomSheet.vue"
 import type { servers } from "src/constants"
 import {
-  API_OPEND,
   C_URL,
   TIMEOUT_GET_LAST_EP_VIEWING_IN_STORE,
   WARN
@@ -1734,7 +1733,7 @@ const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
     let results: ShallowReactive<ListEpisodes>
     await Promise.any([
       fetch(
-        `${API_OPEND}/list-episodes?${[
+        `${API_SK}/list-episodes?${[
           name,
           ...(othername?.split(",").map((name) => name.trim()) ?? [])
         ]
@@ -1748,7 +1747,7 @@ const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
         .then((data) => {
           if (data.progress.current === data.progress.total) {
             // ok backup data now
-            void set(`episodes_opend:${realId}`, JSON.stringify(data))
+            void set(`episodes_opendv2:${realId}`, JSON.stringify(data))
           }
 
           // eslint-disable-next-line promise/always-return
@@ -1757,7 +1756,7 @@ const episodesOpEnd = computedAsync<ShallowReactive<ListEpisodes> | null>(
               Object.assign(results, data)
           } else results = shallowReactive(data)
         }),
-      getDataIDB<string>(`episodes_opend:${realId}`).then((text) => {
+      getDataIDB<string>(`episodes_opendv2:${realId}`).then((text) => {
         if (!text) throw new Error("not_found_on_idb")
 
         const data = JSON.parse(text)
@@ -1822,8 +1821,9 @@ interface InOutroEpisode {
     end: number
   }
   server: number
+  thumbs: string | null
 }
-const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
+const skEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
   async () => {
     if (!episodeOpEnd.value) return null
 
@@ -1831,10 +1831,10 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
 
     let results: ShallowReactive<InOutroEpisode>
     await Promise.any([
-      fetch(`${API_OPEND}/episode-skip/${id}`)
+      fetch(`${API_SK}/episode-skip/${id}`)
         .then((res) => res.json() as Promise<InOutroEpisode>)
         .then((data) => {
-          void set(`inoutro:${id}`, JSON.stringify(data))
+          void set(`inoutrov2:${id}`, JSON.stringify(data))
 
           // eslint-disable-next-line promise/always-return
           if (results) {
@@ -1842,51 +1842,7 @@ const inoutroEpisode = computedAsync<ShallowReactive<InOutroEpisode> | null>(
               Object.assign(results, data)
           } else results = shallowReactive(data)
         }),
-      getDataIDB<string>(`inoutro:${id}`).then((text) => {
-        if (!text) throw new Error("not_found_on_idb")
-
-        const data = JSON.parse(text)
-
-        // eslint-disable-next-line promise/always-return
-        if (results) {
-          if (JSON.stringify(toRaw(results)) !== text)
-            Object.assign(results, data)
-        } else results = shallowReactive(data)
-      })
-    ])
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return results!
-  },
-  null,
-  { onError: WARN, shallow: true, lazy: true }
-)
-
-// ============== thumbnail =============
-// reuse episodeRK
-interface SkEpisode extends InOutroEpisode {
-  thumbs: string | null
-}
-const skEpisode = computedAsync<ShallowReactive<SkEpisode> | null>(
-  async () => {
-    if (!episodeOpEnd.value) return null
-
-    const { id } = episodeOpEnd.value
-
-    let results: ShallowReactive<SkEpisode>
-    await Promise.any([
-      fetch(`${API_SK}/episode-skip/${id}`)
-        .then((res) => res.json() as Promise<SkEpisode>)
-        .then((data) => {
-          void set(`sk:${id}`, JSON.stringify(data))
-
-          // eslint-disable-next-line promise/always-return
-          if (results) {
-            if (JSON.stringify(toRaw(results)) !== JSON.stringify(data))
-              Object.assign(results, data)
-          } else results = shallowReactive(data)
-        }),
-      getDataIDB<string>(`sk:${id}`).then((text) => {
+      getDataIDB<string>(`inoutrov2:${id}`).then((text) => {
         if (!text) throw new Error("not_found_on_idb")
 
         const data = JSON.parse(text)
