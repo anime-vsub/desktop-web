@@ -68,7 +68,7 @@
 
     <q-page-container>
       <q-page :style-fn="route.meta?.styleFn">
-        <router-view v-if="Http.version" v-slot="{ Component }">
+        <router-view v-if="Http.version && semverGt(Http.version, '1.0.41')" v-slot="{ Component }">
           <component :is="Component" />
         </router-view>
         <NotExistsExtension v-else />
@@ -91,6 +91,7 @@ import "@fontsource/caveat"
 import { Http } from "client-ext-animevsub-helper"
 // import PanelFixCSR from "components/PanelFixCSR.vue"
 import ButtonNotify from "components/app/button-notify.vue"
+import semverGt from "semver/functions/gt"
 import { useAuthStore } from "stores/auth"
 import { useI18n } from "vue-i18n"
 import { useRoute } from "vue-router"

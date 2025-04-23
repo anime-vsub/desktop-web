@@ -24,13 +24,13 @@
           )
         }}
         <span class="text-blue-400 mt-2 mx-4 block leading-normal text-[16px]"
-          >{{ t("ung-dung-hien-tai-yeu-cau-extension") }} <b>v1.0.1</b>
+          >{{ t("ung-dung-hien-tai-yeu-cau-extension") }} <b>v1.0.41</b>
           {{
             t(
               "tro-len-neu-ban-da-cai-dat-extension-vui-long-cap-nhat-no-toi-phien-ban"
             )
           }}
-          <b>v1.0.1</b> {{ t("tro-len") }}</span
+          <b>v1.0.41</b> {{ t("tro-len") }}</span
         >
         <span
           v-if="currentBrowser.text === 'Edge'"
