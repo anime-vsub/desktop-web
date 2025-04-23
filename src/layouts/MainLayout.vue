@@ -68,7 +68,7 @@
 
     <q-page-container>
       <q-page :style-fn="route.meta?.styleFn">
-        <router-view v-if="Http.version && semverGt(Http.version, '1.0.41')" v-slot="{ Component }">
+        <router-view v-if="Http.version && semverGt(Http.version, '1.0.40')" v-slot="{ Component }">
           <component :is="Component" />
         </router-view>
         <NotExistsExtension v-else />
