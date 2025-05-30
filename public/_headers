@@ -1,6 +1,4 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Access-Control-Allow-Origin = "https://animevietsub.lol"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "*"
+    Access-Control-Allow-Origin = "*"
