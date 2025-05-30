@@ -119,7 +119,7 @@ export default configure(function (/* ctx */) {
       // publicPath: '/',
       // analyze: true,
       env: {
-        ...process.env
+        ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.includes("(") && !key.includes(" ")))
       },
       // rawDefine: {}
       // ignorePublicFolder: true,
