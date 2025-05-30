@@ -20,6 +20,10 @@
         <q-btn rounded outline no-caps color="blue" @click="openAnimeVietsub">{{
           t("mo-animevietsub-de-xac-thuc")
         }}</q-btn>
+
+        <span class="px-2 inline-block">or</span>
+        
+        <q-btn rounded outline no-caps color="yellow" :href="`${C_URL}?patch=true`" target="_blank">Patch AnimeVietsub</q-btn>
       </div>
       <small
         class="block mt-4 mb-1 text-[18px] text-weight-medium text-green-400"
