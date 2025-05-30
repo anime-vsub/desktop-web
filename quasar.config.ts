@@ -119,7 +119,11 @@ export default configure(function (/* ctx */) {
       // publicPath: '/',
       // analyze: true,
       env: {
-        ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.includes("(") && !key.includes(" ")))
+        ...Object.fromEntries(
+          Object.entries(process.env).filter(
+            ([key]) => !key.includes("(") && !key.includes(" ")
+          )
+        )
       },
       // rawDefine: {}
       // ignorePublicFolder: true,
@@ -290,7 +294,11 @@ export default configure(function (/* ctx */) {
       // extendGenerateSWOptions (cfg) {}
       extendInjectManifestOptions(cfg) {
         cfg.globIgnores ??= []
-        cfg.globIgnores.push("_redirects", "_headers", "google7b3e7893e059da35.html")
+        cfg.globIgnores.push(
+          "_redirects",
+          "_headers",
+          "google7b3e7893e059da35.html"
+        )
       }
       // extendManifestJson (json) {}
       // extendPWACustomSWConf (esbuildConf) {}

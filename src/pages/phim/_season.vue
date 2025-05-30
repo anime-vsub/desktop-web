@@ -1373,7 +1373,7 @@ watch(
                   }
                 })
                 .catch((err) => {
-                  console.error(err) 
+                  console.error(err)
                   void $q.notify({
                     message: `Play load error: ${err}`,
                     position: "bottom-right",
