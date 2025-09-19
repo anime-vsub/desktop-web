@@ -6,7 +6,6 @@ import pLimit from "p-limit"
 import sha256 from "sha256"
 import type { RetryOptions } from "ts-retry"
 import { retryAsync } from "ts-retry"
-
 /**
  * Converts an HLS (HTTP Live Streaming) manifest to an MP4 file.
  *
@@ -34,6 +33,11 @@ export async function convertHlsToMP4(
   const hash = sha256(m3u8Content)
   const manifest = parse(m3u8Content)
 
+  const IEND_IMAGE = Uint8Array.from([
+  0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+  ]);
+
+    
   if (!("segments" in manifest))
     throw new Error("Can't support master playlist")
 
