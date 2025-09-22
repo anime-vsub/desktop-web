@@ -6,6 +6,7 @@ import pLimit from "p-limit"
 import sha256 from "sha256"
 import type { RetryOptions } from "ts-retry"
 import { retryAsync } from "ts-retry"
+
 /**
  * Converts an HLS (HTTP Live Streaming) manifest to an MP4 file.
  *
@@ -71,6 +72,7 @@ export async function convertHlsToMP4(
             response = response.slice(iendIdx);
           }
           await ffmpeg.writeFile(path, response);
+          segment.uri = path
           downloaded++
           timeCurrent += segment.duration
           onProgress(
