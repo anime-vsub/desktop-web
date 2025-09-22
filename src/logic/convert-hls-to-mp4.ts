@@ -66,7 +66,12 @@ export async function convertHlsToMP4(
       limit(() =>
         retryAsync<void>(async () => {
           const path = `${hash}-${i}.ts`
-          await ffmpeg.writeFile(path, await fetchFile(segment.uri))
+          let response = await fetchFile(segment.uri);
+          const iendIdx = indexOfIEND(response);
+          if (iendIdx !== -1) {
+            response = response.slice(iendIdx);
+          }
+          await ffmpeg.writeFile(path, response);
           segment.uri = path
           downloaded++
           timeCurrent += segment.duration
@@ -93,4 +98,22 @@ export async function convertHlsToMP4(
   const mp4Data = await ffmpeg.readFile(`${hash}-output.mp4`)
 
   return mp4Data
+}
+const IEND_IMAGE = new Uint8Array([
+  0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+]);
+function indexOfIEND(buf: Uint8Array): number {
+  for (let i = 0; i < buf.length - IEND_IMAGE.length; i++) {
+    let found = true;
+    for (let j = 0; j < IEND_IMAGE.length; j++) {
+      if (buf[i + j] !== IEND_IMAGE[j]) {
+        found = false;
+        break;
+      }
+    }
+    if (found) {
+      return i + IEND_IMAGE.length;
+    }
+  }
+  return -1;
 }
