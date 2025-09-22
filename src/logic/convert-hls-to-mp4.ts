@@ -66,12 +66,12 @@ export async function convertHlsToMP4(
         retryAsync<void>(async () => {
           const path = `${hash}-${i}.ts`
           let response = await fetchFile(segment.uri);
-          response =
-            indexOfIEND(response) !== 1
-              ? response.slice(indexOfIEND(response))
-              : response;
+          let response = await fetchFile(segment.uri);
+          const iendIdx = indexOfIEND(response);
+          if (iendIdx !== -1) {
+            response = response.slice(iendIdx);
+          }
           await ffmpeg.writeFile(path, response);
-          segment.uri = path
           downloaded++
           timeCurrent += segment.duration
           onProgress(
