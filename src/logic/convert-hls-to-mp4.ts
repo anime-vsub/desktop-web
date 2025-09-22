@@ -32,7 +32,7 @@ export async function convertHlsToMP4(
 
   const hash = sha256(m3u8Content)
   const manifest = parse(m3u8Content)
-    
+
   if (!("segments" in manifest))
     throw new Error("Can't support master playlist")
 
@@ -66,7 +66,6 @@ export async function convertHlsToMP4(
         retryAsync<void>(async () => {
           const path = `${hash}-${i}.ts`
           let response = await fetchFile(segment.uri);
-          let response = await fetchFile(segment.uri);
           const iendIdx = indexOfIEND(response);
           if (iendIdx !== -1) {
             response = response.slice(iendIdx);
@@ -98,10 +97,10 @@ export async function convertHlsToMP4(
 
   return mp4Data
 }
-const IEND_IMAGE = Uint8Array.from([
+const IEND_IMAGE = new Uint8Array([
   0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
 ]);
-function indexOfIEND(buf: Uint8Array<ArrayBufferLike>): number {
+function indexOfIEND(buf: Uint8Array): number {
   for (let i = 0; i < buf.length - IEND_IMAGE.length; i++) {
     let found = true;
     for (let j = 0; j < IEND_IMAGE.length; j++) {
