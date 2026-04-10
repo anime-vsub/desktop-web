@@ -1,10 +1,11 @@
-import { C_URL } from "src/constants"
-import { decryptM3u8, init } from "src/logic/decrypt-hls-animevsub"
+// import { C_URL } from "src/constants"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
-// import { post } from "src/logic/http"
+import { post } from "src/logic/http"
+import { getSourceM3u8 } from "src/logic/get-source-m3u8"
+import { decryptM3u8 } from "src/logic/decrypt-hls-animevsub"
 
-const addProtocolUrl = (file: string) =>
-  file.startsWith("http") ? file : `https:${file}`
+// const addProtocolUrl = (file: string) =>
+//   file.startsWith("http") ? file : `https:${file}`
 
 interface PlayerLinkReturn {
   readonly link: {
@@ -31,7 +32,7 @@ interface PlayerLinkReturn {
       | "webm"
       | "youtube"
   }[]
-  readonly playTech: "api" | "trailer"
+  readonly playTech: "api" | "trailer" | "iframe"
 }
 
 type Writeable<T> = {
@@ -45,55 +46,43 @@ export function PlayerLink(config: {
 }): Promise<PlayerLinkReturn> {
   const { id, play, hash: link } = config
   //  "#animevsub-vsub" + "_extra"
-  // return post("/ajax/player?v=2019a", {
-  //   id,
-  //   play,
-  //   link,
-  //   backuplinks: "1"
-  // }).then(({ data }) => {
-  return fetch(`${C_URL}/ajax/player?v=2019a#animevsub-vsub_extra`, {
-    method: "post",
-    body: new URLSearchParams({ id, play, link, backuplinks: "1" })
+  return post("/ajax/player", {
+    id,
+    play,
+    link,
+    backuplinks: "1"
+  }).then(async ({ data }) => {
+    // return fetch(`${C_URL}/ajax/player?v=2019a#animevsub-vsub_extra`, {
+    //   method: "post",
+    //   body: new URLSearchParams({ id, play, link, backuplinks: "1" })
+    // })
+    //   .then((res) => res.json() as Promise<Writeable<PlayerLinkReturn>>)
+    //   .then(async (config) => {
+    const config = JSON.parse(data)
+    if (!config.link)
+      throw Object.assign(new Error("This server not found."), {
+        not_found: true
+      })
+
+    if (config.playTech === "iframe") {
+      const { m3u8: encryptedM3u8, headers } = await getSourceM3u8(config.link)
+
+      const isEncrypted = encryptedM3u8.match(/[?&]_c=[0-9]+/)
+      let finalM3u8 = ""
+
+      if (isEncrypted) {
+        finalM3u8 = await decryptM3u8(encryptedM3u8, headers)
+      }
+      config.link = [
+        {
+          file: `data:application/vnd.apple.mpegurl;base64,${btoa(unescape(encodeURIComponent(finalM3u8)))}`,
+          label: "FHD|HD",
+          preload: "auto",
+          type: "hls"
+        }
+      ]
+    }
+
+    return config
   })
-    .then((res) => res.json() as Promise<Writeable<PlayerLinkReturn>>)
-    .then(async (config) => {
-      if (!config.link)
-        throw Object.assign(new Error("This server not found."), {
-          not_found: true
-        })
-
-      await Promise.all(
-        config.link.map(async (item) => {
-          if (item.file.includes("://")) {
-            item.file = addProtocolUrl(item.file)
-          } else {
-            await init()
-            item.file = `data:application/vnd.apple.mpegurl;base64,${btoa(
-              await decryptM3u8(item.file)
-            )}`
-
-            item.label = "HD"
-            item.preload = "auto"
-            item.type = "hls"
-          }
-
-          switch (
-            (item.label as typeof item.label | undefined)?.toUpperCase() as
-              | Uppercase<Exclude<typeof item.label, undefined>>
-              | undefined
-          ) {
-            case "HD":
-              if (item.preload) item.label = "FHD|HD"
-              break
-            case undefined:
-              item.label = "HD"
-              break
-          }
-          item.qualityCode = getQualityByLabel(item.label)
-          item.type ??= "mp4"
-        })
-      )
-
-      return config
-    })
 }

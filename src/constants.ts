@@ -59,4 +59,6 @@ export const NAME_GET_MEMORY = "get memory"
 
 export const API_PROXY = "http://localhost:8787"
 
+export const cdn_google = "https://storage.googleapiscdn.com"
+
 export const EMPTY_ARRAY = Object.freeze([])
