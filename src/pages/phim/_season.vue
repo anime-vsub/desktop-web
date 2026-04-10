@@ -390,11 +390,12 @@
       </div>
 
       <!-- comment embed -->
-      <FbComments
+      <Comments v-if="seasonId" :film-id="seasonId" />
+      <!-- <FbComments
         v-if="semverGt(Http.version, '1.0.29')"
         :href="`http://animevietsub.tv/phim/-${seasonId}/`"
         :lang="locale?.replace('-', '_')"
-      />
+      /> -->
       <template v-else>
         <div class="mt-5 flex items-center justify-between flex-nowrap">
           <span class="text-subtitle1 text-[#eee]">{{ t("binh-luan") }}</span>
@@ -495,6 +496,7 @@ import ScreenError from "components/ScreenError.vue"
 import SkeletonCardVertical from "components/SkeletonCardVertical.vue"
 import Star from "components/Star.vue"
 import FbComments from "components/fb-comments/index.vue"
+import Comments from "components/comments/index.vue"
 import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
 import { EmbedFbCmt } from "embed-fbcmt-client/vue"
 import { set } from "idb-keyval"
