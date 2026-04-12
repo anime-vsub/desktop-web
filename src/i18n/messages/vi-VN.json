@@ -311,5 +311,15 @@
   "chap-not-found": "Chap {0} not found",
   "matte": "Chờ đã!",
   "msg-warn": "Nếu có ai đó yêu cầu bạn sao/chép thứ gì đó ở đây, bảo đảm 11/10 lần là bạn đang bị lừa.",
-  "msg-warn2": "Sao chép bất cứ thứ gì vào đây có thể khiến tài khoản Google/Facebook/Discord và nhiều tài khoản khác của bạn bị tấn công."
+  "msg-warn2": "Sao chép bất cứ thứ gì vào đây có thể khiến tài khoản Google/Facebook/Discord và nhiều tài khoản khác của bạn bị tấn công.",
+  "gui-binh-luan": "Gửi bình luận",
+  "da-ghim": "Đã ghim",
+  "da-chinh-sua": "đã chỉnh sửa",
+  "binh-luan-chua-spoiler-nhan-de-xem": "Bình luận chứa Spoiler. Nhấn để xem",
+  "thich": "Thích",
+  "xem-spoiler": "Xem Spoiler",
+  "xem-them-count-phan-hoi": "Xem thêm {0} phản hồi",
+  "tai-them-binh-luan": "Tải thêm bình luận",
+  "dang-tai": "Đang tải...",
+  "sticker-loi": "Sticker lỗi"
 }
