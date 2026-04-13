@@ -321,5 +321,18 @@
   "tai-video-that-bai": "Video download failed",
   "matte": "Wait!",
   "msg-warn": "If someone asks you to copy something here, 11/10 times you are being scammed.",
-  "msg-warn2": "Copying anything here can get your Google/Facebook/Discord and many other accounts hacked."
+  "msg-warn2": "Copying anything here can get your Google/Facebook/Discord and many other accounts hacked.",
+  "tin-quan-trong": "Important news",
+  "da-ghim": "Pinned",
+  "binh-luan-da-bi-an": "Comment hidden",
+  "bao-cao": "Report",
+  "chinh-sua-binh-luan": "Edit comment",
+  "viet-tra-loi": "Write a reply...",
+  "msg-err-report-cmt": "Error occurred while reporting comment",
+  "da-bao-cao-binh-luan": "Comment reported",
+  "dang-tai-binh-luan": "Loading comments",
+  "chua-co-binh-luan-nao": "No comments yet",
+  "vui-long-dang-nhap": "Please login to continue",
+  "xem-them-tra-loi": "View {0} more replies",
+  "da-chinh-sua": "edited"
 }

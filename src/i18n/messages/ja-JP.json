@@ -315,5 +315,18 @@
   "tai-video-that-bai": "ビデオのダウンロードに失敗しました",
   "matte": "待って！",
   "msg-warn": "ここにあるものをコピーするように誰かに頼まれたら、11/10 回は詐欺に遭っていることになります。",
-  "msg-warn2": "ここにあるものをコピーすると、Google/Facebook/Discord やその他多くのアカウントがハッキングされる可能性があります。"
+  "msg-warn2": "ここにあるものをコピーすると、Google/Facebook/Discord やその他多くのアカウントがハッキングされる可能性があります。",
+  "tin-quan-trong": "重要なお知らせ",
+  "da-ghim": "ピン留め済み",
+  "binh-luan-da-bi-an": "非表示のコメント",
+  "bao-cao": "報告",
+  "chinh-sua-binh-luan": "コメントを編集",
+  "viet-tra-loi": "返信を書く...",
+  "msg-err-report-cmt": "コメントの報告中にエラーが発生しました",
+  "da-bao-cao-binh-luan": "コメントを報告しました",
+  "dang-tai-binh-luan": "コメントを読み込み中",
+  "chua-co-binh-luan-nao": "コメントはまだありません",
+  "vui-long-dang-nhap": "続行するにはログインしてください",
+  "xem-them-tra-loi": "さらに {0} 件の返信を表示",
+  "da-chinh-sua": "編集済み"
 }

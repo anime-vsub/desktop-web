@@ -1,144 +1,148 @@
 <template>
-  <div v-if="modelValue" class="flex flex-norwap">
-    <q-avatar v-if="!noAvatar" :size="smallAvatar ? '28px' : '40px'">
-      <q-img no-spinner :src="user.thumbSrc" :alt="user.name" />
+  <div v-if="modelValue" class="flex items-start gap-3">
+    <q-avatar v-if="!noAvatar" :size="smallAvatar ? '28px' : '36px'">
+      <q-img no-spinner :src="userAvatar" :alt="userName" />
     </q-avatar>
 
-    <div class="text-sm w-full min-w-0 ml-4 flex-1">
+    <div class="flex-1 min-w-0">
       <q-input
         v-model="text"
-        :placeholder="$t('viet-binh-luan')"
+        :placeholder="editor ? $t('chinh-sua-binh-luan') : parentId ? $t('viet-tra-loi') : $t('viet-binh-luan')"
         autogrow
         :autofocus="!noAutofocus"
         color="blue"
+        class="all:!min-h-0"
         :input-style="{
           fontSize: '14px',
           boxShadow: 'none',
           minHeight: '0px',
           paddingTop: '8px'
         }"
-        class="all:!min-h-0"
-        @focus="main ? (toolbar = true) : undefined"
+        @keydown.ctrl.enter="send"
       />
-      <div v-if="!main || toolbar" class="flex items-center justify-end mt-3">
+
+      <div v-if="!main || text || editor" class="flex items-center justify-end gap-2 mt-2">
         <q-btn
-          rounded
-          unelevated
-          no-caps
-          class="text-gray-300 mr-3"
-          @click="main ? (toolbar = false) : emit('update:modelValue', false)"
-          >{{ $t("huy") }}</q-btn
+          rounded unelevated no-caps
+          class="text-gray-400"
+          @click="cancel"
         >
+          {{ $t('huy') }}
+        </q-btn>
         <q-btn
-          rounded
-          unelevated
-          no-caps
+          rounded unelevated no-caps
           :color="text ? 'blue-6' : 'grey-9'"
           :disable="!text"
           :loading="sending"
           @click="send"
-          >{{ $t("binh-luan") }}</q-btn
         >
+          {{ editor ? $t('luu') : $t('binh-luan') }}
+        </q-btn>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import type { FBCommentPlugin, PostComment, User } from "fb-comments-web"
 import { useQuasar } from "quasar"
 
-import type { EventBus } from "../index.vue"
+import { commentApi } from "../api"
+import type { AvsComment } from "../types"
 
 const props = defineProps<{
-  cmtApi: FBCommentPlugin
-
-  user: User
-
   modelValue: boolean
-  commentId?: string
-  editor?: true
-  main?: true
-  text?: string
 
-  smallAvatar?: true
-  noAvatar?: true
-  noAutofocus?: true
+  filmId: number
+  /** ID của comment cha khi đang reply */
+  parentId?: number
+  /** ID của comment đang chỉnh sửa */
+  editCommentId?: number
+  /** Nội dung ban đầu khi edit */
+  initialText?: string
+
+  /** Là form chính trên đầu trang (không tự ẩn khi chưa focus) */
+  main?: boolean
+  /** Không focus khi mount */
+  noAutofocus?: boolean
+  /** Ẩn avatar */
+  noAvatar?: boolean
+  /** Avatar nhỏ hơn (28px) */
+  smallAvatar?: boolean
+
+  userAvatar: string
+  userName: string
+
+  /** Chế độ chỉnh sửa */
+  editor?: boolean
 
   messageError: string
 }>()
+
 const emit = defineEmits<{
   (name: "update:modelValue", value: boolean): void
-  (name: "done", result: PostComment): void
+  (name: "done", comment: AvsComment, total?: number): void
 }>()
-
-const instance = getCurrentInstance()
-
-const bus = inject<EventBus>("bus")
-if (!bus) {
-  throw new Error("bus event not exists")
-}
-bus.on("active_reply", ($) => {
-  if ($ === instance) return
-
-  emit("update:modelValue", false)
-})
-watch(
-  () => props.modelValue,
-  (val) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    if (val) bus.emit("active_reply", instance!)
-  }
-)
-
-if (import.meta.env.DEV) {
-  watchEffect(() => {
-    if (props.editor && !props.commentId)
-      console.warn("[Reply.vue]: in mode editor require 'commentId'.")
-  })
-}
 
 const $q = useQuasar()
 
-const toolbar = ref(false)
-
-const text = ref<string>(props.text ?? "")
+const text = ref<string>(props.initialText ?? "")
 watch(
-  () => props.text,
+  () => props.initialText,
   (val) => (text.value = val ?? text.value)
 )
 
 const sending = ref(false)
+
 async function send() {
+  if (!text.value.trim()) return
   sending.value = true
 
   try {
-    if (props.user.id === "0") {
-      // not login
-      await bus?.emit("sign_in", undefined)
-      return
-    }
-    if (props.editor) {
-      // edit comment
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      emit("done", await props.cmtApi.editComment(props.commentId!, text.value))
-    } else if (props.commentId) {
-      emit("done", await props.cmtApi.replyComment(props.commentId, text.value))
-    } else {
-      emit("done", await props.cmtApi.postComment(text.value))
-    }
+    if (props.editor && props.editCommentId) {
+      // Chỉnh sửa bình luận
+      const res = await commentApi.editComment({
+        commentId: props.editCommentId,
+        content: text.value.trim()
+      })
+      if (!res.success) throw new Error(res.error ?? props.messageError)
 
-    if (props.main) toolbar.value = false
-    else emit("update:modelValue", false)
+      // Tạo comment object giả để trả về
+      const edited: AvsComment = {
+        id: props.editCommentId,
+        content: res.content,
+        is_spoiler: res.is_spoiler,
+        edited_at: res.edited_at
+      } as AvsComment
+      emit("done", edited)
+    } else {
+      // Đăng bình luận / trả lời
+      const res = await commentApi.postComment({
+        filmId: props.filmId,
+        content: text.value.trim(),
+        parentId: props.parentId
+      })
+      if (!res.success) throw new Error(res.error ?? props.messageError)
+      emit("done", res.comment, res.total)
+    }
 
     text.value = ""
+    if (props.main) {
+      // giữ form hiển thị nhưng xoá text
+    } else {
+      emit("update:modelValue", false)
+    }
   } catch (err) {
-    void $q.notify({
+    $q.notify({
       message: props.messageError,
-      caption: err + ""
+      caption: String(err)
     })
   } finally {
     sending.value = false
   }
+}
+
+function cancel() {
+  text.value = props.initialText ?? ""
+  emit("update:modelValue", false)
 }
 </script>

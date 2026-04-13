@@ -1,349 +1,422 @@
 <template>
-  <div class="py-1 text-base flex flex-nowrap items-start">
-    <q-avatar size="40px">
-      <q-img no-spinner :src="author.thumbSrc" :alt="author.name" />
+  <div class="py-3 text-base flex flex-nowrap items-start">
+    <q-avatar size="40px" class="flex-shrink-0">
+      <q-img
+        no-spinner
+        :src="comment.user_avatar || 'https://www.gravatar.com/avatar/?d=mp'"
+        :alt="comment.user_name"
+      />
     </q-avatar>
 
     <div class="text-sm w-full min-w-0 ml-4">
-      <!-- main comment -->
-      <UseMouseInElement v-slot="{ isOutside }">
-        <div class="flex flex-nowrap">
-          <div class="w-full min-w-0">
-            <!-- header comment -->
-            <template v-if="!editing">
-              <div>
-                <a
-                  :href="author.uri"
-                  target="_blank"
-                  class="text-gray-900 dark:text-white font-semibold"
-                >
-                  {{ author.name }}
-                  <i-bitcoin-icons-verify-filled
-                    v-if="author.isVerified"
-                    class="text-blue text-1.2em ml-1"
-                  />
-                </a>
+      <!-- main comment content -->
+      <div v-if="!editing" class="flex flex-nowrap">
+        <div class="w-full min-w-0">
+          <div class="flex items-center flex-wrap gap-2">
+            <span
+              class="text-gray-900 dark:text-white font-semibold cursor-pointer hover:underline"
+            >
+              {{ comment.user_name }}
+            </span>
 
-                <time
-                  class="text-0.8rem text-gray-600 dark:text-gray-400 ml-2"
-                  pubdate
-                  :datetime="comment.timestamp.time + ''"
-                  :title="comment.timestamp.text"
-                  >{{ dayjs(comment.timestamp.time * 1000).fromNow() }}</time
-                >
-              </div>
+            <!-- Badges -->
+            <div v-if="comment.badges?.length" class="flex gap-1">
+              <q-badge
+                v-for="(badge, i) in comment.badges"
+                :key="i"
+                :style="{ backgroundColor: badge.color }"
+                class="px-2 py-0.5 text-10px"
+              >
+                <i v-if="badge.icon" :class="[`fa ${badge.icon}`, 'mr-1']"></i>
+                {{ badge.name }}
+              </q-badge>
+            </div>
 
-              <p class="mt-1 text-gray-500 dark:text-gray-200">
-                {{ comment.body.text }}
-              </p>
+            <!-- Global Pinned / Pinned -->
+            <q-badge
+              v-if="comment.is_global_pinned"
+              color="orange-9"
+              class="px-2"
+            >
+              <i-bi-bullseye class="mr-1" />
+              {{ $t("tin-quan-trong") }}
+            </q-badge>
+            <q-badge
+              v-else-if="comment.is_pinned && !isReply"
+              color="blue-9"
+              class="px-2"
+            >
+              <i-bi-pin-angle-fill class="mr-1" />
+              {{ $t("da-ghim") }}
+            </q-badge>
 
-              <div class="flex items-center mx-[-8px] my-1">
-                <q-btn
-                  round
-                  unelevated
-                  padding="8px"
-                  :disable="!comment.canLike"
-                  class="text-gray-500 dark:text-gray-100"
-                  @click="like"
-                >
-                  <i-bxs-like
-                    v-if="comment.hasLiked || liked"
-                    class="text-1.2em"
-                  />
-                  <i-bx-like v-else class="text-1.2em" />
-                </q-btn>
-                <span class="text-sm text-gray-500 dark:text-gray-300">{{
-                  comment.likeCount + (liked ? 1 : 0)
-                }}</span>
-
-                <q-btn
-                  rounded
-                  unelevated
-                  no-caps
-                  class="text-13px text-gray-500 dark:text-gray-100 ml-8px"
-                  @click="repling = true"
-                >
-                  {{ $t("phan-hoi") }}
-                </q-btn>
-              </div>
-
-              <Reply
-                v-model="repling"
-                :user="user"
-                :cmt-api="cmtApi"
-                :comment-id="comment.id"
-                small-avatar
-                :message-error="$t('msg-err-reply')"
-                @done="emit('merge', $event.payload)"
-              />
-            </template>
-            <!-- /header comment -->
-            <!-- editor comment -->
-            <Reply
-              v-else
-              v-model="editing"
-              :user="user"
-              :cmt-api="cmtApi"
-              :comment-id="comment.id"
-              editor
-              no-avatar
-              :text="comment.body.text"
-              :message-error="$t('msg-err-update-cmt')"
-              @done="emit('merge', $event.payload)"
-            />
-            <!-- /editor comment -->
+            <time
+              class="text-0.75rem text-gray-500 dark:text-gray-400"
+              :title="
+                dayjs(comment.created_at * 1000).format('DD/MM/YYYY HH:mm')
+              "
+            >
+              {{ dayjs(comment.created_at * 1000).fromNow() }}
+            </time>
           </div>
 
-          <!-- button more options -->
-          <div class="min-w-42px">
-            <q-btn v-show="(!isOutside || menuShowing) && !editing" round>
-              <i-solar-menu-dots-bold class="transform rotate-90" />
-              <q-menu
-                v-model="menuShowing"
-                anchor="bottom end"
-                self="top end"
-                class="rounded-xl"
+          <!-- Banned/Hidden Notice -->
+          <div
+            v-if="comment.is_hidden || comment.user_ban"
+            class="mt-2 p-2 bg-red-900 bg-opacity-10 rounded border border-red-900 border-opacity-20 italic text-gray-500 flex items-center gap-2"
+          >
+            <i-bi-eye-slash-fill />
+            <span>{{ comment.hide_reason || $t("binh-luan-da-bi-an") }}</span>
+          </div>
+
+          <div
+            v-else
+            class="mt-1 text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words leading-relaxed"
+          >
+            <p
+              v-html="
+                comment.content.replace(
+                  /\[sticker:([^]+)\]/,
+                  '<img src=\'$1\' />'
+                )
+              "
+            ></p>
+            <span
+              v-if="comment.edited_at"
+              class="text-0.7rem text-gray-500 italic ml-1"
+            >
+              ({{ $t("da-chinh-sua") }})
+            </span>
+          </div>
+
+          <!-- Actions -->
+          <div
+            v-if="!comment.is_hidden && !comment.user_ban"
+            class="flex items-center gap-4 mt-2"
+          >
+            <div class="flex items-center gap-1 group">
+              <q-btn
+                round
+                unelevated
+                padding="4px"
+                :color="comment.user_vote === 1 ? 'blue' : 'transparent'"
+                class="text-gray-500 dark:text-gray-400 group-hover:text-blue"
+                @click="vote(1)"
               >
-                <q-list class="min-w-150px">
-                  <template v-if="comment.canEdit">
-                    <q-item clickable v-close-popup @click="editing = true">
-                      <q-item-section avatar class="min-w-0 pr-2">
-                        <i-iconamoon-edit-light class="text-1.2em" />
-                      </q-item-section>
-                      <q-item-section>{{ $t("chinh-sua") }}</q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup @click="remove">
-                      <q-item-section avatar class="min-w-0 pr-2">
-                        <i-iconamoon-trash-simple-light class="text-1.2em" />
-                      </q-item-section>
-                      <q-item-section>{{ $t("xoa") }}</q-item-section>
-                    </q-item>
-                  </template>
+                <i-bi-hand-thumbs-up-fill v-if="comment.user_vote === 1" />
+                <i-bi-hand-thumbs-up v v-else />
+              </q-btn>
+              <span class="text-xs text-gray-500">{{ comment.votes_up }}</span>
+            </div>
 
-                  <template v-else>
-                    <q-item
-                      clickable
-                      v-close-popup
-                      :href="comment.reportURI"
-                      target="_blank"
-                    >
-                      <q-item-section avatar class="min-w-0 pr-2">
-                        <i-ri-spam-2-line class="text-1.2em" />
-                      </q-item-section>
-                      <q-item-section>{{
-                        $t("danh-dau-la-spam")
-                      }}</q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                      :href="comment.reportURI"
-                      target="_blank"
-                    >
-                      <q-item-section avatar class="min-w-0 pr-2">
-                        <i-ic-outline-report-problem class="text-1.2em" />
-                      </q-item-section>
-                      <q-item-section>{{
-                        $t("bao-cao-voi-facebook")
-                      }}</q-item-section>
-                    </q-item>
-                  </template>
-                  <!-- 
-                  <q-separator />
+            <div class="flex items-center gap-1 group">
+              <q-btn
+                round
+                unelevated
+                padding="4px"
+                :color="comment.user_vote === -1 ? 'red' : 'transparent'"
+                class="text-gray-500 dark:text-gray-400 group-hover:text-red"
+                @click="vote(-1)"
+              >
+                <i-bi-hand-thumbs-down-fill v-if="comment.user_vote === -1" />
+                <i-bi-hand-thumbs-down v-else />
+              </q-btn>
+              <span class="text-xs text-gray-500">{{
+                comment.votes_down
+              }}</span>
+            </div>
 
+            <q-btn
+              flat
+              rounded
+              no-caps
+              dense
+              class="text-xs text-gray-500 dark:text-gray-400 hover:text-blue px-2"
+              @click="repling = !repling"
+            >
+              {{ $t("phan-hoi") }}
+            </q-btn>
+
+            <q-space />
+
+            <!-- More Options -->
+            <q-btn flat round dense icon="more_horiz" class="text-gray-500">
+              <q-menu
+                anchor="bottom right"
+                self="top right"
+                class="rounded-xl bg-dark-page text-white border border-gray-800"
+              >
+                <q-list min-width="150px">
                   <q-item
-                    v-if="comment.canEmbed"
+                    v-if="canEdit"
                     clickable
                     v-close-popup
-                    @click="embed"
+                    @click="editing = true"
                   >
                     <q-item-section avatar class="min-w-0 pr-2">
-                      <i-fluent-mdl2-embed class="text-1.2em" />
+                      <i-bi-pencil-square />
                     </q-item-section>
-                    <q-item-section>{{ $t("nhung") }}</q-item-section>
-                  </q-item> -->
+                    <q-item-section>{{ $t("chinh-sua") }}</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    v-if="canEdit"
+                    clickable
+                    v-close-popup
+                    @click="remove"
+                    class="text-red"
+                  >
+                    <q-item-section avatar class="min-w-0 pr-2">
+                      <i-bi-trash />
+                    </q-item-section>
+                    <q-item-section>{{ $t("xoa") }}</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    v-if="!canEdit"
+                    clickable
+                    v-close-popup
+                    @click="report"
+                  >
+                    <q-item-section avatar class="min-w-0 pr-2">
+                      <i-bi-flag />
+                    </q-item-section>
+                    <q-item-section>{{ $t("bao-cao") }}</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-btn>
           </div>
-          <!-- /button more options -->
-        </div>
-      </UseMouseInElement>
-      <!-- /main comment -->
 
-      <Comments
-        v-if="comment.public_replies"
-        :cmt-api="cmtApi"
-        :user="user"
-        :commentIDs="comment.public_replies.commentIDs"
-        :id-map="idMap"
-        @merge="emit('merge', $event)"
+          <!-- Reply form -->
+          <Reply
+            v-if="repling"
+            v-model="repling"
+            :film-id="filmId"
+            :parent-id="comment.id"
+            :user-avatar="authStore.user?.avatar || ''"
+            :user-name="authStore.user?.username || ''"
+            :message-error="$t('msg-err-reply')"
+            class="mt-3"
+            @done="onReplyDone"
+          />
+        </div>
+      </div>
+
+      <!-- Editing state -->
+      <Reply
+        v-else
+        v-model="editing"
+        editor
+        :film-id="filmId"
+        :edit-comment-id="comment.id"
+        :initial-text="comment.content"
+        :user-avatar="authStore.user?.avatar || ''"
+        :user-name="authStore.user?.username || ''"
+        :message-error="$t('msg-err-update-cmt')"
+        @done="onEditDone"
       />
 
-      <q-btn
-        v-if="countMoreReply > 0"
-        rounded
-        no-caps
-        unelevated
-        class="text-blue"
-        :loading="loadingMoreReply"
-        @click="loadMoreReply(comment.public_replies!.afterCursor)"
+      <!-- Replies list -->
+      <div
+        v-if="
+          !isReply && (comment.replies_count > 0 || localReplies.length > 0)
+        "
+        class="mt-2 ml-2 pl-4 border-l-2 border-gray-800"
       >
-        <i-solar-alt-arrow-down-bold class="text-1.2em" />
-        {{ $t("i-phan-hoi", [countMoreReply]) }}
-      </q-btn>
+        <div v-if="localReplies.length > 0">
+          <Comment
+            v-for="reply in localReplies"
+            :key="reply.id"
+            :comment="reply"
+            :film-id="filmId"
+            is-reply
+            @update="onChildUpdate"
+            @delete="onChildDelete"
+          />
+        </div>
+
+        <q-btn
+          v-if="hasMoreReplies"
+          flat
+          rounded
+          no-caps
+          dense
+          class="text-blue text-xs mt-1"
+          :loading="loadingReplies"
+          @click="loadReplies"
+        >
+          <i-bi-chat-left-dots class="mr-2" />
+          {{
+            $t("xem-them-tra-loi", [
+              Math.max(0, comment.replies_count - localReplies.length)
+            ])
+          }}
+        </q-btn>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { UseMouseInElement } from "@vueuse/components"
-import type {
-  AsyncComments,
-  Comment,
-  FBCommentPlugin,
-  OGObject,
-  PostComment,
-  User
-} from "fb-comments-web"
 import { useQuasar } from "quasar"
 import dayjs from "src/logic/dayjs"
+import { useAuthStore } from "stores/auth"
 
-import type { EventBus } from "../index.vue"
+import { commentApi } from "../api"
+import type { AvsComment } from "../types"
 
-import Comments from "./Comments.vue"
 import Reply from "./Reply.vue"
 
 const props = defineProps<{
-  cmtApi: FBCommentPlugin
-
-  user: User
-
-  cmtId: string
-
-  idMap: Record<string, User | Comment | OGObject>
+  comment: AvsComment
+  filmId: number
+  isReply?: boolean
 }>()
+
 const emit = defineEmits<{
-  (
-    name: "merge",
-    payload: PostComment["payload"] | AsyncComments["payload"]
-  ): void
+  (name: "update", comment: AvsComment): void
+  (name: "delete", id: number): void
 }>()
 
 const $q = useQuasar()
 const i18n = useI18n()
+const authStore = useAuthStore()
 
-const bus = inject<EventBus>("bus")
-if (!bus) {
-  throw new Error("bus event not exists")
-}
+const editing = ref(false)
+const repling = ref(false)
+const loadingReplies = ref(false)
+const localReplies = ref<AvsComment[]>([])
+const repliesOffset = ref(0)
+const hasMoreReplies = computed(() => {
+  return props.comment.replies_count > localReplies.value.length
+})
 
-const menuShowing = ref(false)
-
-const comment = computed(() => props.idMap[props.cmtId] as Comment)
-const author = computed(() => props.idMap[comment.value.authorID] as User)
-
-const countMoreReply = computed(() => {
-  if (!comment.value.public_replies) return 0
-
+const canEdit = computed(() => {
   return (
-    comment.value.public_replies.totalCount -
-    comment.value.public_replies.commentIDs.length
+    authStore.isLogged &&
+    (props.comment.user_id === Number(authStore.uid) ||
+      authStore.user?.username === props.comment.user_name)
   )
 })
 
-const repling = ref(false)
-
-const liked = ref(false)
-async function like() {
-  if (props.user.id === "0") {
-    // not login
-    await bus?.emit("sign_in", undefined)
+async function vote(type: 1 | -1) {
+  if (!authStore.isLogged) {
+    $q.notify({ message: i18n.t("vui-long-dang-nhap"), color: "warning" })
     return
   }
 
-  liked.value = !liked.value
+  // Toggle vote
+  const newVote = props.comment.user_vote === type ? 0 : type
+
   try {
-    await props.cmtApi.likeComment(comment.value.id, liked.value)
-  } catch (err) {
-    void $q.notify({
-      message: i18n.t("msg-err-update-like"),
-      caption: err + ""
+    const res = await commentApi.vote({
+      commentId: props.comment.id,
+      voteType: type
     })
+    if (res.success) {
+      const updated = {
+        ...props.comment,
+        votes_up: res.votes_up,
+        votes_down: res.votes_down,
+        user_vote: newVote as 1 | -1 | 0
+      }
+      emit("update", updated)
+    }
+  } catch (err) {
+    console.error(err)
   }
 }
 
-const loadingMoreReply = ref(false)
-// eslint-disable-next-line camelcase
-async function loadMoreReply(after_cursor?: string) {
-  loadingMoreReply.value = true
-  try {
-    const cmt = comment.value
-    const { payload } = await props.cmtApi.getMoreComments(cmt.id, after_cursor)
-
-    // ぼくはぜんぜんわかない
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    ;(payload.idMap[cmt.id] as Comment).public_replies!.commentIDs = Array.from(
-      new Set([
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        ...cmt.public_replies!.commentIDs,
-        ...payload.commentIDs
-      ])
-    )
-
-    payload.commentIDs = []
-
-    emit("merge", payload)
-  } catch (err) {
-    void $q.notify({
-      message: i18n.t("msg-err-update-reply"),
-      caption: err + ""
-    })
-  } finally {
-    loadingMoreReply.value = false
-  }
-}
-
-const editing = ref(false)
-
-function remove() {
-  if (props.user.id === "0") {
-    // not login
-    bus?.emit("sign_in", undefined)
-    return
-  }
-
+async function remove() {
   $q.dialog({
-    class: "rounded-xl",
     title: i18n.t("xac-nhan"),
     message: i18n.t("msg-confirn-delete-cmt"),
-    cancel: {
-      rounded: true,
-      unelevated: true,
-      noCaps: true,
-      class: "text-gray-300",
-      color: "transparent"
-    },
-    ok: {
-      rounded: true,
-      unelevated: true,
-      noCaps: true,
-      color: "blue-6"
-    },
-    persistent: true
+    cancel: true,
+    persistent: true,
+    class: "bg-dark-page text-white rounded-xl"
   }).onOk(async () => {
     try {
-      await props.cmtApi.removeComment(props.cmtId)
-      $q.notify({
-        message: i18n.t("da-xoa-binh-luan")
-      })
+      const res = await commentApi.deleteComment(props.comment.id)
+      if (res.success) {
+        $q.notify({ message: i18n.t("da-xoa-binh-luan") })
+        emit("delete", props.comment.id)
+      }
     } catch (err) {
-      $q.notify({
-        message: i18n.t("msg-err-delete-cmt"),
-        caption: err + ""
-      })
+      $q.notify({ message: i18n.t("msg-err-delete-cmt"), caption: String(err) })
     }
   })
 }
-// function embed() {}
+
+async function report() {
+  try {
+    const res = await commentApi.reportComment(props.comment.id)
+    if (res.success) {
+      $q.notify({
+        message: res.message || i18n.t("da-bao-cao-binh-luan"),
+        color: "success"
+      })
+    }
+  } catch (err) {
+    $q.notify({ message: i18n.t("msg-err-report-cmt"), color: "negative" })
+  }
+}
+
+async function loadReplies() {
+  if (loadingReplies.value) return
+  loadingReplies.value = true
+
+  try {
+    const res = await commentApi.getReplies({
+      commentId: props.comment.id,
+      offset: repliesOffset.value
+    })
+
+    if (res.success) {
+      localReplies.value = [...localReplies.value, ...res.replies]
+      repliesOffset.value = res.offset
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingReplies.value = false
+  }
+}
+
+function onReplyDone(newReply: AvsComment) {
+  localReplies.value = [newReply, ...localReplies.value]
+  repling.value = false
+  // Update parent replies count if needed
+  const updated = {
+    ...props.comment,
+    replies_count: props.comment.replies_count + 1
+  }
+  emit("update", updated)
+}
+
+function onEditDone(editedComment: AvsComment) {
+  const updated = {
+    ...props.comment,
+    content: editedComment.content,
+    edited_at: editedComment.edited_at
+  }
+  emit("update", updated)
+  editing.value = false
+}
+
+function onChildUpdate(updatedReply: AvsComment) {
+  const index = localReplies.value.findIndex((r) => r.id === updatedReply.id)
+  if (index !== -1) {
+    localReplies.value[index] = updatedReply
+  }
+}
+
+function onChildDelete(id: number) {
+  localReplies.value = localReplies.value.filter((r) => r.id !== id)
+  const updated = {
+    ...props.comment,
+    replies_count: Math.max(0, props.comment.replies_count - 1)
+  }
+  emit("update", updated)
+}
 </script>

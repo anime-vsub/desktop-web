@@ -1,39 +1,28 @@
 <template>
-  <Comment
-    v-for="commentID in commentIDs"
-    :key="commentID"
-    :cmt-api="cmtApi"
-    :user="user"
-    :cmt-id="commentID"
-    :id-map="idMap"
-    @merge="emit('merge', $event)"
-  />
+  <div class="comments-list">
+    <Comment
+      v-for="comment in comments"
+      :key="comment.id"
+      :comment="comment"
+      :film-id="filmId"
+      @update="emit('update', $event)"
+      @delete="emit('delete', $event)"
+    />
+  </div>
 </template>
 
 <script lang="ts" setup>
-import type {
-  AsyncComments,
-  Comment as CommentType,
-  FBCommentPlugin,
-  OGObject,
-  PostComment,
-  User
-} from "fb-comments-web"
+import type { AvsComment } from "../types"
 
 import Comment from "./Comment.vue"
 
 defineProps<{
-  cmtApi: FBCommentPlugin
-
-  user: User
-
-  commentIDs: string[]
-  idMap: Record<string, User | CommentType | OGObject>
+  comments: AvsComment[]
+  filmId: number
 }>()
+
 const emit = defineEmits<{
-  (
-    name: "merge",
-    payload: PostComment["payload"] | AsyncComments["payload"]
-  ): void
+  (name: "update", comment: AvsComment): void
+  (name: "delete", id: number): void
 }>()
 </script>

@@ -311,5 +311,18 @@
   "chap-not-found": "Chap {0} not found",
   "matte": "Chờ đã!",
   "msg-warn": "Nếu có ai đó yêu cầu bạn sao/chép thứ gì đó ở đây, bảo đảm 11/10 lần là bạn đang bị lừa.",
-  "msg-warn2": "Sao chép bất cứ thứ gì vào đây có thể khiến tài khoản Google/Facebook/Discord và nhiều tài khoản khác của bạn bị tấn công."
+  "msg-warn2": "Sao chép bất cứ thứ gì vào đây có thể khiến tài khoản Google/Facebook/Discord và nhiều tài khoản khác của bạn bị tấn công.",
+  "tin-quan-trong": "Tin quan trọng",
+  "da-ghim": "Đã ghim",
+  "binh-luan-da-bi-an": "Bình luận đã bị ẩn",
+  "bao-cao": "Báo cáo",
+  "chinh-sua-binh-luan": "Chỉnh sửa bình luận",
+  "viet-tra-loi": "Viết trả lời...",
+  "msg-err-report-cmt": "Đã xảy ra lỗi khi báo cáo bình luận",
+  "da-bao-cao-binh-luan": "Đã báo cáo bình luận",
+  "dang-tai-binh-luan": "Đang tải bình luận",
+  "chua-co-binh-luan-nao": "Chưa có bình luận nào",
+  "vui-long-dang-nhap": "Vui lòng đăng nhập để tiếp tục",
+  "xem-them-tra-loi": "Xem thêm {0} trả lời",
+  "da-chinh-sua": "đã chỉnh sửa"
 }

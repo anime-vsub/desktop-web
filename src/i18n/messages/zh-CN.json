@@ -315,5 +315,18 @@
   "tai-video-that-bai": "视频下载失败",
   "matte": "等待！",
   "msg-warn": "如果有人要求您在此处复制某些内容，则 11/10 的情况您是被骗了。",
-  "msg-warn2": "在这里复制任何内容都可能导致您的 Google/Facebook/Discord 和许多其他帐户遭到黑客攻击。"
+  "msg-warn2": "在这里复制任何内容都可能导致您的 Google/Facebook/Discord 和许多其他帐户遭到黑客攻击。",
+  "tin-quan-trong": "重要消息",
+  "da-ghim": "已置顶",
+  "binh-luan-da-bi-an": "评论已隐藏",
+  "bao-cao": "举报",
+  "chinh-sua-binh-luan": "编辑评论",
+  "viet-tra-loi": "撰写回复...",
+  "msg-err-report-cmt": "受理举报评论时出错",
+  "da-bao-cao-binh-luan": "已举报评论",
+  "dang-tai-binh-luan": "正在加载评论",
+  "chua-co-binh-luan-nao": "暂无评论",
+  "vui-long-dang-nhap": "请先登录以继续",
+  "xem-them-tra-loi": "查看另外 {0} 条回复",
+  "da-chinh-sua": "已编辑"
 }

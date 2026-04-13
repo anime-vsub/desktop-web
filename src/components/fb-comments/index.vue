@@ -1,87 +1,104 @@
 <template>
   <div v-intersection.once="onIntersection" />
-  <section v-if="intersecting && data" class="relative mt-4">
-    <!-- header -->
-    <div class="text-h6 flex items-center">
-      <h6>{{ $t("i-binh-luan", [data.comments.meta.totalCount]) }}</h6>
+  <section v-if="intersecting" class="relative mt-6 q-pa-sm">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <h2 class="text-h6 font-bold text-white m-0">
+          {{ $t("binh-luan") }}
+          <span class="text-gray-500 font-normal ml-1"
+            >({{ totalComments }})</span
+          >
+        </h2>
+      </div>
 
-      <q-btn rounded unelevated no-caps class="ml-2">
-        <i-bi-sort-up v-if="orderByReverse" class="text-1.2em mr-1.5" />
-        <i-bi-sort-down v-else class="text-1.2em mr-1.5" />
-        {{ $t("sap-xep-theo") }}
+      <div class="flex items-center gap-2">
+        <q-btn
+          round
+          flat
+          dense
+          class="text-gray-400 hover:text-white"
+          @click="toggleSort"
+        >
+          <i-bi-sort-down v-if="sort === 'newest'" class="text-xl" />
+          <i-bi-sort-up v-else class="text-xl" />
+          <q-tooltip class="bg-dark text-xs">{{
+            sort === "newest" ? $t("moi-nhat") : $t("cu-nhat")
+          }}</q-tooltip>
+        </q-btn>
 
-        <q-menu anchor="bottom end" self="top end" class="rounded-xl">
-          <q-list class="min-w-150px">
-            <q-item clickable v-close-popup @click="orderByReverse = true">
-              <q-item-section avatar class="min-w-0 pr-2">
-                <i-bi-sort-up class="text-1.2em" />
-              </q-item-section>
-              <q-item-section>{{ $t("moi-nhat") }}</q-item-section>
-            </q-item>
-
-            <q-item clickable v-close-popup @click="orderByReverse = false">
-              <q-item-section avatar class="min-w-0 pr-2">
-                <i-bi-sort-down class="text-1.2em" />
-              </q-item-section>
-              <q-item-section>{{ $t("cu-nhat") }}</q-item-section>
-            </q-item>
-          </q-list>
-        </q-menu>
-      </q-btn>
+        <q-btn
+          round
+          flat
+          dense
+          icon="refresh"
+          class="text-gray-400 hover:text-white"
+          @click="refresh"
+        >
+          <q-tooltip class="bg-dark text-xs">{{ $t("tai-lai") }}</q-tooltip>
+        </q-btn>
+      </div>
     </div>
-    <!-- /header -->
 
+    <!-- Main Comment Form -->
     <Reply
       model-value
-      :cmt-api="commentAPI"
-      :user="user!"
       main
       no-autofocus
+      :film-id="filmId"
+      :user-avatar="authStore.user?.avatar || ''"
+      :user-name="authStore.user?.username || ''"
       :message-error="$t('msg-error-cmt')"
-      class="mt-3 mb-4"
-      @merge="mergeData"
+      class="mb-8"
+      @done="onPostDone"
     />
 
-    <q-infinite-scroll @load="onLoad" :offset="250">
+    <!-- Comments List -->
+    <q-infinite-scroll :offset="250" @load="onLoad">
       <Comments
-        :cmt-api="commentAPI"
-        :user="user!"
-        :commentIDs="data.comments.comments.commentIDs"
-        :id-map="data.comments.comments.idMap"
-        @merge="mergeData"
+        :comments="comments"
+        :film-id="filmId"
+        @update="onCommentUpdate"
+        @delete="onCommentDelete"
       />
 
-      <template #loading>
-        <div>
-          <q-spinner color="white" size="40px" class="mx-auto" />
+      <template v-if="comments.length === 0 && !loading" #loading>
+        <div class="py-12 text-center text-gray-500 italic">
+          {{ $t("chua-co-binh-luan-nao") }}
+        </div>
+      </template>
+
+      <template v-else #loading>
+        <div class="flex justify-center py-8">
+          <q-spinner-dots color="blue" size="40px" />
         </div>
       </template>
     </q-infinite-scroll>
 
+    <!-- Overlay Loading -->
     <div
-      v-if="loading"
-      class="absolute top-0 left-0 w-full h-full bg-[rgb(17,19,25)] bg-opacity-50 pt-24 flex justify-center"
+      v-if="loading && comments.length === 0"
+      class="absolute top-0 left-0 w-full h-full bg-dark-page bg-opacity-80 flex flex-col justify-center items-center rounded-xl z-20"
     >
-      <q-spinner color="white" size="40px" />
+      <q-spinner-tail color="blue" size="64px" />
+      <span class="mt-4 text-gray-400 animate-pulse"
+        >{{ $t("dang-tai-binh-luan") }}...</span
+      >
     </div>
   </section>
-  <section v-else class="py-8 flex items-center justify-center">
-    <q-spinner color="white" size="40px" />
+  <section v-else class="py-16 flex items-center justify-center">
+    <q-spinner-tail color="blue" size="48px" />
   </section>
 </template>
 
 <script lang="ts" setup>
-import { Http } from "client-ext-animevsub-helper"
-import { FBCommentPlugin } from "fb-comments-web"
-import type { AsyncComments, PostComment } from "fb-comments-web"
 import { useQuasar } from "quasar"
-import { WARN } from "src/constants"
-import type { ComponentInternalInstance, ShallowRef } from "vue"
+import { useAuthStore } from "stores/auth"
 
+import { commentApi } from "./api"
 import Comments from "./components/Comments.vue"
 import Reply from "./components/Reply.vue"
-
-const LIMIT = 10
+import type { AvsComment } from "./types"
 
 const props = defineProps<{
   href: string
@@ -89,143 +106,118 @@ const props = defineProps<{
 }>()
 
 const $q = useQuasar()
-const i18n = useI18n()
+const authStore = useAuthStore()
+
+// Extract filmId from href (e.g., http://animevietsub.tv/phim/-1234/)
+const filmId = computed(() => {
+  const match = props.href.match(/-(\d+)\//)
+  return match ? parseInt(match[1]) : 0
+})
 
 const intersecting = ref(false)
 const onIntersection = (({ isIntersecting }: any) => {
   intersecting.value ||= isIntersecting
 }) as unknown as any
 
-const orderByReverse = ref(true)
-const commentAPI = computed(() => {
-  return new FBCommentPlugin({
-    href: props.href,
-    locale: props.lang,
-    limit: LIMIT,
-    order_by: orderByReverse.value ? "reverse_time" : "time",
-    app: "https://app.animevsub.eu.org",
-    fetch: (url, options) => {
-      url += "#fb_extrao"
+const loading = ref(false)
+const sort = ref<"newest" | "time">("newest")
+const comments = ref<AvsComment[]>([])
+const offset = ref(0)
+const hasMore = ref(true)
+const totalComments = ref(0)
 
-      if (options?.method === "POST") {
-        return Http.post({
-          url,
-          headers: options.headers,
-          data: options.body.toString()
-        }).then((res) => res.data as string)
+async function refresh() {
+  comments.value = []
+  offset.value = 0
+  hasMore.value = true
+  // Triggers onLoad implicitly or we can call it
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  onLoad(1, () => {})
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+watch(intersecting, (v) => v && onLoad(1, () => {}))
+
+async function onLoad(index: number, done: (stop?: boolean) => void) {
+  if (!filmId.value || !hasMore.value) {
+    done(true)
+    return
+  }
+
+  loading.value = true
+  try {
+    const res = await commentApi.getComments({
+      filmId: filmId.value,
+      sort: sort.value,
+      offset: offset.value,
+      pageUrl: props.href
+    })
+
+    if (res.success) {
+      if (offset.value === 0) {
+        comments.value = res.comments
+      } else {
+        // Avoid duplicates
+        const existingIds = new Set(comments.value.map((c) => c.id))
+        const newComments = res.comments.filter((c) => !existingIds.has(c.id))
+        comments.value = [...comments.value, ...newComments]
       }
 
-      return Http.get({ url, headers: options?.headers }).then(
-        (res) => res.data as string
-      )
+      offset.value = res.offset
+      hasMore.value = res.has_more
+      totalComments.value = res.total
+
+      done(!res.has_more)
+    } else {
+      throw new Error(res.error)
     }
-  })
-})
-const loading = ref(false)
-const data = computedAsync<null | Awaited<
-  ReturnType<typeof commentAPI.value.setup>
->>(
-  async () => {
-    console.log("[comment]: start setup...")
+  } catch (err) {
+    $q.notify({
+      message: String(err),
+      color: "negative",
+      position: "top"
+    })
+    done(true)
+  } finally {
+    loading.value = false
+  }
+}
 
-    loading.value = true
+function toggleSort() {
+  sort.value = sort.value === "newest" ? "time" : "newest"
+  refresh()
+}
 
-    try {
-      const data = await commentAPI.value.setup()
+function onPostDone(newComment: AvsComment, total?: number) {
+  comments.value = [newComment, ...comments.value]
+  if (total !== undefined) totalComments.value = total
+  else totalComments.value++
+}
 
-      data.comments.comments.commentIDs = shallowReactive(
-        data.comments.comments.commentIDs
-      )
-      data.comments.comments.idMap = shallowReactive(
-        data.comments.comments.idMap
-      )
-      data.comments.comments = shallowReactive(data.comments.comments)
-      data.comments.meta = shallowReactive(data.comments.meta)
+function onCommentUpdate(updatedComment: AvsComment) {
+  const index = comments.value.findIndex((c) => c.id === updatedComment.id)
+  if (index !== -1) {
+    comments.value[index] = updatedComment
+  }
+}
 
-      return shallowReactive(data)
-    } catch (err) {
-      $q.notify({
-        message: i18n.t("msg-err-load-cmt"),
-        caption: err + ""
-      })
-      throw err
-    } finally {
-      loading.value = false
-    }
+function onCommentDelete(id: number) {
+  comments.value = comments.value.filter((c) => c.id !== id)
+  totalComments.value = Math.max(0, totalComments.value - 1)
+}
+
+// Initial load watch
+watch(
+  filmId,
+  () => {
+    if (filmId.value) refresh()
   },
-  null,
-  {
-    onError: WARN,
-    lazy: true
-  }
-) as ShallowRef<null | Awaited<ReturnType<typeof commentAPI.value.setup>>>
-
-const user = computed(() => {
-  return data.value?.comments.meta.actors[data.value.comments.meta.userID]
-})
-
-async function onLoad(
-  index: number,
-  done: (end?: boolean) => void
-): Promise<void> {
-  if (!data.value) return done()
-
-  const dataMore = await commentAPI.value.getComments(
-    data.value.comments.meta.afterCursor
-  )
-
-  data.value.comments.comments.commentIDs = Array.from(
-    new Set([
-      ...data.value.comments.comments.commentIDs,
-      ...dataMore.payload.commentIDs
-    ])
-  )
-
-  Object.assign(data.value.comments.comments.idMap, dataMore.payload.idMap)
-
-  data.value.comments.meta.afterCursor = dataMore.payload.afterCursor
-
-  if (dataMore.payload.commentIDs.length < LIMIT) done(true)
-  else done()
-}
-
-function mergeData(
-  payload: PostComment["payload"] | AsyncComments["payload"]
-): void {
-  if (!data.value) return
-
-  Object.assign(data.value.comments.comments.idMap, payload.idMap)
-}
-
-class Mitt<Events extends Record<string, unknown>> {
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  private readonly events = new Map<keyof Events, Set<Function>>()
-
-  on<Name extends keyof Events>(name: Name, fn: (event: Events[Name]) => void) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    if (this.events.has(name)) this.events.get(name)!.add(fn)
-    else this.events.set(name, new Set([fn]))
-
-    onBeforeUnmount(() => this.events.get(name)?.delete(fn))
-  }
-
-  emit<Name extends keyof Events>(name: Name, param: Events[Name]) {
-    this.events.get(name)?.forEach((fn) => fn(param))
-  }
-}
-const bus = new Mitt<{
-  active_reply: ComponentInternalInstance
-  sign_in: void
-}>()
-export type EventBus = typeof bus
-
-bus.on("sign_in", async () => {
-  await commentAPI.value.signInPopup()
-
-  const { comments } = await commentAPI.value.setup()
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  Object.assign(data.value!.comments.meta, comments.meta)
-})
-
-provide("bus", bus)
+  { immediate: true }
+)
 </script>
+
+<style scoped>
+.comments-container {
+  max-width: 100%;
+}
+</style>
