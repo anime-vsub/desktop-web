@@ -1313,7 +1313,7 @@ interface SiblingChap {
 }
 
 const props = defineProps<{
-  sources?: Awaited<ReturnType<typeof PlayerLink>>["link"]
+  sources?: Exclude<Awaited<ReturnType<typeof PlayerLink>>["link"], string>
   currentSeason: string
   nameCurrentSeason?: string
   currentChap?: string
