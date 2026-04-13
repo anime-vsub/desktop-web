@@ -98,7 +98,7 @@ jobs:
           rm -rf src/logic/new-dha
           mkdir -p src/logic/new-dha
           cp -r /tmp/pkg src/logic/new-dha/pkg
-          rm .gitmodules
+          rm -rf .gitmodules
 
       - name: Commit release
         run: |
