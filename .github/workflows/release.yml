@@ -12,7 +12,22 @@ jobs:
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build Wasm
+        run: cd src/logic/new-dha && sh build.sh
 
       - uses: actions/setup-node@v4
         with:
@@ -38,7 +53,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build Wasm
+        run: cd src/logic/new-dha && sh build.sh
 
       - uses: actions/setup-node@v4
         with:
@@ -54,9 +84,30 @@ jobs:
       - name: Emit auto import
         run: bun run test src/logic/noop.spec.ts
 
-      - name: Push to branch `release`
+      - name: Backup pkg
         run: |
-          git branch release -f
+          cp -r src/logic/new-dha/pkg /tmp/pkg
+
+      - name: Create clean release branch
+        run: |
+          git checkout --orphan release
+          git rm -rf .
+
+      - name: Restore pkg
+        run: |
+          mkdir -p src/logic/new-dha
+          cp -r /tmp/pkg src/logic/new-dha/pkg
+
+      - name: Commit release
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git add pkg
+          git commit -m "Release build"
+
+      - name: Push release
+        run: |
           git push origin release -f
 
       - name: Generate changelog

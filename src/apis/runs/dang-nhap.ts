@@ -29,7 +29,12 @@ export async function DangNhap(email: string, password: string) {
 
     return {
       ...(await PostWorker<typeof AccountInfoParser>(Worker, html)),
-      cookie: new Headers(headers).get("set-cookie") ?? document.cookie.split(";").map((item) => item.trim()).join(",")
+      cookie:
+        new Headers(headers).get("set-cookie") ??
+        document.cookie
+          .split(";")
+          .map((item) => item.trim())
+          .join(",")
     }
   } else {
     throw new Error(i18n.global.t("dang-nhap-that-bai"))
