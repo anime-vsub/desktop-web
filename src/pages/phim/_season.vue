@@ -1432,7 +1432,12 @@ watch(
     immediate: true
   }
 )
-const sources = computed(() => configPlayer.value?.link)
+const sources = computed(
+  () =>
+    configPlayer.value?.link as
+      | Exclude<Exclude<typeof configPlayer.value, undefined>["link"], string>
+      | undefined
+)
 
 async function getProgressChaps(
   currentSeason: string

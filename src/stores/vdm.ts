@@ -12,7 +12,7 @@ import {
 // import { convertHlsToMP4 } from "src/logic/convert-hls-to-mp4"
 
 async function questionQualityDownload(
-  list: Awaited<ReturnType<typeof PlayerLink>>["link"]
+  list: Exclude<Awaited<ReturnType<typeof PlayerLink>>["link"], string>
 ) {
   return new Promise<string>((resolve, reject) => {
     Dialog.create({
@@ -126,8 +126,11 @@ async function download(
 
   const hlsUrl =
     (player.link.length > 1
-      ? await questionQualityDownload(player.link)
-      : player.link[0].file) + "#animevsub-vsub_extra"
+      ? await questionQualityDownload(
+          player.link as Exclude<typeof player.link, string>
+        )
+      : (player.link as Exclude<typeof player.link, string>)[0].file) +
+    "#animevsub-vsub_extra"
 
   // const saveToFile = await questionSaveToFile()
 

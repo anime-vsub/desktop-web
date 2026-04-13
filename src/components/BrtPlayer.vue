@@ -1624,7 +1624,7 @@ watch(
 )
 
 const _artQuality =
-  ref<Awaited<ReturnType<typeof PlayerLink>>["link"][0]["qualityCode"]>()
+  ref<Exclude<Awaited<ReturnType<typeof PlayerLink>>["link"], string>[0]["qualityCode"]>()
 const artQuality = computed({
   get() {
     if (props.sources?.find((item) => item.qualityCode === _artQuality.value))
