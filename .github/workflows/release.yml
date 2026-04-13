@@ -103,7 +103,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add pkg
+          git add src/logic/new-dha/pkg
           git commit -m "Release build"
 
       - name: Push release
