@@ -90,8 +90,7 @@ jobs:
 
       - name: Create clean release branch
         run: |
-          git checkout --orphan release
-          git reset --hard
+          rm -rf .git && git init
 
       - name: Restore pkg
         run: |
