@@ -59,5 +59,8 @@
   "diffEditor.codeLens": true,
   "bun.runtime": "/home/gitpod/.bun/bin/bun",
 
-  "css.customData": [".vscode/tailwind.json"]
+  "css.customData": [".vscode/tailwind.json"],
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  }
 }

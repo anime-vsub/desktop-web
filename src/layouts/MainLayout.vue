@@ -69,7 +69,7 @@
     <q-page-container>
       <q-page :style-fn="route.meta?.styleFn">
         <router-view
-          v-if="Http.version && semverGt(Http.version, '1.0.41')"
+          v-if="Http.version && semverGt(Http.version, '1.0.45')"
           v-slot="{ Component }"
         >
           <component :is="Component" />

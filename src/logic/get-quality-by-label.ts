@@ -7,7 +7,10 @@ const map = {
   SD: "480p"
 } as const
 export function getQualityByLabel(
-  label: Awaited<ReturnType<typeof PlayerLink>>["link"][0]["label"]
+  label: Exclude<
+    Awaited<ReturnType<typeof PlayerLink>>["link"],
+    string
+  >[0]["label"]
 ) {
   return (
     (map[label as keyof typeof map] as
