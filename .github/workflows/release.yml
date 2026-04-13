@@ -91,19 +91,21 @@ jobs:
       - name: Create clean release branch
         run: |
           git checkout --orphan release
-          git rm -rf .
+          git reset --hard
 
       - name: Restore pkg
         run: |
+          rm -rf src/logic/new-dha
           mkdir -p src/logic/new-dha
           cp -r /tmp/pkg src/logic/new-dha/pkg
+          rm .gitmodules
 
       - name: Commit release
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add src/logic/new-dha/pkg
+          git add .
           git commit -m "Release build"
 
       - name: Push release
