@@ -321,5 +321,15 @@
   "tai-video-that-bai": "Video download failed",
   "matte": "Wait!",
   "msg-warn": "If someone asks you to copy something here, 11/10 times you are being scammed.",
-  "msg-warn2": "Copying anything here can get your Google/Facebook/Discord and many other accounts hacked."
+  "msg-warn2": "Copying anything here can get your Google/Facebook/Discord and many other accounts hacked.",
+  "gui-binh-luan": "Post comment",
+  "da-ghim": "Pinned",
+  "da-chinh-sua": "edited",
+  "binh-luan-chua-spoiler-nhan-de-xem": "Comment contains a spoiler. Click to reveal.",
+  "thich": "Like",
+  "xem-spoiler": "Show spoiler",
+  "xem-them-count-phan-hoi": "View {0} more replies",
+  "tai-them-binh-luan": "Load more comments",
+  "dang-tai": "Loading...",
+  "sticker-loi": "Broken sticker"
 }
