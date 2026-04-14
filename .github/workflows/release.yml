@@ -70,10 +70,6 @@ jobs:
       - name: Build Wasm
         run: cd src/logic/new-dha && sh build.sh
 
-      - name: Backup pkg
-        run: |
-          cp -r src/logic/new-dha/pkg ../pkg
-
       - uses: actions/setup-node@v4
         with:
           node-version: 21
@@ -95,9 +91,7 @@ jobs:
 
       - name: Restore pkg
         run: |
-          rm -rf src/logic/new-dha
-          mkdir -p src/logic/new-dha
-          cp -r ../pkg src/logic/new-dha/pkg
+          find src/logic/new-dha -mindepth 1 -maxdepth 1 ! -name pkg -exec rm -rf {} +
           rm -rf .gitmodules
 
       - name: Commit release
