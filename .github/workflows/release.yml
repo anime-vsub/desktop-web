@@ -88,6 +88,7 @@ jobs:
           rm -rf .gitmodules
           git config --global init.defaultBranch release
           cp -r src/logic/new-dha/pkg ./
+          rm pkg/.gitignore          
           rm -rf src/logic/new-dha
           mkdir src/logic/new-dha
           mv pkg src/logic/new-dha/
