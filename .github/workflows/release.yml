@@ -110,6 +110,7 @@ jobs:
 
       - name: Push release
         run: |
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git release -f
           git push origin release -f
 
       - name: Generate changelog
