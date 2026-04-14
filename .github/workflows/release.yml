@@ -84,15 +84,15 @@ jobs:
       - name: Emit auto import
         run: bun run test src/logic/noop.spec.ts
 
-      - name: Create clean release branch
-        run: |
-          git config --global init.defaultBranch release
-          rm -rf .git && git init
-
       - name: Restore pkg
         run: |
           find src/logic/new-dha -mindepth 1 -maxdepth 1 ! -name pkg -exec rm -rf {} +
           rm -rf .gitmodules
+
+      - name: Create clean release branch
+        run: |
+          git config --global init.defaultBranch release
+          rm -rf .git && git init
 
       - name: Commit release
         run: |
