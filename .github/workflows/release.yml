@@ -90,6 +90,7 @@ jobs:
 
       - name: Create clean release branch
         run: |
+          git config --global init.defaultBranch release
           rm -rf .git && git init
 
       - name: Restore pkg
