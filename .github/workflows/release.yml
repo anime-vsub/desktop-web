@@ -67,9 +67,6 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack
 
-      - name: Build Wasm
-        run: cd src/logic/new-dha && sh build.sh
-
       - uses: actions/setup-node@v4
         with:
           node-version: 21
@@ -84,26 +81,19 @@ jobs:
       - name: Emit auto import
         run: bun run test src/logic/noop.spec.ts
 
-      - name: Restore pkg
+      - name: Release
         run: |
+          cd src/logic/new-dha && sh build.sh
           find src/logic/new-dha -mindepth 1 -maxdepth 1 ! -name pkg -exec rm -rf {} +
           rm -rf .gitmodules
-
-      - name: Create clean release branch
-        run: |
           git config --global init.defaultBranch release
+          ls src/logic
+          ls src/logic/new-dha          
           rm -rf .git && git init
-
-      - name: Commit release
-        run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
           git add .
           git commit -m "Release build"
-
-      - name: Push release
-        run: |
           git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git release -f
       - name: Generate changelog
         id: changelog
