@@ -84,6 +84,7 @@ jobs:
       - name: Release
         run: |
           cd src/logic/new-dha && sh build.sh
+          cd ../..
           find src/logic/new-dha -mindepth 1 -maxdepth 1 ! -name pkg -exec rm -rf {} +
           rm -rf .gitmodules
           git config --global init.defaultBranch release
