@@ -85,11 +85,12 @@ jobs:
         run: |
           cd src/logic/new-dha && sh build.sh
           cd ../../..
-          find src/logic/new-dha -mindepth 1 -maxdepth 1 ! -name pkg -exec rm -rf {} +
           rm -rf .gitmodules
           git config --global init.defaultBranch release
-          ls src/logic
-          ls src/logic/new-dha          
+          cp -r src/logic/new-dha/pkg ./
+          rm -rf src/logic/new-dha
+          mkdir src/logic/new-dha
+          mv pkg src/logic/new-dha/
           rm -rf .git && git init
           git config user.name "github-actions"
           git config user.email "actions@github.com"
