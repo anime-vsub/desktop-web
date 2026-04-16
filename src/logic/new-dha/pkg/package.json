@@ -1,0 +1,15 @@
+{
+  "name": "new-dha",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "new_dha_bg.wasm",
+    "new_dha.js",
+    "new_dha.d.ts"
+  ],
+  "main": "new_dha.js",
+  "types": "new_dha.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
