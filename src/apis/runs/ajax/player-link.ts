@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { decryptM3u8, init } from "src/logic/decrypt-hls-animevsub"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
-import { post } from "src/logic/http"
+import { get, post } from "src/logic/http"
 import newDhaInit, { get_m3u8_content } from "src/logic/new-dha/pkg/new_dha"
 import newDhaWasmUrl from "src/logic/new-dha/pkg/new_dha_bg.wasm?url"
 // import { post } from "src/logic/http"
@@ -71,10 +71,15 @@ export function PlayerLink(config: {
 
         if (config.playTech === "iframe") {
           await newDhaInit(newDhaWasmUrl)
+          const res = await get(config.link as string)
           config.link = [
             {
               file: `data:application/vnd.apple.mpegurl;base64,${btoa(
-                await get_m3u8_content(config.link as string)
+                await get_m3u8_content(
+                  config.link as string,
+                  res.data,
+                  new Headers(res.headers)
+                )
               )}`,
               label: "HD",
               preload: "auto",
