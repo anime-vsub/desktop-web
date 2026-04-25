@@ -1,0 +1,4 @@
+hls-module.js linguist-vendored
+src/logic/hls-module.js linguist-vendored
+dha-release.wasm linguist-language=webassembly
+main.js linguist-language=webassembly

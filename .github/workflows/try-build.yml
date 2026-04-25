@@ -1,0 +1,50 @@
+name: Try build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ["main"]
+  schedule:
+    - cron: "15 10 * * 5"
+
+jobs:
+  build:
+    name: Try build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build Wasm
+        run: cd src/logic/new-dha && sh build.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install depends
+        run: bun i
+
+      - name: Build
+        run: bun run build
+
+      - name: Build PWA
+        run: bun run build:pwa
