@@ -22,26 +22,28 @@ export async function DangNhap(email: string, password: string) {
   }
 
   // First POST without _csrf: server rejects but returns login page HTML containing a fresh _csrf token
-  const { data: loginPage } = await post(LOGIN_URL, body)
+  const { data: loginPage, headers: firstHeaders } = await post(LOGIN_URL, body)
   const csrfMatch = loginPage.match(/name="_csrf"[^>]*value="([^"]+)"/)
   if (!csrfMatch) throw new Error(i18n.global.t("dang-nhap-that-bai"))
 
+  const sessionCookie = new Headers(firstHeaders).get("set-cookie")
+
   // Second POST with the extracted _csrf: server should authenticate and return the logged-in page
-  const { data: html, headers } = await post(LOGIN_URL, {
-    ...body,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    _csrf: csrfMatch[1]
-  })
+  const { data: html, headers } = await post(
+    LOGIN_URL,
+    {
+      ...body,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      _csrf: csrfMatch[1]
+    },
+    sessionCookie ? { cookie: sessionCookie } : undefined
+  )
 
   if (html.includes("user-name-text")) {
     return {
       ...(await PostWorker<typeof AccountInfoParser>(Worker, html)),
-      cookie:
-        new Headers(headers).get("set-cookie") ??
-        document.cookie
-          .split(";")
-          .map((item) => item.trim())
-          .join(",")
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      cookie: new Headers(headers).get("set-cookie")!
     }
   } else {
     throw new Error(i18n.global.t("dang-nhap-that-bai"))
