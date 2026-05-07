@@ -33,7 +33,7 @@ export async function DangNhap(email: string, password: string) {
     LOGIN_URL,
     {
       ...body,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+       
       _csrf: csrfMatch[1]
     },
     sessionCookie ? { cookie: sessionCookie } : undefined
