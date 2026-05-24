@@ -13,10 +13,10 @@ export default function AccountInfo(html: string) {
   const $ = parserDom(html)
 
   const avatar = $(".profile-userpic img, img.upe-avatar").attr("src")
-  const name = $("#username").attr("value")?.trim() || $(".upe-name").text().trim() || undefined
+  const name = $("#username").attr("value")?.trim() || $(".upe-name").text().trim()
   const emailFromInput = $("#email").attr("value")?.trim()
   const emailFromCf = $(".__cf_email__").attr("data-cfemail")
-  const email = emailFromInput || (emailFromCf ? decodeCfEmail(emailFromCf) : undefined)
+  const email = emailFromInput || (emailFromCf ? decodeCfEmail(emailFromCf) : "")
   const username = $("#hoten, #upe-fullname").attr("value")?.trim() || ""
   const sex = $("select[name='gender'] input[checked]").attr("value") || ""
 
