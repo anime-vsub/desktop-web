@@ -227,12 +227,9 @@ arfAsync.push("kwvia9z0");
 <div class="form-group">
 <label class="control-label col-sm-3" for="gender">Giới tính</label>
 <div class="col-sm-9 gender">
-<input id="male" name="User[gender]" type="radio" value="1" checked="checked">
-<label for="male" class="label-radio">Nam</label>
-<input id="female" name="User[gender]" type="radio" value="0">
-<label for="female" class="label-radio">Nữ</label>
-<input id="pede" name="User[gender]" type="radio" value="2">
-<label for="pede" class="label-radio">Không xác định</label>
+<select name="gender">
+<input type="radio" name="User[gender]" value="1" checked>
+</select>
 </div>
 </div>
 <div class="form-group">
