@@ -7,6 +7,7 @@ import type {
   LoaderResponse
 } from "hls.js"
 import Hls from "hls.js"
+// eslint-disable-next-line camelcase
 import { decrypt_segment } from "src/logic/new-dha/pkg/new_dha"
 
 function getRequestParameters(
