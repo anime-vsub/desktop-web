@@ -7,6 +7,7 @@ import type {
   LoaderResponse
 } from "hls.js"
 import Hls from "hls.js"
+import { decrypt_segment } from "src/logic/new-dha/pkg/new_dha"
 
 function getRequestParameters(
   context: LoaderContext,
@@ -106,7 +107,13 @@ export class HlsPatched extends Hls {
         }, config.timeout)
 
         const now = performance.now()
-        fetch(this.request as Request)
+        decrypt_segment(context.url)
+          .then((decryptedUrl) => {
+            const resolvedUrl = decryptedUrl.startsWith("http")
+              ? decryptedUrl
+              : new URL(decryptedUrl, context.url).href
+            return fetch(new Request(resolvedUrl, initParams))
+          })
           .then((response: Response): Promise<string | ArrayBuffer> => {
             this.response = this.loader = response
 
