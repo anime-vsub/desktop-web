@@ -1,0 +1,117 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*.*.*"
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build Wasm
+        run: cd src/logic/new-dha && sh build.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install depends with npm
+        run: bun i
+
+      - name: Emit auto import
+        run: bun run test src/logic/noop.spec.ts
+
+      - name: Typing
+        run: bun run typing
+
+      - name: Test
+        run: bun run test
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install depends
+        run: bun i
+
+      - name: Emit auto import
+        run: bun run test src/logic/noop.spec.ts
+
+      - name: Release
+        run: |
+          cd src/logic/new-dha && sh build.sh
+          cd ../../..
+          rm -rf .gitmodules
+          git config --global init.defaultBranch release
+          cp -r src/logic/new-dha/pkg ./
+          rm pkg/.gitignore          
+          rm -rf src/logic/new-dha
+          mkdir src/logic/new-dha
+          mv pkg src/logic/new-dha/
+          rm -rf .git && git init
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Release build"
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git release -f
+      - name: Generate changelog
+        id: changelog
+        uses: metcalfc/changelog-generator@v4.0.1
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false

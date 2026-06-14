@@ -1,0 +1,3571 @@
+<template>
+  <div
+    class="w-full overflow-hidden bg-[#000] focus-visible:outline-none select-none"
+    ref="playerWrapRef"
+    tabindex="0"
+    autofocus
+    @keydown="
+      (event) => {
+        switch (event.code) {
+          case 'ArrowUp':
+            event.preventDefault()
+            if (!artFullscreen) upVolume()
+            break
+          case 'ArrowDown':
+            event.preventDefault()
+            if (!artFullscreen) downVolume()
+            break
+        }
+      }
+    "
+  >
+    <q-responsive
+      :ratio="841 / 483"
+      class="player__wrap max-h-[calc(100vh-169px)]"
+      :class="{
+        fullscreen: artFullscreen,
+        'desktop-mode': settingsStore.ui.newPlayer
+      }"
+    >
+      <video
+        ref="video"
+        :poster="poster"
+        @play="artPlaying = true"
+        @pause="artPlaying = false"
+        @durationchange="
+          artDuration = ($event.target as HTMLVideoElement).duration
+        "
+        @timeupdate="
+          !currentingTime &&
+            (artCurrentTime = ($event.target as HTMLVideoElement).currentTime),
+            onVideoTimeUpdate()
+        "
+        @progress="onVideoProgress"
+        @ratechange="
+          artPlaybackRate = ($event.target as HTMLVideoElement).playbackRate
+        "
+        @volumechange="artVolume = ($event.target as HTMLVideoElement).volume"
+        @canplay=";(artLoading = false), onVideoCanPlay()"
+        @canplaythrough="artLoading = false"
+        @suspend="artLoading = false"
+        @waiting="artLoading = true"
+        @ended="onVideoEnded"
+      />
+
+      <div
+        class="absolute top-0 left-0 w-full h-full cursor-none"
+        @touchstart="onBDTouchStart"
+        @touchmove="onBDTouchMove"
+        @touchend="onBDTouchEnd"
+        @click="onClickSkip"
+        @mousemove="setArtControlShow(true)"
+        v-show="holdedBD || !artControlShow"
+      />
+
+      <transition name="fade__ease-in-out">
+        <div
+          class="art-layer-controller overflow-hidden flex items-center justify-center"
+          :class="{
+            'currenting-time': currentingTime
+          }"
+          @touchstart="onBDTouchStart"
+          @touchmove="onBDTouchMove"
+          @touchend="onBDTouchEnd"
+          @click="onClickSkip"
+          @mousemove="setArtControlShow(true)"
+          v-show="showArtLayerController"
+        >
+          <div class="toolbar-top">
+            <div class="flex items-start w-max-[70%] flex-nowrap">
+              <div class="">
+                <div
+                  class="line-clamp-1 art-title text-[18px] text-weight-medium leading-normal"
+                >
+                  {{ name }}
+                </div>
+                <div v-if="nameCurrentChap" class="art-subtitle text-gray-300">
+                  {{ t("tap-_chap", [nameCurrentChap]) }}
+                  {{ engNameCurrentChap ? " - " + engNameCurrentChap : "" }}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center pr-2">
+              <q-btn dense flat round @click.stop="openPopupFlashNetwork">
+                <i-ri-water-flash-line
+                  v-if="settingsStore.player.preResolve === 0"
+                  width="25"
+                  height="25"
+                />
+                <i-ri-water-flash-fill
+                  v-else
+                  width="25"
+                  height="25"
+                  :class="`text-${
+                    optionsPreResolve.find(
+                      (item) => item.value === settingsStore.player.preResolve
+                    )?.color
+                  }`"
+                />
+
+                <q-tooltip
+                  anchor="bottom middle"
+                  self="top middle"
+                  class="bg-dark text-[14px] text-weight-medium"
+                  transition-show="jump-up"
+                  transition-hide="jump-down"
+                >
+                  {{ $t("tang-toc-mang") }}
+                </q-tooltip>
+              </q-btn>
+              <q-btn
+                dense
+                flat
+                round
+                @click.stop="runRemount"
+                :disable="!currentStream"
+              >
+                <Icon
+                  icon="fluent:flash-flow-24-regular"
+                  width="25"
+                  height="25"
+                />
+
+                <q-tooltip
+                  anchor="bottom middle"
+                  self="top middle"
+                  class="bg-dark text-[14px] text-weight-medium"
+                  transition-show="jump-up"
+                  transition-hide="jump-down"
+                >
+                  {{ t("doi-relay") }}
+                </q-tooltip>
+              </q-btn>
+              <div
+                v-if="settingsStore.ui.currentTime && artFullscreen"
+                class="art-subtitle pl-3"
+              >
+                {{ timeText.text }}
+                <span class="text-0.8em">{{
+                  timeText.isAM ? t("sa") : t("ch")
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="art-controls-main">
+            <q-btn
+              flat
+              dense
+              round
+              :ripple="false"
+              class="prev"
+              @click.stop="skipBack"
+            >
+              <Icon
+                icon="fluent:skip-back-10-20-regular"
+                width="35"
+                height="35"
+              />
+            </q-btn>
+
+            <q-btn
+              flat
+              dense
+              round
+              :ripple="false"
+              class="relative z-199 w-[60px] h-[60px]"
+              @click.stop="setArtPlaying(!artPlaying)"
+              v-show="!holdedBD"
+            >
+              <template v-if="!artLoading">
+                <transition name="q-transition--scale">
+                  <Icon
+                    v-if="!artPlaying"
+                    icon="fluent:play-circle-20-regular"
+                    width="60"
+                    height="60"
+                  />
+                  <Icon
+                    v-else
+                    icon="fluent:pause-circle-20-regular"
+                    width="60"
+                    height="60"
+                  />
+                </transition>
+              </template>
+            </q-btn>
+
+            <q-btn
+              flat
+              dense
+              round
+              :ripple="false"
+              class="next"
+              @click.stop="skipForward"
+            >
+              <Icon
+                icon="fluent:skip-forward-10-20-regular"
+                width="35"
+                height="35"
+              />
+            </q-btn>
+          </div>
+
+          <div class="toolbar-bottom">
+            <div @click.stop>
+              <div
+                v-if="!settingsStore.ui.newPlayer"
+                class="art-controls only-fscrn"
+              >
+                <div class="art-controls-left">
+                  <div
+                    class="art-control art-control-time art-control-onlyText"
+                    data-index="30"
+                    style="cursor: auto"
+                  >
+                    {{ playtimeText }} /
+                    {{ durationText }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="art-control-progress"
+                @mousedown.stop="onIndicatorMove"
+                @mousemove.stop="onIndicatorMove"
+                @mouseover="artControlProgressHoving = true"
+                @mouseout="artControlProgressHoving = false"
+              >
+                <div class="art-control-progress-inner" ref="progressInnerRef">
+                  <div
+                    class="art-progress-loaded"
+                    :style="{
+                      width: percentageResourceLoadedText
+                    }"
+                  />
+                  <!-- not need memo because this not show if not hover -->
+                  <div
+                    v-if="artControlProgressHoving && !currentingTime"
+                    class="art-progress-hoved"
+                    :style="{
+                      width: `${(artCurrentTimeHoving / artDuration) * 100}%`
+                    }"
+                  />
+                  <div
+                    v-if="artControlProgressHoving && !currentingTime"
+                    class="art-sk-hoved"
+                    :class="{
+                      'art-sk-hoved--thumbs': sktStyle.thumbs
+                    }"
+                    :data-title="
+                      parseTime(artCurrentTimeHoving) +
+                      (intro &&
+                      artCurrentTimeHoving >= intro.start &&
+                      artCurrentTimeHoving <= intro.end
+                        ? ' ' + $t('mo-dau')
+                        : outro &&
+                            artCurrentTimeHoving >= outro.start &&
+                            artCurrentTimeHoving <= outro.end
+                          ? ' ' + $t('ket-thuc')
+                          : '')
+                    "
+                    :style="{ left: leftSkt + 'px' }"
+                    ref="skRef"
+                  />
+                  <!-- /end -->
+                  <div
+                    class="art-progress-played"
+                    :style="{
+                      width: percentagePlaytimeText
+                    }"
+                  />
+                  <div
+                    class="absolute z-22 left-0 top-0 right-0 bottom-0 w-0 h-full pointer-events-none"
+                    :style="{
+                      width: percentagePlaytimeText
+                    }"
+                  >
+                    <div
+                      class="absolute w-[20px] h-[20px] right-[-10px] top-[calc(100%-10px)] art-progress-indicator z-22"
+                      :data-title="
+                        artControlProgressHoving
+                          ? parseTime(artCurrentTimeHoving)
+                          : '00:00'
+                      "
+                      @mousedown.stop="currentingTime = true"
+                      @mousemove.stop="onIndicatorMove"
+                    >
+                      <img width="16" heigth="16" src="~assets/indicator.svg" />
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="intro"
+                    class="absolute h-full bg-blue top-0 z-21"
+                    :style="{
+                      width: `${
+                        ((intro.end - intro.start) / artDuration) * 100
+                      }%`,
+                      left: `${(intro.start / artDuration) * 100}%`
+                    }"
+                  />
+                  <div
+                    v-if="outro"
+                    class="absolute h-full bg-blue top-0 z-21"
+                    :style="{
+                      width: `${
+                        ((outro.end - outro.start) / artDuration) * 100
+                      }%`,
+                      left: `${(outro.start / artDuration) * 100}%`
+                    }"
+                  />
+                </div>
+              </div>
+
+              <div class="art-more-controls flex items-center justify-between">
+                <div class="flex items-center">
+                  <q-btn
+                    dense
+                    flat
+                    no-caps
+                    rounded
+                    class="mr-5 text-weight-normal art-btn desktop-mode:flex"
+                    @click="setArtPlaying(!artPlaying)"
+                  >
+                    <svg
+                      v-if="artPlaying"
+                      xmlns="http://www.w3.org/2000/svg"
+                      xmlns:xlink="http://www.w3.org/1999/xlink"
+                      aria-hidden="true"
+                      role="img"
+                      class="art-icon iconify iconify--fluent"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      data-v-0a4390b6=""
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M 6 3 A 2.25 2.25 0 0 0 4 5.25 v 13.35 A 2.25 2.25 0 0 0 6 21 h 1 A 2.25 2.25 0 0 0 9 18.6 V 5.25 A 2.25 2.25 0 0 0 7 3 Z m 11 0 A 2.25 2.25 0 0 0 15 5.4 v 13.5 A 2.25 2.25 0 0 0 17 21 h 1 A 2.25 2.25 0 0 0 20 18.75 V 5.25 A 2.25 2.25 0 0 0 18 3 Z"
+                      ></path>
+                    </svg>
+                    <Icon
+                      v-else
+                      icon="fluent:play-24-filled"
+                      class="art-icon"
+                      width="18"
+                      height="18"
+                    />
+                  </q-btn>
+                  <q-btn
+                    dense
+                    flat
+                    no-caps
+                    rounded
+                    class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
+                    :disable="!nextChap"
+                    :to="
+                      nextChap
+                        ? `/phim/${nextChap.season.value}/${
+                            nextChap.chap
+                              ? parseChapName(nextChap.chap.name) +
+                                '-' +
+                                nextChap.chap?.id
+                              : ''
+                          }`
+                        : undefined
+                    "
+                  >
+                    <Icon
+                      icon="fluent:next-24-regular"
+                      class="art-icon"
+                      width="18"
+                      height="18"
+                    />
+                    <span class="ml-2 desktop-mode:hidden">{{
+                      t("tiep")
+                    }}</span>
+
+                    <q-tooltip
+                      v-if="nextChap"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{
+                        t("_message-hint-next", [
+                          currentSeason !== nextChap.season.value
+                            ? t("tiep-theo-_season", [nextChap.season.name])
+                            : t("tiep-theo-tap-_chap", [nextChap.chap?.name])
+                        ])
+                      }}
+                    </q-tooltip>
+                  </q-btn>
+
+                  <div
+                    class="flex items-center mr-1 text-weight-normal art-btn art-volume"
+                    :class="{ active: !artVolumeOutside }"
+                    ref="wrapVolumeRef"
+                  >
+                    <q-btn round flat dense @click="toggleMuted">
+                      <Icon
+                        :icon="
+                          [
+                            'fluent:speaker-off-24-regular',
+                            'fluent:speaker-1-24-regular',
+                            'fluent:speaker-2-24-regular'
+                          ][artVolume === 0 ? 0 : artVolume < 0.5 ? 1 : 2]
+                        "
+                        class="mr-2 art-icon"
+                        width="18"
+                        height="18"
+                      />
+
+                      <q-tooltip
+                        anchor="top middle"
+                        self="bottom middle"
+                        class="bg-dark text-[14px] text-weight-medium"
+                        transition-show="jump-up"
+                        transition-hide="jump-down"
+                      >
+                        {{
+                          artVolume === 0 ? t("bat-tieng-m") : t("tat-tieng-m")
+                        }}
+                      </q-tooltip>
+                    </q-btn>
+
+                    <div
+                      class="overflow-hidden py-1 flex items-center w-0 transition-width duration-300 ease-in-out slider"
+                      @mouseout.stop
+                    >
+                      <q-slider
+                        :model-value="artVolume"
+                        @update:model-value="setArtVolume($event ?? 0)"
+                        :min="0"
+                        :max="1"
+                        :step="0.05"
+                        dense
+                        color="white"
+                        track-size="3px"
+                        thumb-size="17px"
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    class="ml-2 art-control art-control-time art-control-onlyText hide-fscrn"
+                    data-index="30"
+                    style="cursor: auto"
+                  >
+                    {{ playtimeText }} /
+                    {{ durationText }}
+                  </div>
+
+                  <q-btn
+                    dense
+                    flat
+                    no-caps
+                    rounded
+                    @click="showDialogChapter = true"
+                    class="ml-6 desktop-mode:ml-7 text-weight-normal art-btn only-fscrn"
+                    :style="{
+                      display: settingsStore.ui.modeMovie
+                        ? 'block !important'
+                        : ''
+                    }"
+                  >
+                    <Icon
+                      icon="fluent:list-24-regular"
+                      class="mr-2 art-icon"
+                      width="18"
+                      height="18"
+                    />
+                    {{ t("ep-_chap", [nameCurrentChap]) }}
+
+                    <q-tooltip
+                      v-if="!showDialogChapter"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{ t("danh-sach-tap") }}
+                    </q-tooltip>
+
+                    <q-menu
+                      v-model="showMenuSelectChap"
+                      anchor="top middle"
+                      self="bottom middle"
+                      :offset="[0, 20]"
+                      class="rounded-xl bg-[rgba(28,28,30,1)] shadow-xl min-w-[200px] min-h-[165px] !max-w-[612px] flex column flex-nowrap overflow-visible"
+                      :class="{
+                        'bg-opacity-95': settingsStore.ui.menuTransparency
+                      }"
+                      ref="menuChapsRef"
+                    >
+                      <div>
+                        <div
+                          class="py-1 px-4 text-subtitle1 flex items-center justify-between"
+                        >
+                          {{
+                            gridModeTabsSeasons
+                              ? t("chon-season")
+                              : t("chon-tap")
+                          }}
+
+                          <q-btn
+                            dense
+                            round
+                            unelevated
+                            @click="gridModeTabsSeasons = !gridModeTabsSeasons"
+                          >
+                            <Icon
+                              :icon="
+                                gridModeTabsSeasons
+                                  ? 'fluent:grid-kanban-20-regular'
+                                  : 'fluent:apps-list-24-regular'
+                              "
+                              width="20"
+                              height="20"
+                            />
+                          </q-btn>
+                        </div>
+
+                        <!-- <div v-show="gridModeTabsSeasons" class="h-[36px]" /> -->
+                        <q-tabs
+                          v-model="seasonActive"
+                          class="min-w-0 w-full tabs-seasons"
+                          :class="{
+                            'grid-mode scrollbar-custom': gridModeTabsSeasons
+                          }"
+                          no-caps
+                          dense
+                          inline-label
+                          active-class="c--main"
+                          v-if="
+                            seasons &&
+                            (seasons.length > 1 ||
+                              (seasons.length === 0 && seasons[0].name !== ''))
+                          "
+                        >
+                          <q-tab
+                            v-for="item in seasons"
+                            :key="item.value"
+                            :name="item.value"
+                            :label="item.name"
+                            :ref="
+                              (el: QTab) =>
+                                void (
+                                  item.value === seasonActive &&
+                                  (tabsRef = el as QTab)
+                                )
+                            "
+                          />
+                        </q-tabs>
+                      </div>
+
+                      <div
+                        class="h-full min-h-0 overflow-y-auto scrollbar-custom"
+                        :style="{
+                          overflow: gridModeTabsSeasons ? 'hidden' : '',
+                          opacity: gridModeTabsSeasons ? '0' : ''
+                        }"
+                      >
+                        <div
+                          v-if="!seasons"
+                          class="flex-1 flex items-center justify-center py-4"
+                        >
+                          <q-spinner color="main" size="3em" :thickness="3" />
+                        </div>
+
+                        <template v-else>
+                          <q-tab-panels
+                            v-model="seasonActive"
+                            animated
+                            keep-alive
+                            class="flex-1 w-full bg-transparent panels-seasons"
+                          >
+                            <q-tab-panel
+                              v-for="({ value }, index) in seasons"
+                              :key="index"
+                              :name="value"
+                            >
+                              <div
+                                v-if="
+                                  !(_tmp = _cacheDataSeasons.get(value)) ||
+                                  _tmp.status === 'pending'
+                                "
+                                class="absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2"
+                              >
+                                <q-spinner
+                                  style="color: #00be06"
+                                  size="3em"
+                                  :thickness="3"
+                                />
+                              </div>
+                              <div
+                                v-else-if="_tmp.status === 'error'"
+                                class="absolute top-[50%] left-[50%] text-center transform -translate-x-1/2 -translate-y-1/2"
+                              >
+                                {{ t("loi-khi-lay-du-lieu") }}
+                                <br />
+                                <q-btn
+                                  dense
+                                  no-caps
+                                  rounded
+                                  style="color: #00be06"
+                                  @click="fetchSeason(value)"
+                                  >{{ t("thu-lai") }}</q-btn
+                                >
+                              </div>
+
+                              <template v-else>
+                                <div
+                                  v-if="_tmp.response.update"
+                                  class="mb-2 text-gray-300"
+                                >
+                                  <MessageScheludeChap
+                                    :update="_tmp.response.update"
+                                  />
+                                </div>
+
+                                <ChapsGridQBtn
+                                  grid
+                                  :chaps="_tmp.response.chaps"
+                                  :season="value"
+                                  :find="
+                                    (item) =>
+                                      value === currentSeason &&
+                                      item.id === currentChap
+                                  "
+                                  :progress-chaps="
+                                    (
+                                      progressWatchStore.get(
+                                        value
+                                      ) as unknown as any
+                                    )?.response
+                                  "
+                                  :deep-scroll="5"
+                                  class-item="px-3 !py-[6px] mb-3"
+                                />
+                              </template>
+                            </q-tab-panel>
+                          </q-tab-panels>
+                        </template>
+                      </div>
+
+                      <q-resize-observer
+                        @resize="menuChapsRef?.updatePosition()"
+                      />
+                    </q-menu>
+                  </q-btn>
+                </div>
+
+                <div>
+                  <q-btn
+                    v-if="settingsStore.ui.shortcutsQAP"
+                    dense
+                    flat
+                    no-caps
+                    rounded
+                    class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
+                  >
+                    <Icon
+                      icon="solar:server-square-broken"
+                      class="mr-2 art-icon"
+                      width="18"
+                      height="18"
+                    />
+                    {{ settingsStore.player.server }}
+
+                    <q-menu
+                      v-model="showMenuServer"
+                      anchor="top middle"
+                      self="bottom middle"
+                      :offset="[0, 20]"
+                      class="text-shadow-menu rounded-xl shadow-xl min-w-[200px]"
+                      :class="{
+                        'm-transparency': settingsStore.ui.menuTransparency
+                      }"
+                    >
+                      <div
+                        class="bg-[rgba(45,45,45,0.9)] py-2 px-4 flex items-center justify-between relative"
+                      >
+                        {{ t("may-chu-phat") }}
+
+                        <q-btn
+                          dense
+                          flat
+                          round
+                          icon="close"
+                          class="text-zinc-500"
+                          v-close-popup
+                        />
+                      </div>
+                      <div
+                        class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative"
+                      >
+                        <BottomBlurRelative>
+                          <ul class="mx-[-16px]">
+                            <li
+                              v-for="(label, id) in servers"
+                              :key="id"
+                              class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
+                              :class="{
+                                'c--main': id === settingsStore.player.server
+                              }"
+                              @click="settingsStore.player.server = id"
+                            >
+                              {{ label }}
+                            </li>
+                          </ul>
+                        </BottomBlurRelative>
+                      </div>
+                    </q-menu>
+
+                    <q-tooltip
+                      v-if="!showMenuServer"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{ t("may-chu-phat") }}
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="settingsStore.ui.shortcutsQAP"
+                    dense
+                    flat
+                    no-caps
+                    rounded
+                    class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
+                  >
+                    <Icon
+                      icon="solar:high-quality-broken"
+                      class="mr-2 art-icon"
+                      width="18"
+                      height="18"
+                    />
+                    {{ artQuality }}
+
+                    <q-menu
+                      v-model="showMenuQuality"
+                      anchor="top middle"
+                      self="bottom middle"
+                      :offset="[0, 20]"
+                      class="text-shadow-menu rounded-xl shadow-xl min-w-[200px]"
+                      :class="{
+                        'm-transparency': settingsStore.ui.menuTransparency
+                      }"
+                    >
+                      <div
+                        class="bg-[rgba(45,45,45,0.9)] py-2 px-4 flex items-center justify-between relative"
+                      >
+                        {{ t("chat-luong") }}
+
+                        <q-btn
+                          dense
+                          flat
+                          round
+                          icon="close"
+                          class="text-zinc-500"
+                          v-close-popup
+                        />
+                      </div>
+                      <div
+                        class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative"
+                      >
+                        <BottomBlurRelative>
+                          <ul class="mx-[-16px]">
+                            <li
+                              v-for="{ label, qualityCode } in sources"
+                              :key="label"
+                              class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
+                              :class="{
+                                'c--main': qualityCode === artQuality
+                              }"
+                              @click="setArtQuality(qualityCode)"
+                            >
+                              {{ label }}
+                            </li>
+                          </ul>
+                        </BottomBlurRelative>
+                      </div>
+                    </q-menu>
+
+                    <q-tooltip
+                      v-if="!showMenuQuality"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{ t("chat-luong") }}
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="settingsStore.ui.shortcutsQAP"
+                    dense
+                    flat
+                    no-caps
+                    rounded
+                    class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
+                  >
+                    <Icon
+                      icon="fluent:top-speed-24-regular"
+                      class="mr-2 art-icon"
+                      width="18"
+                      height="18"
+                    />
+                    {{ t("_playback-x", [artPlaybackRate]) }}
+
+                    <q-menu
+                      v-model="showMenuPlaybackRate"
+                      anchor="top middle"
+                      self="bottom middle"
+                      :offset="[0, 20]"
+                      class="rounded-xl shadow-xl min-w-[200px]"
+                      :class="{
+                        'm-transparency': settingsStore.ui.menuTransparency
+                      }"
+                    >
+                      <div
+                        class="bg-[rgba(45,45,45,0.9)] py-2 px-4 flex items-center justify-between relative"
+                      >
+                        {{ t("toc-do") }}
+
+                        <q-btn
+                          dense
+                          flat
+                          round
+                          icon="close"
+                          class="text-zinc-500"
+                          v-close-popup
+                        />
+                      </div>
+                      <div
+                        class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative"
+                      >
+                        <BottomBlurRelative>
+                          <ul class="mx-[-16px]">
+                            <li
+                              v-for="{ name, value } in [
+                                ...playbackRates
+                              ].reverse()"
+                              :key="value"
+                              class="py-2 text-center px-16 cursor-pointer transition-background duration-200 ease-in-out hover:bg-[rgba(255,255,255,0.1)]"
+                              :class="{
+                                'c--main': value === artPlaybackRate
+                              }"
+                              @click="setArtPlaybackRate(value)"
+                            >
+                              {{ name }}
+                            </li>
+                          </ul>
+                        </BottomBlurRelative>
+                      </div>
+                    </q-menu>
+
+                    <q-tooltip
+                      v-if="!showMenuPlaybackRate"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{ t("toc-do-phat") }}
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    dense
+                    flat
+                    round
+                    no-caps
+                    class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
+                  >
+                    <Icon
+                      icon="fluent:settings-28-filled"
+                      class="art-icon"
+                      width="24"
+                      height="24"
+                    />
+
+                    <q-menu
+                      v-model="showMenuSettings"
+                      anchor="top middle"
+                      self="bottom middle"
+                      :offset="[-25, 20]"
+                      class="rounded-xl shadow-xl min-w-[200px] flex column flex-nowrap overflow-hidden"
+                      :class="{
+                        'm-transparency': settingsStore.ui.menuTransparency
+                      }"
+                    >
+                      <div
+                        class="bg-[rgba(45,45,45,0.9)] py-2 px-4 flex items-center justify-between relative"
+                      >
+                        {{ t("cai-dat") }}
+
+                        <q-btn
+                          dense
+                          flat
+                          round
+                          icon="close"
+                          class="text-zinc-500"
+                          v-close-popup
+                        />
+                      </div>
+                      <div
+                        class="bg-[rgba(28,28,30,0.9)] !min-h-0 px-4 relative py-3 overflow-y-auto scrollbar-custom"
+                      >
+                        <div class="text-zinc-500 text-[12px] mb-2">
+                          {{ t("may-chu-phat") }}
+                        </div>
+                        <div>
+                          <q-btn
+                            dense
+                            flat
+                            no-caps
+                            class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
+                            v-for="(label, id) in servers"
+                            :class="{
+                              'c--main': settingsStore.player.server === id
+                            }"
+                            :key="label"
+                            @click="settingsStore.player.server = id"
+                            >{{ label }}</q-btn
+                          >
+                        </div>
+
+                        <div class="text-zinc-500 text-[12px] mt-4 mb-2">
+                          {{ t("chat-luong") }}
+                        </div>
+                        <div>
+                          <q-btn
+                            dense
+                            flat
+                            no-caps
+                            class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
+                            v-for="{ label, qualityCode } in sources"
+                            :class="{
+                              'c--main': qualityCode === artQuality
+                            }"
+                            :key="label"
+                            @click="setArtQuality(qualityCode)"
+                            >{{ qualityCode }}</q-btn
+                          >
+                        </div>
+
+                        <div class="text-zinc-500 text-[12px] mt-4 mb-2">
+                          {{ t("toc-do-phat-lai") }}
+                        </div>
+                        <div class="flex flex-nowrap mx-[-8px]">
+                          <q-btn
+                            dense
+                            flat
+                            no-caps
+                            class="px-2 flex-1 text-weight-norrmal py-2 rounded-xl"
+                            v-for="{ name, value } in playbackRates"
+                            :key="name"
+                            :class="
+                              artPlaybackRate === value
+                                ? 'c--main'
+                                : 'text-stone-200'
+                            "
+                            @click="setArtPlaybackRate(value)"
+                            >{{ name }}</q-btn
+                          >
+                        </div>
+
+                        <div
+                          class="flex items-center justify-between mt-4 mb-2"
+                        >
+                          {{ t("tu-dong-phat") }}
+                          <q-toggle
+                            v-model="settingsStore.player.autoNext"
+                            size="sm"
+                            color="green"
+                          />
+                        </div>
+
+                        <div
+                          class="flex items-center justify-between mt-4 mb-2"
+                        >
+                          {{ $t("tu-dong-bo-qua-opend") }}
+                          <q-toggle
+                            v-model="settingsStore.player.autoSkipIEnd"
+                            size="sm"
+                            color="green"
+                          />
+                        </div>
+
+                        <div
+                          class="flex items-center justify-between mt-4 mb-2"
+                        >
+                          {{ t("giao-dien-moi") }}
+                          <q-toggle
+                            v-model="settingsStore.ui.newPlayer"
+                            size="sm"
+                            color="blue"
+                          />
+                        </div>
+
+                        <div
+                          class="flex items-center justify-between mt-4 mb-2"
+                        >
+                          {{ t("loi-tat-chat-luong-and-toc-do") }}
+                          <q-toggle
+                            v-model="settingsStore.ui.shortcutsQAP"
+                            size="sm"
+                            color="blue"
+                          />
+                        </div>
+
+                        <div
+                          class="flex items-center justify-between mt-4 mb-2"
+                        >
+                          Menu mờ
+                          <q-toggle
+                            v-model="settingsStore.ui.menuTransparency"
+                            size="sm"
+                            color="blue"
+                          />
+                        </div>
+                      </div>
+                    </q-menu>
+
+                    <q-tooltip
+                      v-if="!showMenuSettings"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{ t("cai-dat") }}
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    dense
+                    flat
+                    round
+                    no-caps
+                    class="mr-6 desktop-mode:mr-5 text-weight-normal art-btn"
+                    @click="
+                      settingsStore.ui.modeMovie = !settingsStore.ui.modeMovie
+                    "
+                  >
+                    <Icon
+                      v-if="!settingsStore.ui.modeMovie"
+                      icon="ph:rectangle"
+                      class="art-icon"
+                      width="24"
+                      height="24"
+                    />
+                    <Icon
+                      v-else
+                      icon="lucide:rectangle-horizontal"
+                      class="art-icon"
+                      width="24"
+                      height="24"
+                    />
+
+                    <q-tooltip
+                      ref="tooltipModeMovieRef"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{
+                        settingsStore.ui.modeMovie
+                          ? t("che-do-xem-mac-dinh-t")
+                          : t("che-do-xem-rap-phim-t")
+                      }}
+                    </q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    dense
+                    flat
+                    round
+                    no-caps
+                    class="text-weight-normal art-btn"
+                    @click="toggleArtFullscreen"
+                  >
+                    <Icon
+                      v-if="!artFullscreen"
+                      icon="fluent:full-screen-maximize-24-regular"
+                      class="art-icon"
+                      width="24"
+                      height="24"
+                    />
+                    <Icon
+                      v-else
+                      icon="fluent:full-screen-minimize-24-regular"
+                      class="art-icon"
+                      width="24"
+                      height="24"
+                    />
+
+                    <q-tooltip
+                      ref="tooltipFullscreenRef"
+                      anchor="top middle"
+                      self="bottom middle"
+                      class="bg-dark text-[14px] text-weight-medium"
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                    >
+                      {{
+                        artFullscreen
+                          ? t("thoat-khoi-che-do-toan-man-hinh-f")
+                          : t("toan-man-hinh-f")
+                      }}
+                    </q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- notices -->
+      <transition-group
+        tag="div"
+        name="notices"
+        class="absolute bottom-[40%] left-0 w-full flex column justify-end ml-10 text-[14px] pointer-events-none"
+      >
+        <div v-for="item in notices" :key="item.id" class="pb-2">
+          <span
+            class="text-[#fff] bg-[#0009] rounded-[3px] px-[16px] py-[10px] inline-block"
+            >{{ item.text }}</span
+          >
+        </div>
+      </transition-group>
+      <!-- /notices -->
+
+      <!-- loading global -->
+      <div
+        v-if="!sources || artLoading"
+        class="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none z-200"
+      >
+        <q-spinner size="60px" :thickness="3" />
+      </div>
+      <!-- /loading global -->
+
+      <!-- question skip -->
+      <transition
+        v-if="intro || outro"
+        name="q-transition--fade"
+        :duration="500"
+      >
+        <div
+          v-if="skiping && !storeSkipFragment.has(skiping)"
+          class="absolute bottom-[min(35%,100px)] text-[14px] right-10px bg-[#1c1c1c] bg-opacity-90 rounded-[5px] py-2 px-3 flex flex-nowrap items-center !h-auto !w-auto z-60"
+        >
+          <span>
+            {{ $t("bo-qua") }}
+            <span class="font-weight-medium">{{
+              skiping.intro ? $t("mo-dau") : $t("ket-thuc")
+            }}</span>
+          </span>
+
+          <q-separator vertical class="mx-2" />
+
+          <div class="text-13px flex items-center">
+            <button
+              class="px-2 py-1 rounded-5px transition-background hover:bg-gray-300 hover:bg-opacity-10"
+              @click="skipOpEnd"
+            >
+              {{ $t("bo-qua-enter") }}
+              <span class="block mt-1 text-12px text-gray-300"
+                >{{
+                  Math.round(
+                    skiping.intro
+                      ? intro!.end - artCurrentTime
+                      : outro!.end - artCurrentTime
+                  )
+                }}
+                giây</span
+              >
+            </button>
+
+            <q-btn
+              round
+              flat
+              padding="4px"
+              class="self-start"
+              @click="storeSkipFragment.add(skiping)"
+            >
+              <Icon icon="ion:close" class="text-1.2em" />
+            </q-btn>
+          </div>
+        </div>
+      </transition>
+      <!-- /question skip -->
+    </q-responsive>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { Icon } from "@iconify/vue"
+import {
+  useDocumentVisibility,
+  useEventListener,
+  useFullscreen,
+  useIntervalFn,
+  useMouseInElement,
+  useTimestamp
+} from "@vueuse/core"
+import BottomBlurRelative from "components/BottomBlurRelative.vue"
+import ChapsGridQBtn from "components/ChapsGridQBtn.vue"
+import MessageScheludeChap from "components/feat/MessageScheludeChap.vue"
+import Hls from "hls.js"
+import workerHls from "hls.js/dist/hls.worker?url"
+import {
+  debounce,
+  QBtn,
+  QMenu,
+  QResizeObserver,
+  QResponsive,
+  QSlider,
+  QSpinner,
+  QTab,
+  QTabPanel,
+  QTabPanels,
+  QTabs,
+  QTooltip,
+  useQuasar
+} from "quasar"
+import type { PlayerLink } from "src/apis/runs/ajax/player-link"
+import { useMemoControl } from "src/composibles/memo-control"
+import {
+  DELAY_SAVE_HISTORY,
+  DELAY_SAVE_VIEWING_PROGRESS,
+  playbackRates,
+  servers
+} from "src/constants"
+import { checkContentEditable } from "src/helpers/checkContentEditable"
+import { scrollXIntoView, scrollYIntoView } from "src/helpers/scrollIntoView"
+import { findInRangeSet } from "src/logic/find-in-range-set"
+import { getSktAt } from "src/logic/get-skt-at"
+import { HlsPatched } from "src/logic/hls-patched"
+import { patcher } from "src/logic/hls-patcher"
+import { isConnectedToNetwork } from "src/logic/is-connected-to-network"
+import { loadVttSk } from "src/logic/load-vtt-sk"
+import { parseChapName } from "src/logic/parseChapName"
+import { parseTime } from "src/logic/parseTime"
+import { getSegments } from "src/logic/resolve-master-manifest"
+import { resolveMasterManifestWorker } from "src/logic/resolve-master-manifest.thread"
+import { sleep } from "src/logic/sleep"
+import type { ProgressWatchStore } from "src/pages/phim/_season.interface"
+import type {
+  ResponseDataSeasonError,
+  ResponseDataSeasonPending,
+  ResponseDataSeasonSuccess
+} from "src/pages/phim/response-data-season"
+import { useAuthStore } from "stores/auth"
+import { useHistoryStore } from "stores/history"
+import { useSettingsStore } from "stores/settings"
+import { useStateStorageStore } from "stores/state-storage"
+import { retryAsync } from "ts-retry"
+import {
+  computed,
+  onBeforeUnmount,
+  ref,
+  shallowReactive,
+  shallowRef,
+  watch,
+  watchEffect
+} from "vue"
+import { useI18n } from "vue-i18n"
+import { onBeforeRouteLeave, useRouter } from "vue-router"
+
+const { t } = useI18n()
+// fix toolip fullscreen not hide if change fullscreen
+
+// keyboard binding
+
+const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
+const historyStore = useHistoryStore()
+const stateStorageStore = useStateStorageStore()
+
+const router = useRouter()
+const $q = useQuasar()
+
+interface SiblingChap {
+  season: {
+    name: string
+    value: string
+  }
+  chap?: {
+    name: string
+    id: string
+  }
+}
+
+const props = defineProps<{
+  sources?: Exclude<Awaited<ReturnType<typeof PlayerLink>>["link"], string>
+  currentSeason: string
+  nameCurrentSeason?: string
+  currentChap?: string
+  nameCurrentChap?: string
+  engNameCurrentChap?: string
+  nextChap?: SiblingChap
+  prevChap?: SiblingChap
+  name?: string
+  poster?: string
+  seasons?: {
+    value: string
+    name: string
+  }[]
+  _cacheDataSeasons: Map<
+    string,
+    | ResponseDataSeasonPending
+    | ResponseDataSeasonSuccess
+    | ResponseDataSeasonError
+  >
+  fetchSeason: (season: string) => Promise<void>
+  progressWatchStore: ProgressWatchStore
+  intro?: {
+    start: number
+    end: number
+  }
+  outro?: {
+    start: number
+    end: number
+  }
+  skUrl?: string | null
+}>()
+const uidChap = computed(() => {
+  const uid = `${props.currentSeason}/${props.currentChap ?? ""}` // 255 byte
+
+  return uid
+})
+
+const playerWrapRef = ref<HTMLDivElement>()
+const documentVisibility = useDocumentVisibility()
+
+function emitNextChap(noNotice?: boolean) {
+  if (!props.nextChap) return
+
+  if (!noNotice)
+    addNotice(
+      props.currentSeason !== props.nextChap.season.value
+        ? `Đang phát season ${props.nextChap.season.name} sau`
+        : `Đang phát tập ${props.nextChap.chap?.name ?? ""} tiếp theo`
+    )
+
+  void router.push(
+    `/phim/${props.nextChap.season.value}/${
+      props.nextChap.chap
+        ? parseChapName(props.nextChap.chap.name) +
+          "-" +
+          props.nextChap.chap?.id
+        : ""
+    }`
+  )
+}
+function emitPrevChap(noNotice?: boolean) {
+  if (!props.prevChap) return
+
+  if (!noNotice)
+    addNotice(
+      props.currentSeason !== props.prevChap.season.value
+        ? `Đang phát season ${props.prevChap.season.name} trước`
+        : `Đang phát tập ${props.prevChap.chap?.name ?? ""} trước`
+    )
+
+  void router.push(
+    `/phim/${props.prevChap.season.value}/${
+      props.prevChap.chap
+        ? parseChapName(props.prevChap.chap.name) +
+          "-" +
+          props.prevChap.chap?.id
+        : ""
+    }`
+  )
+}
+
+// ===== setup effect =====
+const seasonActive = ref<string>()
+
+// sync data by active route
+watch(
+  () => props.currentSeason,
+  (val) => (seasonActive.value = val),
+  { immediate: true }
+)
+
+watch(
+  seasonActive,
+  (seasonActive) => {
+    if (!seasonActive) return
+
+    // download data season active
+    void props.fetchSeason(seasonActive)
+  },
+  {
+    immediate: true
+  }
+)
+
+const gridModeTabsSeasons = ref(false)
+watch(seasonActive, () => {
+  gridModeTabsSeasons.value = false
+})
+// @scrollIntoView
+const tabsRef = ref<QTab>()
+watchEffect(() => {
+  if (!tabsRef.value) return
+  if (!props.currentSeason) return
+
+  // eslint-disable-next-line no-unused-expressions
+  gridModeTabsSeasons.value // watch value
+
+  setTimeout(() => {
+    console.log("scroll now")
+    if (tabsRef.value?.$el) {
+      if (gridModeTabsSeasons.value) scrollYIntoView(tabsRef.value.$el)
+      else scrollXIntoView(tabsRef.value.$el)
+    }
+  }, 70)
+})
+
+const menuChapsRef = ref<QMenu>()
+// =========================== huuuu player API。馬鹿馬鹿しい ====================================
+
+const currentStream = computed(() => {
+  return props.sources?.find((item) => item.qualityCode === artQuality.value)
+})
+if (import.meta.env.DEV)
+  watch(
+    () => props.sources,
+    (sources) => {
+      console.log("sources changed: ", sources)
+    }
+  )
+
+const video = ref<HTMLVideoElement>()
+watch(
+  video,
+  (video) => {
+    if (video && documentVisibility.value === "visible")
+      try {
+        void video.play()
+      } catch {}
+  },
+  { immediate: true }
+)
+// value control get play
+const artPlaying = ref(false)
+const setArtPlaying = (playing: boolean) => {
+  if (!video.value) {
+    console.log("video element not ready")
+    return
+  }
+  artPlaying.value = playing
+  if (playing) {
+    // video.value.load();
+    if (video.value.paused) void video.value.play()
+  } else {
+    if (!video.value.paused) video.value.pause()
+  }
+}
+watch(
+  () => props.currentChap,
+  (newVal, oldVal) => {
+    if (newVal && oldVal) setArtPlaying(true)
+  }
+)
+
+let artEnded = false
+const artLoading = ref(false)
+const artDuration = ref<number>(0)
+const artCurrentTime = ref<number>(0)
+const setArtCurrentTime = (currentTime: number) => {
+  if (!video.value) {
+    console.warn("video not ready")
+    return
+  }
+  video.value.currentTime = currentTime
+  artCurrentTime.value = currentTime
+}
+
+let progressRestored: false | string = false
+watch(
+  [() => props.currentChap, () => props.currentSeason, () => authStore.uid],
+  async ([currentChap, currentSeason, uid]) => {
+    if (currentChap && currentSeason) {
+      progressRestored = false
+
+      if (!uid) {
+        // not login
+        setArtCurrentTime(0)
+        return
+      }
+
+      const currentUid = uidChap.value
+
+      try {
+        console.log(":restore progress")
+        if (stateStorageStore.disableAutoRestoration) {
+          addNotice(t("bo-qua-khoi-phuc-tien-trinh-xem"))
+
+          throw new Error("NOT_RESET")
+        }
+        const cur = (
+          await historyStore.getProgressChap(currentSeason, currentChap)
+        )?.cur
+
+        if (uidChap.value !== currentUid) {
+          // if process of this result != current process -> skip
+
+          throw new Error("PROCESS_NOT_EQUAL")
+        }
+
+        if (cur) {
+          if (
+            !artControlProgressHoving.value /* disable if user hoving to progress bar */
+          ) {
+            setArtCurrentTime(cur)
+            addNotice(t("da-khoi-phuc-phien-xem-truoc-_time", [parseTime(cur)]))
+          }
+        } else {
+          throw new Error("NOT_RESET")
+        }
+      } catch (err) {
+        if (
+          (err as Error)?.message !== "PROCESS_NOT_EQUAL" &&
+          (err as Error)?.message !== "NOT_RESET" &&
+          !artControlProgressHoving.value /* disable if user hoving to progress bar */
+        )
+          setArtCurrentTime(0)
+        if ((err as Error)?.message !== "NOT_RESET") console.error(err)
+      }
+
+      progressRestored = currentUid
+    }
+  },
+  { immediate: true }
+)
+const artPercentageResourceLoaded = ref<number>(0)
+const artPlaybackRate = ref(1)
+const setArtPlaybackRate = (value: number) => {
+  if (!video.value) {
+    console.warn("video not ready")
+    return
+  }
+  video.value.playbackRate = value
+  addNotice(t("toc-do-phat-_value-x", [value]))
+}
+const artVolume = computed<number>({
+  get: () => settingsStore.player.volume,
+  set: (val) => {
+    settingsStore.player.volume = val
+  }
+})
+const setArtVolume = (value: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  video.value!.volume = value
+}
+
+let lastVolumeBeforeMute: number
+const toggleMuted = () => {
+  const newValue = artVolume.value === 0 ? (lastVolumeBeforeMute ?? 0.05) : 0
+
+  if (artVolume.value > 0) {
+    lastVolumeBeforeMute = artVolume.value
+  }
+
+  setArtVolume(newValue)
+
+  addNotice(t("am-luong-_volume", [Math.round(newValue * 100)]))
+}
+
+// value control other
+const artControlShow = ref(true)
+
+let activeTime = Date.now()
+const setArtControlShow = (show: boolean) => {
+  artControlShow.value = show
+  if (show) activeTime = Date.now()
+}
+const {
+  isFullscreen: artFullscreen,
+  toggle: toggleArtFullscreen,
+  exit: exitArtFullscreen
+} = useFullscreen(playerWrapRef)
+const tooltipFullscreenRef = ref<QTooltip>()
+watch(artFullscreen, () => tooltipFullscreenRef.value?.hide())
+// fix done
+onBeforeRouteLeave(() => {
+  if (artFullscreen.value) {
+    void exitArtFullscreen()
+
+    return false
+  }
+
+  return true
+})
+
+const tooltipModeMovieRef = ref<QTooltip>()
+watch(
+  () => settingsStore.ui.modeMovie,
+  () => tooltipModeMovieRef.value?.hide()
+)
+
+const _artQuality =
+  ref<Exclude<Awaited<ReturnType<typeof PlayerLink>>["link"], string>[0]["qualityCode"]>()
+const artQuality = computed({
+  get() {
+    if (props.sources?.find((item) => item.qualityCode === _artQuality.value))
+      return _artQuality.value
+
+    return props.sources?.[0]?.qualityCode
+  },
+  set(value) {
+    _artQuality.value = value
+  }
+})
+const setArtQuality = (value: Exclude<typeof artQuality.value, undefined>) => {
+  artQuality.value = value
+  addNotice(t("chat-luong-da-chuyen-sang-_value", [value]))
+}
+
+function onVideoProgress(event: Event) {
+  const target = event.target as HTMLVideoElement
+
+  let range = 0
+  const bf = target.buffered
+  const time = target.currentTime
+
+  try {
+    while (!(bf.start(range) <= time && time <= bf.end(range))) {
+      range += 1
+    }
+    // const loadStartPercentage = bf.start(range) / target.duration
+    const loadEndPercentage = bf.end(range) / target.duration
+    // const loadPercentage = loadEndPercentage - loadStartPercentage
+
+    artPercentageResourceLoaded.value = loadEndPercentage
+  } catch {
+    try {
+      artPercentageResourceLoaded.value = bf.end(0) / target.duration
+    } catch {}
+  }
+}
+function onVideoCanPlay() {
+  activeTime = Date.now()
+}
+// const seasonMetaCreated = new Set<string>()
+
+// async function createSeason(
+//   currentSeason: string,
+//   seasonName: string,
+//   poster: string,
+//   name: string
+// ): Promise<boolean> {
+//   // eslint-disable-next-line camelcase
+//   const { user_data } = authStore
+//   const visibility = documentVisibility.value === "visible"
+
+//   if (seasonMetaCreated.has(currentSeason)) return true
+
+//   if (
+//     // eslint-disable-next-line camelcase
+//     !user_data ||
+//     !visibility
+//   )
+//     return false
+//   console.log("set new season poster %s", poster)
+//   await Promise.race([
+//     historyStore.createSeason(currentSeason, {
+//       poster,
+//       seasonName,
+//       name
+//     }),
+//     sleep(1_000)
+//   ])
+
+//   seasonMetaCreated.add(currentSeason)
+//   return true
+// }
+
+const emit = defineEmits<{
+  (
+    name: "cur-update",
+    val: {
+      cur: number
+      dur: number
+      id: string
+    }
+  ): void
+}>()
+
+const firstSaveStore = new Set<string>()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function throttle<T extends (...args: any[]) => Promise<void>>(
+  fn: T
+): T & {
+  cancel: () => void
+} {
+  let wait = false
+
+  let timeout: NodeJS.Timeout | Timer | number | undefined
+  // eslint-disable-next-line functional/functional-parameters, @typescript-eslint/no-explicit-any
+  const cb = function (...args: any[]) {
+    if (wait === false) {
+      wait = true
+      timeout = setTimeout(
+        async () => {
+          firstSaveStore.add(uidChap.value)
+          // eslint-disable-next-line no-void
+          await fn(...args).catch(() => void 0)
+          wait = false
+        },
+        firstSaveStore.has(uidChap.value)
+          ? DELAY_SAVE_VIEWING_PROGRESS
+          : DELAY_SAVE_HISTORY
+      )
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any
+
+  cb.cancel = () => {
+    clearTimeout(timeout)
+    wait = false
+  }
+
+  return cb
+}
+
+const savingTimeEpStore = new Set<string>()
+const saveCurTimeToPer = throttle(
+  async (
+    currentSeason: string,
+    nameSeason: string,
+    currentChap: string,
+    nameCurrentChap: string,
+    poster: string,
+    name: string
+  ) => {
+    console.log("call main fn cur time")
+    const uidTask = uidChap.value
+
+    if (savingTimeEpStore.has(uidTask)) {
+      if (import.meta.env.DEV) console.warn("Task saving %s exists", uidTask)
+
+      return
+    }
+
+    savingTimeEpStore.add(uidTask)
+
+    try {
+      // get data from uid and process because processingSaveCurTimeIn === uid then load all of time current
+
+      let cur = artCurrentTime.value
+
+      let dur = artDuration.value
+
+      if (!dur || cur <= 5) {
+        // <5s -> pass
+        console.warn("[saveCurTime]: artDuration is %s", dur)
+        return
+      }
+
+      // if (!(await createSeason(currentSeason, nameSeason, poster, name))) return
+
+      // NOTE: if this uid (processingSaveCurTimeIn === uid) -> update cur and dur
+      if (uidTask === uidChap.value) {
+        // update value now
+        cur = artCurrentTime.value
+        dur = artDuration.value
+      } else {
+        // because changed ep -> use old data not change
+      }
+
+      if (stateStorageStore.disableAutoRestoration === 2) return
+
+      console.log("%ccall sav curTime", "color: green")
+
+      if (!dur) {
+        console.warn("[saveCurTime]: artDuration is %s", dur)
+        return
+      }
+
+      emit("cur-update", {
+        cur,
+        dur,
+        id: currentChap
+      })
+
+      await Promise.race([
+        historyStore
+          .setProgressChap(
+            currentSeason,
+            currentChap,
+            {
+              name,
+              poster,
+              season: currentSeason,
+              season_name: nameSeason
+            },
+            {
+              cur,
+              dur,
+              name: nameCurrentChap
+            }
+          )
+          .catch((err) => console.warn("save viewing progress failed: ", err)),
+
+        sleep(1_000)
+      ])
+
+      console.log("save viewing progress")
+    } catch (err) {
+      console.error(err)
+    } finally {
+      savingTimeEpStore.delete(uidTask)
+    }
+  }
+)
+watch(uidChap, saveCurTimeToPer.cancel)
+function onVideoTimeUpdate() {
+  if (
+    artPlaying.value &&
+    !currentingTime.value &&
+    artControlShow.value &&
+    !showMenuQuality.value &&
+    !showMenuServer.value &&
+    !showMenuPlaybackRate.value &&
+    !showMenuSettings.value &&
+    !showMenuSelectChap.value &&
+    artVolumeOutside.value &&
+    !artControlProgressHoving.value &&
+    Date.now() - activeTime >= 3e3
+  ) {
+    artControlShow.value = false
+  }
+
+  if (progressRestored !== uidChap.value) return
+  if (props.currentChap === undefined || props.nameCurrentSeason === undefined)
+    return
+  if (typeof props.nameCurrentChap !== "string") return
+
+  console.log("call throw emit")
+  void saveCurTimeToPer(
+    props.currentSeason,
+    props.nameCurrentSeason,
+    props.currentChap,
+    props.nameCurrentChap,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    props.poster!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    props.name!
+  )
+}
+// function onVideoError(event: Event) {
+//   if (!(event.target as HTMLVideoElement).error) return
+
+//   console.log("video error ", (event.target as HTMLVideoElement).error)
+
+//   $q.notify({
+//     message: t("da-gap-su-co-khi-phat-lai"),
+//     position: "bottom-right",
+//     timeout: 0,
+//     actions: [
+//       {
+//         label: t("thu-lai"),
+//         color: "white",
+//         handler() {
+//           console.log("retry force")
+//           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+//           video.value!.load()
+//           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+//           video.value!.play()
+//         },
+//       },
+//       {
+//         label: t("remount"),
+//         color: "white",
+//         handler: remount,
+//       },
+//     ],
+//   })
+// }
+function onVideoEnded() {
+  artEnded = true
+  if (props.nextChap && settingsStore.player.autoNext) {
+    emitNextChap()
+  }
+}
+
+let artPlayingOfBeforeDocumentHide: boolean
+watch(documentVisibility, (visibility) => {
+  console.log("document %s", visibility)
+  if (visibility === "visible") {
+    if (!artPlaying.value && (artPlayingOfBeforeDocumentHide ?? true))
+      setArtPlaying(true)
+  } else {
+    artPlayingOfBeforeDocumentHide = artPlaying.value
+  }
+})
+
+{
+  let resume: (() => void) | null = null
+
+  let pause: (() => void) | null = null
+  const resumeDelay = debounce(() => resume?.(), 1_000)
+  onBeforeUnmount(() => pause?.())
+  watch(
+    () => settingsStore.player.enableRemindStop,
+    (enabled) => {
+      if (enabled) {
+        if (resume) resumeDelay()
+        else {
+          const interval = useIntervalFn(() => {
+            if (!artPlaying.value || !video.value || video.value.paused) return
+
+            pause?.()
+            setArtPlaying(false)
+
+            $q.dialog({
+              title: t("xac-nhan"),
+              message: t("ban-van-dang-xem-chu"),
+              cancel: { rounded: true, flat: true },
+              ok: { rounded: true, flat: true },
+              persistent: false
+            })
+              .onOk(() => {
+                setArtPlaying(true)
+                resumeDelay?.()
+              })
+              .onDismiss(() => {
+                setArtPlaying(true)
+                resumeDelay?.()
+              })
+              .onCancel(() => {
+                console.warn("cancel continue play")
+              })
+          }, 1 /* hours */ * 3600_000)
+          resume = interval.resume
+          pause = interval.pause
+        }
+      } else {
+        resumeDelay.cancel()
+        pause?.()
+      }
+    },
+    { immediate: true }
+  )
+
+  watch(
+    artPlaying,
+    (playing) => {
+      if (playing) {
+        resumeDelay()
+      } else {
+        pause?.()
+      }
+    },
+    { immediate: true }
+  )
+  ;[
+    "mousedown",
+    "mouseup",
+    "mousemove",
+    "keydown",
+    "touchstart",
+    "touchmove",
+    "touchend",
+    "scroll"
+  ].forEach((name) => {
+    useEventListener(window, name, resumeDelay)
+  })
+  watch(documentVisibility, resumeDelay)
+}
+function runRemount() {
+  $q.dialog({
+    title: t("relay-change"),
+    message: t("ban-dang-muon-doi-relay-khac"),
+    cancel: { rounded: true, flat: true },
+    ok: { rounded: true, flat: true },
+    persistent: false
+  }).onOk(remount)
+}
+
+let currentHls: Hls
+onBeforeUnmount(() => currentHls?.destroy())
+function remount(resetCurrentTime?: boolean, noDestroy = false) {
+  if (!noDestroy) currentHls?.destroy()
+  else {
+    const type = currentStream.value?.type
+
+    if (
+      (type === "hls" || type === "m3u" || type === "m3u8") &&
+      Hls.isSupported()
+    ) {
+      // current stream is HLS -> no cancel if canPlay
+    } else {
+      console.warn("can't play HLS stream")
+      // cancel
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const currentVideo = video.value!
+      currentVideo.oncanplay = function () {
+        const { src } = currentVideo
+        currentHls?.destroy()
+        if (currentVideo.src !== src) currentVideo.src = src
+        currentVideo.oncanplay = null
+      }
+    }
+  }
+
+  if (!currentStream.value) {
+    $q.notify({
+      position: "bottom-right",
+      message: t("video-tam-thoi-khong-kha-dung")
+    })
+    return
+  }
+
+  const { file, type } = currentStream.value
+
+  const currentTime = artCurrentTime.value
+  const playing = artPlaying.value || artEnded
+  artEnded = false
+
+  if (
+    (type === "hls" || type === "m3u" || type === "m3u8") &&
+    Hls.isSupported()
+  ) {
+    const offEnds = "_extra"
+    let セグメントｓ: string[] | null = null
+    const セグメント解決済み = new Map<string, readonly [string, number]>()
+    const resolvingTask = new Set<number>()
+
+    const hls = new HlsPatched(
+      {
+        debug: false && import.meta.env.DEV,
+        workerPath: workerHls,
+        progressive: true,
+        fetchSetup(context, initParams) {
+          context.url += "#animevsub-vsub" + offEnds
+          return new Request(context.url, initParams)
+        }
+      },
+      settingsStore.player.preResolve !== 0 &&
+      Number.MAX_SAFE_INTEGER !== settingsStore.player.preResolve
+        ? (request) => {
+            /// pre setup
+            // transforming
+
+            if (!セグメントｓ)
+              void getSegments(file).then((arr) => (セグメントｓ = arr))
+
+            if (セグメントｓ) {
+              // セグメントｓ ready
+              // preload if in セグメントｓ
+              const realUrl = request.url.split("#")[0]
+              const インデントセグメント = セグメントｓ.indexOf(realUrl)
+              const 解決済み = セグメント解決済み.get(realUrl)
+
+              if (
+                インデントセグメント > -1 &&
+                (!解決済み ||
+                  settingsStore.player.preResolve - 解決済み[1] <
+                    settingsStore.player.checkEndPreList) &&
+                !findInRangeSet(
+                  resolvingTask,
+                  インデントセグメント,
+                  settingsStore.player.preResolve
+                ) &&
+                !video.value?.paused &&
+                documentVisibility.value === "visible"
+              ) {
+                console.log(
+                  "Starting pre resolve segment",
+                  インデントセグメント,
+                  resolvingTask
+                )
+                resolvingTask.add(インデントセグメント)
+                // あとで５セメント
+                void retryAsync(
+                  () =>
+                    resolveMasterManifestWorker(
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      セグメントｓ!,
+                      セグメント解決済み,
+                      インデントセグメント,
+                      settingsStore.player.preResolve +
+                        settingsStore.player.checkEndPreList
+                    ),
+                  { maxTry: 10, delay: 3_000 }
+                ).catch(() => resolvingTask.delete(インデントセグメント))
+                // load balance 20
+                // check fn セグメントｓ in ２０。workerせとじゃない。メモリー？
+              }
+
+              if (import.meta.env.DEV && 解決済み)
+                console.info("[Segment]: using url resolved")
+              if (解決済み)
+                return fetch(解決済み[0], request)
+                  .then((res) => {
+                    // eslint-disable-next-line no-throw-literal
+                    if (res.status === 403) throw true
+                    return res
+                  })
+                  .catch(async (err) => {
+                    if (
+                      typeof err === "boolean" ||
+                      (err instanceof TypeError &&
+                        err.message === "Failed to fetch" &&
+                        (await isConnectedToNetwork()))
+                    ) {
+                      // url expired
+                      セグメント解決済み.clear()
+                      resolvingTask.clear()
+                      console.log("[Segment]: url expired. Clear all cache")
+                      if (
+                        Number.MAX_SAFE_INTEGER ===
+                        settingsStore.player.preResolve
+                      )
+                        preResolveHot()
+                      return fetch(request)
+                    }
+
+                    throw err
+                  })
+            }
+
+            return fetch(request)
+          }
+        : Number.MAX_SAFE_INTEGER === settingsStore.player.preResolve
+          ? (request) => {
+              const realUrl = request.url.split("#")[0]
+              const 解決済み = セグメント解決済み.get(realUrl)
+
+              if (import.meta.env.DEV && 解決済み)
+                console.info("[Segment]: using url resolved")
+              if (解決済み) return fetch(解決済み[0], request)
+              return fetch(request)
+            }
+          : fetch
+    )
+    if (!offEnds) patcher(hls)
+    currentHls = hls
+
+    // customLoader(hls.config)
+    hls.loadSource(file)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    hls.attachMedia(video.value!)
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (playing) void video.value!.play()
+
+      // !NOTIFY resolve redirect urls
+      if (Number.MAX_SAFE_INTEGER === settingsStore.player.preResolve)
+        preResolveHot()
+    })
+
+    // eslint-disable-next-line no-inner-declarations
+    function preResolveHot() {
+      void retryAsync(
+        async () =>
+          resolveMasterManifestWorker(
+            await getSegments(file),
+            セグメント解決済み
+          ),
+        {
+          maxTry: 10,
+          delay: 3_000
+        }
+      )
+    }
+
+    let needSwapCodec = false
+
+    let timeoutUnneedSwapCodec: NodeJS.Timeout | Timer | number | null = null
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        console.warn("Player fatal: ", data)
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR: {
+            // try to recover network error
+            $q.notify({
+              message: t("loi-mang-khong-kha-dung"),
+              position: "bottom-right",
+              timeout: 0,
+              actions: [
+                {
+                  label: t("thu-lai"),
+                  color: "yellow",
+                  noCaps: true,
+                  handler: () => hls.startLoad()
+                },
+                {
+                  icon: "close",
+                  round: true
+                }
+              ]
+            })
+            break
+          }
+          case Hls.ErrorTypes.MEDIA_ERROR: {
+            const playing = artPlaying.value
+            if (timeoutUnneedSwapCodec) {
+              clearTimeout(timeoutUnneedSwapCodec)
+              timeoutUnneedSwapCodec = null
+            }
+            console.warn("fatal media error encountered, try to recover")
+            if (needSwapCodec) {
+              hls.swapAudioCodec()
+              needSwapCodec = false
+              if (timeoutUnneedSwapCodec) {
+                clearTimeout(timeoutUnneedSwapCodec)
+                timeoutUnneedSwapCodec = null
+              }
+            } else {
+              needSwapCodec = true
+              timeoutUnneedSwapCodec = setTimeout(() => {
+                needSwapCodec = false
+                timeoutUnneedSwapCodec = null
+              }, 1_000)
+            }
+            hls.recoverMediaError()
+            if (playing)
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              void video.value!.play()
+            break
+          }
+          default: {
+            $q.notify({
+              message: t("da-gap-su-co-khi-phat-lai"),
+              position: "bottom-right",
+              timeout: 0,
+              actions: [
+                {
+                  label: t("thu-lai"),
+                  color: "white",
+                  handler() {
+                    console.log("retry force")
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    void video.value!.load()
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    void video.value!.play()
+                  }
+                },
+                {
+                  label: t("remount"),
+                  color: "white",
+                  handler: remount
+                }
+              ]
+            })
+            break
+          }
+        }
+      } else {
+        console.warn("Player error: ", data)
+      }
+    })
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    video.value!.src = file
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  if (playing) void video.value!.play()
+
+  if (
+    resetCurrentTime
+      ? props.currentChap && progressRestored === uidChap.value
+      : true
+  )
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    video.value!.currentTime = currentTime
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  else setArtCurrentTime((video.value!.currentTime = 0))
+}
+const watcherVideoTagReady = watch(video, (video) => {
+  if (!video) return
+
+  void Promise.resolve().then(watcherVideoTagReady) // fix this not ready value
+
+  // pre set volume to default
+  setArtVolume(artVolume.value)
+
+  let currentEpStream: null | string = null
+  watch(
+    () => currentStream.value?.file,
+    (url) => {
+      if (!url) return currentHls?.destroy()
+
+      console.log("set url art %s", url)
+
+      // // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // if ((Hls as unknown as any).isSupported()) {
+      remount(
+        currentEpStream !== uidChap.value,
+        currentEpStream === uidChap.value
+      )
+      currentEpStream = uidChap.value
+      // } else {
+      //   const canPlay = video.canPlayType("application/vnd.apple.mpegurl")
+      //   if (canPlay === "probably" || canPlay === "maybe") {
+      //     video.src = url
+      //   }
+      // }
+    },
+    { immediate: true }
+  )
+})
+
+const currentingTime = ref(false)
+const progressInnerRef = ref<HTMLDivElement>()
+
+const artCurrentTimeHoving = ref(0)
+const artControlProgressHoving = ref(false)
+
+let bindedMouseUp = false
+
+function onIndicatorMove(
+  event: TouchEvent | MouseEvent,
+  innerEl?: HTMLDivElement
+): void
+function onIndicatorMove(
+  event: TouchEvent | MouseEvent,
+  innerEl: HTMLDivElement,
+  offsetX: number,
+  curTimeStart: number
+): void
+
+function onIndicatorMove(
+  event: TouchEvent | MouseEvent,
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  innerEl: HTMLDivElement = progressInnerRef.value!,
+  offsetX?: number,
+  curTimeStart?: number
+) {
+  if (event.type.startsWith("mouse") && !bindedMouseUp) {
+    bindedMouseUp = true
+  }
+
+  const maxX = innerEl.offsetWidth
+  const { left } = innerEl.getBoundingClientRect()
+
+  if (offsetX) {
+    const clientX =
+      (
+        (event as TouchEvent).changedTouches?.[0] ??
+        (event as TouchEvent).touches?.[0] ??
+        event
+      ).clientX -
+      offsetX -
+      left
+
+    // patch x exists -> enable mode add
+    artCurrentTimeHoving.value = Math.max(
+      0,
+      Math.min(
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        video.value!.duration,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        curTimeStart! + (video.value!.duration * clientX) / maxX
+      )
+    )
+  } else {
+    const clientX = Math.min(
+      maxX,
+      Math.max(
+        0,
+        (
+          (event as TouchEvent).changedTouches?.[0] ??
+          (event as TouchEvent).touches?.[0] ??
+          event
+        ).clientX - left
+      )
+    )
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    artCurrentTimeHoving.value = (video.value!.duration * clientX) / maxX
+  }
+
+  if (event.type === "mousemove" && (event as MouseEvent).buttons !== 1) return
+
+  setArtCurrentTime(artCurrentTimeHoving.value)
+  currentingTime.value = true
+
+  activeTime = Date.now()
+}
+function onIndicatorEnd() {
+  currentingTime.value = false
+
+  setArtCurrentTime(artCurrentTimeHoving.value)
+  activeTime = Date.now()
+}
+useEventListener(window, "mouseup", () => {
+  if (currentingTime.value) {
+    currentingTime.value = false
+    // setArtCurrentTime(artCurrentTimeHoving.value)
+    activeTime = Date.now()
+  }
+})
+
+// ==== addons swipe backdrop ====
+
+let timeoutHoldBD: number | NodeJS.Timeout | Timer | null = null
+
+const holdedBD = ref(false)
+
+let xStart: number | null = null
+
+let curTimeStart: number | null = null
+function onBDTouchStart(event: TouchEvent) {
+  holdedBD.value = false
+  timeoutHoldBD && clearTimeout(timeoutHoldBD)
+
+  timeoutHoldBD = setTimeout(() => {
+    holdedBD.value = true
+    currentingTime.value = true
+    xStart = (
+      (event as TouchEvent).changedTouches?.[0] ??
+      (event as TouchEvent).touches?.[0] ??
+      event
+    ).clientX
+    curTimeStart = artCurrentTime.value
+    // vibrate
+    console.log("hold")
+    navigator.vibrate?.(90)
+  }, 400)
+}
+function onBDTouchMove(event: TouchEvent) {
+  if (timeoutHoldBD) {
+    clearTimeout(timeoutHoldBD)
+    timeoutHoldBD = null
+  }
+
+  if (holdedBD.value) {
+    console.log("bd move")
+    onIndicatorMove(
+      event,
+      event.target as HTMLDivElement,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      xStart!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      curTimeStart!
+    )
+  }
+}
+function onBDTouchEnd() {
+  if (timeoutHoldBD) {
+    clearTimeout(timeoutHoldBD)
+    timeoutHoldBD = null
+  }
+
+  if (holdedBD.value) {
+    holdedBD.value = false
+    onIndicatorEnd()
+  }
+
+  xStart = null
+  curTimeStart = null
+}
+
+function skipBack() {
+  setArtCurrentTime(
+    (artCurrentTime.value = Math.max(0, artCurrentTime.value - 10))
+  )
+}
+function skipForward() {
+  setArtCurrentTime(
+    (artCurrentTime.value = Math.min(
+      artCurrentTime.value + 10,
+      artDuration.value
+    ))
+  )
+}
+
+const doubleClicking = ref<"left" | "right" | false>(false)
+
+let timeoutResetDoubleClicking: number | NodeJS.Timeout | Timer | null = null
+
+let lastTimeClick: number
+
+let lastPositionClickIsLeft: boolean | null = null
+
+let timeoutDbClick: number | NodeJS.Timeout | Timer | null = null
+const countSkip = ref(0)
+function onClickSkip(event: MouseEvent) {
+  if (document.querySelector(".q-menu")) return // prevent if menu showing
+  // click
+  const now = Date.now()
+
+  const isLeft =
+    Math.round(event.clientX) <
+    Math.round((event.target as HTMLDivElement).offsetWidth / 2)
+
+  if (
+    (lastPositionClickIsLeft === null || lastPositionClickIsLeft === isLeft) &&
+    now - lastTimeClick <= 300
+  ) {
+    // is double click
+    timeoutDbClick && clearTimeout(timeoutDbClick)
+
+    if (artControlShow.value) activeTime = Date.now() // fix for if control show continue show
+
+    // on double click
+    doubleClicking.value = isLeft ? "left" : "right"
+    timeoutResetDoubleClicking && clearTimeout(timeoutResetDoubleClicking)
+    timeoutResetDoubleClicking = setTimeout(() => {
+      doubleClicking.value = false
+      countSkip.value = 0
+    }, 700)
+
+    if (isLeft) {
+      // previous 10s
+      skipBack()
+      countSkip.value++
+    } else {
+      // next 10s
+      skipForward()
+      countSkip.value++
+    }
+    // soku
+  } else {
+    timeoutDbClick && clearTimeout(timeoutDbClick)
+    timeoutDbClick = setTimeout(() => {
+      // setArtControlShow(orFalse)
+      setArtPlaying(!artPlaying.value)
+      lastTimeClick = 0
+      lastPositionClickIsLeft = null
+    }, 300)
+  }
+
+  lastTimeClick = now
+  lastPositionClickIsLeft = isLeft
+}
+
+const notices = shallowReactive<
+  {
+    id: number
+    text: string
+  }[]
+>([])
+
+let id = 1
+function addNotice(text: string) {
+  const uuid = id++
+
+  notices.push({ id: uuid, text })
+  if (notices.length > 3) notices.splice(0, notices.length - 3)
+
+  setTimeout(() => {
+    notices.splice(notices.findIndex((item) => item.id === uuid) >>> 0, 1)
+  }, 5000)
+}
+
+const wrapVolumeRef = ref<HTMLDivElement>()
+const { isOutside: artVolumeOutside } = useMouseInElement(wrapVolumeRef)
+
+const showDialogChapter = ref(false)
+
+watch(showDialogChapter, (status) => {
+  if (!status) seasonActive.value = props.currentSeason
+})
+
+const showMenuQuality = ref(false)
+const showMenuServer = ref(false)
+const showMenuPlaybackRate = ref(false)
+const showMenuSettings = ref(false)
+const showMenuSelectChap = ref(false)
+
+function upVolume() {
+  if (artVolume.value < 1) {
+    const newVal = Math.min(1, artVolume.value + 0.05)
+    setArtVolume(newVal)
+    addNotice(t("am-luong-_volume", [Math.round(newVal * 100)]))
+  }
+}
+function downVolume() {
+  if (artVolume.value > 0) {
+    const newVal = Math.max(0, artVolume.value - 0.05)
+    setArtVolume(newVal)
+    addNotice(t("am-luong-_volume", [Math.round(newVal * 100)]))
+  }
+}
+function skipOpening() {
+  setArtCurrentTime(
+    (artCurrentTime.value = Math.min(
+      artCurrentTime.value + 90,
+      artDuration.value
+    ))
+  )
+}
+useEventListener(window, "keydown", (event: KeyboardEvent) => {
+  if (
+    document.activeElement?.tagName === "INPUT" ||
+    document.activeElement?.tagName === "TEXTAREA"
+  )
+    return
+
+  switch (event.code) {
+    case "Space":
+    case "KeyK": {
+      if (event.ctrlKey || event.shiftKey) break
+      if (!checkContentEditable(event.target as Element | null))
+        event.preventDefault()
+      const playing = artPlaying.value
+      setArtPlaying(!playing)
+      if (playing) setArtControlShow(true)
+      // setArtControlShow(playing)
+      break
+    }
+    case "KeyF":
+      if (event.ctrlKey || event.shiftKey) break
+      void toggleArtFullscreen()
+      break
+    case "ArrowLeft":
+      if (event.ctrlKey || event.shiftKey) break
+      skipBack()
+      break
+    case "ArrowRight":
+      if (event.ctrlKey || event.shiftKey) break
+      skipForward()
+      break
+
+    case "ArrowUp":
+      if (event.ctrlKey || event.shiftKey) break
+      if (artFullscreen.value) upVolume()
+      break
+    case "ArrowDown":
+      if (event.ctrlKey || event.shiftKey) break
+      if (artFullscreen.value) downVolume()
+      break
+
+    case "KeyM":
+      if (event.ctrlKey || event.shiftKey) break
+      toggleMuted()
+      break
+    case "KeyN":
+      if (event.ctrlKey) break
+      if (event.shiftKey) emitNextChap(true)
+      break
+    case "KeyP":
+      if (event.ctrlKey) break
+      if (event.shiftKey) emitPrevChap(true)
+      break
+    case "KeyJ":
+      if (event.ctrlKey || event.shiftKey) break
+      skipOpening()
+      break
+    case "KeyT":
+      if (event.ctrlKey || event.shiftKey) break
+      settingsStore.ui.modeMovie = !settingsStore.ui.modeMovie
+      break
+
+    case "Enter":
+      if (event.ctrlKey || event.shiftKey) break
+      if (skiping.value) skipOpEnd()
+
+      break
+  }
+})
+if (typeof MediaMetadata !== "undefined" && navigator.mediaSession)
+  watchEffect(() => {
+    if (!props.nameCurrentChap || !props.name || !props.poster) return
+
+    const title = t("tap-_chap-_name-_othername", [
+      props.nameCurrentChap,
+      props.name,
+      ""
+    ])
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title,
+      artist: props.name,
+      artwork: [
+        {
+          src: props.poster
+        }
+      ]
+    })
+  })
+// keybind for headphone control
+navigator.mediaSession?.setActionHandler("pause", () => {
+  const playing = artPlaying.value
+  setArtPlaying(false)
+  if (playing) setArtControlShow(true)
+  artPlayingOfBeforeDocumentHide = false
+})
+navigator.mediaSession?.setActionHandler("play", () => {
+  setArtPlaying(true)
+})
+navigator.mediaSession?.setActionHandler("previoustrack", () => {
+  emitPrevChap()
+})
+navigator.mediaSession?.setActionHandler("nexttrack", () => {
+  emitNextChap()
+})
+onBeforeUnmount(() => {
+  navigator.mediaSession?.setActionHandler("pause", null)
+  navigator.mediaSession?.setActionHandler("play", null)
+  navigator.mediaSession?.setActionHandler("previoustrack", null)
+  navigator.mediaSession?.setActionHandler("nexttrack", null)
+})
+
+let _tmp:
+  | ResponseDataSeasonPending
+  | ResponseDataSeasonSuccess
+  | ResponseDataSeasonError
+  | undefined
+
+// memo-control time and progress
+const showArtLayerController = computed(
+  () => holdedBD.value || artControlShow.value
+)
+
+const playtimeText = useMemoControl(() => {
+  return parseTime(artCurrentTime.value)
+}, showArtLayerController)
+const durationText = useMemoControl(() => {
+  return parseTime(artDuration.value)
+}, showArtLayerController)
+const percentageResourceLoadedText = useMemoControl(() => {
+  return `${artPercentageResourceLoaded.value * 100}%`
+}, showArtLayerController)
+const percentagePlaytimeText = useMemoControl(() => {
+  return `${(artCurrentTime.value / artDuration.value) * 100}%`
+}, showArtLayerController)
+
+const {
+  timestamp: now,
+  pause: pauseTimestamp,
+  resume: resumeTimestamp,
+  isActive: isActiveTimestamp
+} = useTimestamp({
+  interval: 60 * 1e3,
+  controls: true,
+  immediate: false
+})
+watch(
+  [documentVisibility, showArtLayerController],
+  (visibility, showController) => {
+    if (!settingsStore.ui.currentTime) return
+
+    if (visibility && showController) {
+      if (!isActiveTimestamp.value) {
+        resumeTimestamp()
+      }
+    } else {
+      if (isActiveTimestamp.value) {
+        pauseTimestamp()
+      }
+    }
+  },
+  { immediate: true }
+)
+const timeText = computed(() => {
+  console.log("update time")
+  const date = new Date(now.value)
+  const hours = date.getHours()
+
+  const hText = (hours > 12 ? hours - 12 : hours === 0 ? 12 : hours) + ""
+  const mText = date.getMinutes() + ""
+  return {
+    text: `${hText.padStart(2, "0")}:${mText.padStart(2, "0")}`,
+    isAM: hours < 12
+  }
+})
+
+function inClamp(value: number, min: number, max: number) {
+  return value >= min && value < max
+}
+const skiping = shallowRef<{ readonly intro: boolean } | null>(null)
+watch(
+  () => {
+    const { intro, outro } = props
+    if (!intro || !outro) return null
+
+    const current = artCurrentTime.value
+
+    if (inClamp(current, intro.start, intro.end)) return true
+    if (inClamp(current, outro.start, outro.end)) return false
+  },
+  (intro) => {
+    if (typeof intro === "boolean") skiping.value = { intro }
+    else skiping.value = null
+  }
+)
+function skipOpEnd() {
+  if (!skiping.value) return
+  if (storeSkipFragment.has(skiping.value)) return
+
+  if (skiping.value.intro && props.intro) {
+    setArtCurrentTime(props.intro.end)
+    return
+  }
+  if (!skiping.value.intro && props.outro) setArtCurrentTime(props.outro.end)
+}
+
+const storeSkipFragment = shallowReactive(
+  new WeakSet<{ readonly intro: boolean }>()
+)
+watch(skiping, (skiping) => {
+  if (!skiping) return
+  if (!settingsStore.player.autoSkipIEnd) return
+  skipOpEnd()
+})
+
+const optionsPreResolve = computed(() => [
+  {
+    label: t("tat"),
+    value: 0,
+    color: "secondary",
+    keepColor: true,
+    checkedIcon: "task_alt",
+    uncheckedIcon: "panorama_fish_eye"
+  },
+  ...[20, 30, 40, 50, 60, 70, 80, 100].map((val, i) => ({
+    label: t("val-yeu-cau", [val]),
+    value: val,
+    keepColor: true,
+    checkedIcon: "task_alt",
+    uncheckedIcon: "panorama_fish_eye",
+    color: `light-green-${4 + i}`
+  })),
+  {
+    label: t("nong"),
+    value: Number.MAX_SAFE_INTEGER,
+    color: "red",
+    keepColor: true,
+    checkedIcon: "task_alt",
+    uncheckedIcon: "panorama_fish_eye"
+  }
+])
+function openPopupFlashNetwork() {
+  $q.dialog({
+    title: t("giai-quyet-truoc-yeu-cau-mang"),
+    message: t("msg-pre-resolve"),
+    options: {
+      type: "radio",
+      model: settingsStore.player.preResolve as unknown as string,
+      // inline: true
+      items: optionsPreResolve.value
+    },
+    cancel: {
+      label: t("huy"),
+      noCaps: true,
+      color: "grey",
+      text: true,
+      flat: true,
+      rounded: true
+    },
+    ok: { color: "green", text: true, flat: true, rounded: true }
+  }).onOk((data) => {
+    settingsStore.player.preResolve = data
+  })
+}
+
+// sk thumb
+const vttMeta = computedAsync(
+  async () => {
+    if (!props.skUrl) return
+
+    const meta = await loadVttSk(props.skUrl)
+    const aspect = (meta[0].h / meta[0].w) * 100
+
+    return { meta, aspect }
+  },
+  undefined,
+  {
+    onError: WARN,
+    lazy: true,
+    shallow: true
+  }
+)
+const currentSkt = computed(() => {
+  if (!vttMeta.value) return
+  const { meta, aspect } = vttMeta.value
+
+  const current = getSktAt(artCurrentTimeHoving.value, meta)
+  if (!current) return
+
+  return [current, aspect] as const
+})
+const sktStyle = computed(() => {
+  const val = currentSkt.value
+  if (!val) return {}
+
+  const [current, aspect] = val
+
+  // max width = 220px
+  const scale = current.w > 220 ? 220 / current.w : 1
+
+  return {
+    thumbs: true,
+    aspect: `${aspect}%`,
+    image: `url(${new URL(current.text, props.skUrl ?? "")})`,
+    scale,
+    x: current.x + "px",
+    y: current.y + "px",
+    w: current.w + "px",
+    h: current.h + "px"
+  }
+})
+const skRef = ref<HTMLDivElement>()
+const leftSkt = computed(() => {
+  if (!skRef.value || !playerWrapRef.value || !progressInnerRef.value)
+    return null
+
+  const minWidth = (skRef.value.offsetWidth / 2) * (sktStyle.value.scale ?? 1)
+  const maxWidth = playerWrapRef.value.offsetWidth - minWidth
+  const padding =
+    (playerWrapRef.value.offsetWidth - progressInnerRef.value.offsetWidth) / 2
+  const offset = Math.max(
+    minWidth - padding + 3,
+    Math.min(
+      maxWidth - padding - 3,
+      (artCurrentTimeHoving.value / artDuration.value) *
+        (playerWrapRef.value.offsetWidth - padding * 2)
+    )
+  )
+
+  return offset
+})
+</script>
+
+<style lang="scss" scoped>
+.art-layer-controller {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  background-image: linear-gradient(to bottom, #0006, #0000);
+
+  button {
+    background: none;
+    outline: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .toolbar-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.2s ease-in-out;
+  }
+  &.currenting-time {
+    @media (hover: none) {
+      .toolbar-top,
+      .art-controls {
+        opacity: 0 !important;
+        visibility: hidden !important;
+      }
+      .art-progress-indicator {
+        &:after {
+          display: block !important;
+        }
+        transform: scale(1.2) !important;
+      }
+      .art-control-progress-inner {
+        height: 3px !important;
+      }
+    }
+  }
+  .toolbar-bottom {
+    transition: padding 0.2s ease-in-out;
+    padding: 50px 7px 0;
+    padding: {
+      left: 16px;
+      right: 16px;
+      bottom: 8px;
+    }
+    // display: flex;
+    // flex-direction: column-reverse;
+    min-height: 100px;
+    @apply z-60;
+    background: {
+      image: linear-gradient(to bottom, #0000, #0006, #000);
+      position: bottom;
+      repeat: repeat-x;
+    }
+    justify-content: space-between;
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    // background-color: red;
+
+    .art-more-controls {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .art-control-progress {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      padding: 16px 4px;
+      cursor: pointer;
+      z-index: 30;
+
+      img {
+        transition: transform 0.22s ease-in-out;
+      }
+      .art-control-progress-inner {
+        transition: height 0.22s ease-in-out;
+      }
+
+      &:hover {
+        img {
+          transform: scale(1.35);
+        }
+        .art-control-progress-inner {
+          height: 5px;
+        }
+      }
+
+      .art-control-progress-inner {
+        display: flex;
+        align-items: center;
+        position: relative;
+        height: 3px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.2);
+
+        .art-progress-loaded,
+        .art-progress-hoved {
+          position: absolute;
+          z-index: 10;
+          left: 0;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          height: 100%;
+          width: 0;
+          background: rgba(255, 255, 255, 0.4);
+          pointer-events: none;
+        }
+
+        .art-progress-hoved {
+          background: rgba($color: #fff, $alpha: 0.5);
+        }
+
+        .art-sk-hoved {
+          @apply absolute z-10 left-0 top-0 bottom-0 h-full inline-block;
+          pointer-events: none;
+
+          &:after {
+            content: attr(data-title);
+            @apply relative transform translate-x-[-50%] translate-y-[calc(-100%-16px)] left-0 inline-block;
+            background: rgba(0, 0, 0, 0.7);
+            @apply py-2 px-3 font-weight-medium rounded-lg;
+            white-space: nowrap;
+          }
+
+          &.art-sk-hoved--thumbs {
+            &:after {
+              padding: 3px 5px;
+              font-size: 12px;
+              background-color: #000000b3;
+              border-radius: 3px;
+              @apply absolute right-0 bottom-[100%] bottom-unset right-auto translate-x-[-50%] translate-y-[calc(-10%-16px)];
+              // @apply relative translate-y-[calc(-100%-16px)] translate-x-[-50%] bottom-auto right-auto;
+            }
+            &:before {
+              content: "";
+              display: block;
+
+              @apply rounded-[3px] relative left-0; // transform translate-y-[calc(-100%-10px)] translate-x-[-50%] left-0 scale-[v-bind("sktStyle.scale")];
+
+              box-shadow:
+                0 1px 3px #0003,
+                0 1px 2px -1px #0003;
+              pointer-events: none;
+
+              width: v-bind("sktStyle.w");
+              // height: v-bind("sktStyle.h");
+              transform: translateY(calc(-100% - 10px)) translateX(-50%)
+                scale(v-bind("sktStyle.scale"));
+
+              padding-top: v-bind("sktStyle.aspect");
+              background: {
+                color: #000000d9;
+                repeat: no-repeat;
+                image: v-bind("sktStyle.image");
+                position: v-bind("sktStyle.x") v-bind("sktStyle.y");
+              }
+            }
+          }
+
+          &:before {
+            display: none;
+          }
+        }
+
+        .art-progress-played {
+          position: absolute;
+          z-index: 20;
+          left: 0;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          height: 100%;
+          width: 0;
+          background-color: rgb(0, 194, 52);
+          pointer-events: none;
+        }
+
+        .art-progress-tip {
+          display: none;
+          position: absolute;
+          z-index: 50;
+          top: -25px;
+          left: 0;
+          height: 20px;
+          padding: 0 5px;
+          line-height: 20px;
+          color: #fff;
+          font-size: 12px;
+          text-align: center;
+          background: rgba(0, 0, 0, 0.7);
+          border-radius: 3px;
+          font-weight: bold;
+          white-space: nowrap;
+        }
+
+        .art-progress-indicator {
+          transition: transform 0.2s ease-in-out;
+          &:after {
+            content: attr(data-title);
+            position: absolute;
+            z-index: 50;
+            top: -25px;
+            left: 50%;
+            height: 20px;
+            padding: 0 5px;
+            line-height: 20px;
+            color: #fff;
+            font-size: 12px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 3px;
+            font-weight: bold;
+            white-space: nowrap;
+            transform: translateX(-50%);
+            display: none;
+          }
+        }
+      }
+    }
+
+    .art-control-thumbnails {
+      display: none;
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      pointer-events: none;
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .art-control-loop {
+      display: none;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+
+      .art-loop-point {
+        position: absolute;
+        left: 0;
+        top: -2px;
+        width: 2px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.75);
+      }
+    }
+
+    .art-controls {
+      position: relative;
+      z-index: 1;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .art-controls-left,
+      .art-controls-right {
+        display: flex;
+      }
+
+      .art-controls-center {
+        flex: 1;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 10px;
+      }
+
+      .art-controls-right {
+        justify-content: flex-end;
+      }
+
+      .art-control {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.9;
+        font-size: 12px;
+        min-height: 36px;
+        min-width: 36px;
+        line-height: 1;
+        text-align: center;
+        cursor: pointer;
+        white-space: nowrap;
+
+        @media (min-width: $breakpoint-sm-min) {
+          font-size: 14px;
+        }
+
+        .art-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          float: left;
+          height: 36px;
+          width: 36px;
+        }
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+  }
+
+  .art-controls-main {
+    white-space: nowrap;
+    width: 100%;
+    max-width: 720px;
+    text-align: center;
+    // 20
+    .prev {
+      margin-right: 20%;
+      transform: translateX(100%);
+    }
+    .next {
+      margin-left: 20%;
+      transform: translateX(-100%);
+      //margin-left: 40px
+    }
+
+    .prev,
+    .next {
+      display: none;
+    }
+  }
+
+  .art-volume.active {
+    .slider {
+      @apply px-[20px] mx-[-20px];
+      width: (60px + 40px);
+    }
+  }
+}
+
+.only-fscrn {
+  display: none !important;
+}
+
+.player__wrap.fullscreen {
+  .only-fscrn {
+    display: block !important;
+  }
+  .hide-fscrn {
+    display: none;
+  }
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  max-height: 100vh !important;
+  .toolbar-top,
+  .toolbar-bottom {
+    padding: {
+      left: 58px !important;
+      right: 58px !important;
+    }
+  }
+
+  .toolbar-top {
+    padding-top: 50px !important;
+  }
+  .toolbar-bottom {
+    padding-bottom: 50px !important;
+
+    .art-more-controls {
+      display: flex;
+    }
+
+    .art-control-progress {
+      .art-control-progress-inner {
+        // height: 4px;
+      }
+    }
+  }
+
+  .art-controls-main {
+    .prev,
+    .next {
+      display: inline-block;
+    }
+  }
+
+  .art-btn .art-icon {
+    @media (min-width: $breakpoint-sm-min) {
+      height: 30px;
+      width: 30px;
+    }
+  }
+
+  .art-title {
+    font-size: 25px;
+  }
+  .art-subtitle {
+    font-size: 20px;
+  }
+  .art-control-onlyText {
+    font-size: 18px;
+  }
+}
+
+.player__wrap {
+  .toolbar-top,
+  .toolbar-bottom {
+    padding: {
+      left: 44px !important;
+      right: 44px !important;
+    }
+  }
+
+  .toolbar-top {
+    padding-top: 32px !important;
+  }
+  .toolbar-bottom {
+    padding-bottom: 32px !important;
+
+    .art-more-controls {
+      display: flex;
+    }
+
+    .art-control-progress {
+      .art-control-progress-inner {
+        // height: 4px;
+      }
+    }
+  }
+
+  .art-controls-main {
+    .prev,
+    .next {
+      display: inline-block;
+    }
+  }
+
+  .art-btn {
+    font-size: 12px;
+    @media (min-width: 718px) {
+      font-size: 14px;
+    }
+    .art-icon {
+      @media (min-width: 718px) {
+        width: 20px;
+        height: 20px;
+      }
+      @media (min-width: $breakpoint-sm-min) {
+        height: 25px;
+        width: 25px;
+      }
+    }
+  }
+}
+
+.desktop-mode\:flex {
+  display: none;
+}
+.player__wrap.desktop-mode {
+  .desktop-mode\:hidden {
+    display: none;
+  }
+  .desktop-mode\:flex {
+    display: flex;
+  }
+  .desktop-mode\:mr-5 {
+    @apply mr-5;
+  }
+  .desktop-mode\:ml-2 {
+    @apply ml-2;
+  }
+  .desktop-mode\:ml-7 {
+    @apply ml-7;
+  }
+
+  .art-layer-controller,
+  .toolbar-bottom {
+    background-image: none;
+    background-color: transparent;
+  }
+
+  .toolbar-top:before,
+  .toolbar-bottom:after {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    left: 0;
+    z-index: -1;
+    transition: opacity 0.25s cubic-bezier(0, 0, 0.2, 1);
+    height: calc(100% + 37px);
+    background-size: 100% 200%;
+    background-repeat: repeat-x;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAADGCAYAAAAT+OqFAAAAdklEQVQoz42QQQ7AIAgEF/T/D+kbq/RWAlnQyyazA4aoAB4FsBSA/bFjuF1EOL7VbrIrBuusmrt4ZZORfb6ehbWdnRHEIiITaEUKa5EJqUakRSaEYBJSCY2dEstQY7AuxahwXFrvZmWl2rh4JZ07z9dLtesfNj5q0FU3A5ObbwAAAABJRU5ErkJggg==);
+  }
+  .toolbar-top:before {
+    background-position: top;
+    padding-bottom: 37px;
+    top: 0;
+  }
+  .toolbar-bottom:after {
+    background-position: bottom;
+    padding-top: 37px;
+    bottom: 0;
+  }
+
+  .toolbar-bottom {
+    padding: {
+      bottom: 0 !important;
+      left: 20px !important;
+      right: 20px !important;
+    }
+    .art-more-controls {
+      margin: {
+        top: 0;
+        bottom: 16px;
+      }
+      .art-control-progress {
+        margin: {
+          left: 5px;
+          right: 5px;
+        }
+      }
+    }
+  }
+  .toolbar-top {
+    padding: {
+      top: 18px !important;
+      left: 20px !important;
+      right: 20px !important;
+    }
+    .art-subtitle {
+      color: rgb(255, 255, 255);
+    }
+  }
+  .art-controls-main {
+    display: none;
+  }
+
+  &.fullscreen {
+    .toolbar-bottom {
+      .art-control-onlyText {
+        display: none;
+      }
+      .art-more-controls {
+        margin: {
+          bottom: 20px;
+        }
+        .art-control-onlyText {
+          display: block;
+        }
+      }
+    }
+  }
+}
+
+.notices {
+  &-move,
+  &-enter-active,
+  &-leave-active {
+    transition:
+      opacity 0.5s ease,
+      transform 0.5s ease;
+  }
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  &-active {
+    position: absolute;
+  }
+}
+</style>
+
+<style lang="scss">
+.fade__ease-in-out {
+  @keyframes fade__ease-in-out {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  &-enter-active {
+    animation: fade__ease-in-out 0.22s ease-in-out;
+  }
+  &-leave-active {
+    animation: fade__ease-in-out 0.22s ease-in-out reverse;
+  }
+}
+</style>
+
+<style lang="scss" scoped>
+.art-layer-controller :deep(.q-btn .q-focus-helper) {
+  display: none;
+}
+
+@import "src/pages/phim/tabs-seasons.scss";
+
+.grid-mode {
+  @apply absolute;
+  height: calc(100% - 41.59px) !important;
+}
+</style>
